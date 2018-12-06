@@ -44,16 +44,16 @@ def get_cmb_sky(iteration_num,
 
 def  _get_default_cmb_directory():
     #FIXME: remove hard-coding to use preferred directory path system
-    return "/global/project/projectdirs/sobs/v4_sims/mbs/cmb/"
+    return "/global/project/projectdirs/sobs/v4_sims/mbs/cmb"
 
 def _get_cmb_map_string(cmb_dir,iteration_num,cmb_set,lensed,aberrated):
     # Implements the CMB lensed alms file naming convention
     # Ideally the same function should be used when saving sims
     if cmb_dir is None: cmb_dir = _get_default_cmb_directory()
     lstring = "Lensed" if lensed else "Unlensed"
-    abstring = "Aberrated" if aberrated else "Unaberrated"
+    abstring = "Abberated" if aberrated else "Unabberated"
     cmb_map_type = "%s%sCMB" % (lstring,abstring)
     filename = cmb_dir + "/fullsky%s_alm_set%02d_%05d.fits" % ( cmb_map_type, cmb_set , iteration_num)
-    return 
+    return filename
 
     
