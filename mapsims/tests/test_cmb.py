@@ -10,8 +10,6 @@ def test_load_sim():
     imap = cmb.get_cmb_sky(iteration_num=0,nside = nside)
     assert imap.shape[0]==3
     # Make an I only sim
-    imap = cmb.get_cmb_sky(iteration_num=0,nside = nside)
+    imap = cmb.get_cmb_sky(iteration_num=0,nside = nside, pol=False)
     assert imap.ndim==1
 
-# FIXME: Remove the explicit call below once py.test is working
-test_load_sim()
