@@ -49,14 +49,16 @@ def get_cmb_sky(iteration_num,
     if nside is not None:
         #Then we are outputting a healpix map
         map_tqu = hp.alm2map(alm_teb, nside)
-        output = np.tile(map_tqu, (nfreqs, 1, 1)) if nfreqs>1 else map_tqu
+        output = np.tile(map_tqu, (nfreqs, 1, 1)) # if nfreqs>1 else map_tqu
         #Here we want to multiply the map by the modulation factor.  FIXME: not implemented yet
     elif (wcs is not None and shape is not None):
         map_tqu = enmap.empty( (ncomp,)+shape[-2:], wcs)
         curvedsky.alm2map(alm_teb, map_tqu, spin = [0, 2], verbose = True)
         #Tile this to return something of shape (nfreqs, 3, Ny, Nx)
-        #Why do we need to return this nfreqs times? Because in the future we will multiply by a frequency-dependent modulation factor
-        output = enmap.ndmap(np.tile(mapTqu, (nfreqs, 1, 1, 1)), wcs) if nfreqs>1 else map_tqu
+        #Why do we need to return this nfreqs times? Because in the
+        #future we will multiply by a frequency-dependent modulation
+        #factor.
+        output = enmap.ndmap(np.tile(mapTqu, (nfreqs, 1, 1, 1)), wcs) #if nfreqs>1 else map_tqu 
         #Here we want to multiply the map by the modulation factor.  FIXME: not implemented yet
     else:
         raise ValueError("You must specify either nside or both of shape and wcs")
