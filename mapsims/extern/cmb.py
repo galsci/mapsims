@@ -32,12 +32,11 @@ def get_cmb_sky(iterationNum,
     if nside is not None:
 
         #Then we are outputting a healpix map
-        output = healpy.alm2map(almTeb, nside)
+        mapTqu = healpy.alm2map(almTeb, nside)
 
+        output = np.tile(output, (nFreqs, 1, 1))
         #Here we want to multiply the map by the modulation factor.  FIXME: not implemented yet
-        
-
-        return np.tile(output, (nFreqs, 1))
+        return output
     
     elif (wcs is not None and shape is not None):
 
