@@ -41,7 +41,7 @@ def get_cmb_sky(iterationNum,
     
     elif (wcs is not None and shape is not None):
 
-        mapTqu = enmap.empty( (nFreqs,nTQUs,)+shape[-2:], wcs)
+        mapTqu = enmap.empty( (nTQUs,)+shape[-2:], wcs)
 
         curvedsky.alm2map(almTeb, mapTqu, spin = [0, 2], verbose = True)
 
