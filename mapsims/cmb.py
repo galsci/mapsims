@@ -1,4 +1,4 @@
-import healpy, numpy as np
+import healpy as hp, numpy as np
 from pixell import enmap, curvedsky
 
 def get_cmb_sky(iteration_num, 
@@ -13,22 +13,42 @@ def get_cmb_sky(iteration_num,
                 nfreqs = 1):
     '''
     Return a CMB map from stored alm's.  This can be in Healpix format
-    (if nside is specified) or CAR format (if wcs and shape are
+    (if nside is specified) or rectangular pixel format (if wcs and shape are
     specified).  The lensed alm's are pre-stored.
-    If CAR, it returns a stack of enmaps of shape (nfreqs, ncomp, ny, nx). 
+    If rectangular, it returns a stack of enmaps of shape (nfreqs, ncomp, ny, nx). 
     If Healpix, it will return a numpy array of shape (nfreqs, ncomp, npix) 
+
+    Args:
+        iteration_num: integer specifying which sim iteration to use
+        nside: nside of healpix map to project alms to. If None, uses 
+        rectangular pixel geometry specified through shape and wcs.
+        shape: shape of ndmap array (see pixell.enmap)
+        wcs: World Coordinate System for geometry of map (see pixell.enmap)
+        lensed: whether to load lensed or unlensed sims
+        aberrated: whether to load aberrated or unaberrated sims
+        pol: if True, return ncomp=3 I,Q,U components, else just ncomp=1 I
+        cmb_set: integer specifying which set of sims to use
+        cmb_dir: override the default lensed alm directory path
+        nfreqs: number of copies of the CMB sky to provide. When modulation
+        is implemented, this argument will be changed to a frequency bandpass
+        specification that applies frequency-dependent modulation to the sims.
+
+    Returns:
+        output: (nfreqs,ncomp,npix) healpix array if nside is specified, else
+        returns (nfreqs,ncomp,Ny,Nx) rectangular pixel ndmap.
+        
     '''
     ncomp = 3 if pol else 1
     filename = _get_cmb_map_string(cmb_dir,iteration_num,cmb_set,lensed,aberrated)
     #The hdu = (1, 2,3) means get all of T, E, B
     #Note the alm's are stored as complex32, so upgrade this for processing
-    alm_teb = np.complex128(healpy.fitsfunc.read_alm(filename, hdu = (1,2,3) if pol else 1))
+    alm_teb = np.complex128(hp.fitsfunc.read_alm(filename, hdu = (1,2,3) if pol else 1))
     #Here we can multiply the alms by the appropriate beam;
-    #healpy.sphtfunc.almxfl can be used.  Not included yet.  Once we
+    #hp.sphtfunc.almxfl can be used.  Not included yet.  Once we
     #do, we will have to call the inverse SHT nfreqs times, as in actsims.
     if nside is not None:
         #Then we are outputting a healpix map
-        map_tqu = healpy.alm2map(alm_teb, nside)
+        map_tqu = hp.alm2map(alm_teb, nside)
         output = np.tile(map_tqu, (nfreqs, 1, 1)) if nfreqs>1 else map_tqu
         #Here we want to multiply the map by the modulation factor.  FIXME: not implemented yet
     elif (wcs is not None and shape is not None):
