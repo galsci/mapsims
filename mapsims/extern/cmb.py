@@ -16,6 +16,9 @@ def get_cmb_sky(iterationNum,
     Return a CMB map from stored alm's.  This can be in Healpix format
     (if nside is specified) or CAR format (if wcs and shape are
     specified).  The lensed alm's are pre-stored.
+
+    If CAR, it returns a stack of enmaps of shape (nFreqs, nTQUs, ny, nx). 
+    If Healpix, it will return a numpy array of shape (nFreqs, nTQUs, nPix) 
     '''
     nTQUs = 3
     
