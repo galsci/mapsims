@@ -18,7 +18,7 @@ class SONoiseSimulator:
         telescope,
         band,
         nside,
-        return_K_CMB=True,
+        return_uK_CMB=True,
         sensitivity_mode="baseline",
         apply_beam_correction=True,
         apply_kludge_correction=True,
@@ -33,6 +33,7 @@ class SONoiseSimulator:
         """Simulate noise maps for Simons Observatory
 
         Simulate the noise power spectrum in spherical harmonics domain and then generate a map
+        in microK_CMB or microK_RJ (based on return_uK_CMB)
 
         Parameters
         ----------
@@ -43,8 +44,8 @@ class SONoiseSimulator:
             Detectors frequency band in GHz
         nside : int
             Output HEALPix NSIDE
-        return_K_CMB : bool
-            True, output is in K_CMB, False output is in K_RJ
+        return_uK_CMB : bool
+            True, output is in microK_CMB, False output is in microK_RJ
         sensitivity_mode : str
             Value should be threshold, baseline or goal to use predefined sensitivities
         apply_beam_correction : bool
@@ -73,7 +74,7 @@ class SONoiseSimulator:
         self.apply_beam_correction = apply_beam_correction
         self.apply_kludge_correction = apply_kludge_correction
         self.nside = nside
-        self.return_K_CMB = return_K_CMB
+        self.return_uK_CMB = return_uK_CMB
         self.ell_max = 3 * nside
         self.LA_number_LF = LA_number_LF
         self.LA_number_MF = LA_number_MF
@@ -137,7 +138,7 @@ class SONoiseSimulator:
         self.noise_ell_T = self.noise_ell_T[band_index]
         self.noise_ell_P = self.noise_ell_P[band_index]
 
-        if self.return_K_CMB:
+        if self.return_uK_CMB:
             to_K_CMB = pysm.convert_units("K_RJ", "K_CMB", band) ** 2
             self.noise_ell_T *= to_K_CMB
             self.noise_ell_P *= to_K_CMB
