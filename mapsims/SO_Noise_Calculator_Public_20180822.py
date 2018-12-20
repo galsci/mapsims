@@ -1,14 +1,5 @@
 from __future__ import print_function
 import numpy as np
-import matplotlib
-from cycler import cycler
-matplotlib.rcParams['axes.prop_cycle'] = cycler(color=['#2424f0','#df6f0e','#3cc03c','#d62728','#b467bd','#ac866b','#e397d9','#9f9f9f','#ecdd72','#77becf'])
-matplotlib.use('pdf')
-matplotlib.rc('font', family='serif', serif='cm10')
-matplotlib.rc('text', usetex=True)
-fontProperties = {'family':'sans-serif',
-                  'weight' : 'normal', 'size' : 16}
-import matplotlib.pyplot as plt
 
 ####################################################################
 ####################################################################
@@ -232,69 +223,6 @@ def Simons_Observatory_V3_LA_noise(sensitivity_mode,f_sky,ell_max,delta_ell,N_LF
     ####################################################################
     return(ell, N_ell_T_LA, N_ell_P_LA, Map_white_noise_levels)
 
-
-####################################################################
-####################################################################
-##                   demonstration of the code
-####################################################################
-print("band centers: ", Simons_Observatory_V3_LA_bands(), "[GHz]")
-print("beam sizes: "  , Simons_Observatory_V3_LA_beams(), "[arcmin]")
-N_bands = np.size(Simons_Observatory_V3_LA_bands())
-beams = Simons_Observatory_V3_LA_beams()
-beams_sigma_rad = beams / np.sqrt(8. * np.log(2)) /60. * np.pi/180.
-
-## run the code to generate noise curves
-mode=2 # goal sensitivity
-fsky=0.4
-N_LF=1.
-N_MF=4.
-N_UHF=2.
-ellmax=1e4
-ell, N_ell_LA_T,N_ell_LA_Pol,WN_levels = Simons_Observatory_V3_LA_noise(mode,fsky,ellmax,1,N_LF,N_MF,N_UHF)
-# if white noise-only curves for comparison are needed, uncomment the next three lines
-#N_ell_V3_T_white = np.zeros((N_bands,np.int(ellmax-2)))
-#for i in range(N_bands):
-#    N_ell_V3_T_white[i] = (WN_levels[i]**2. * 1./(1.*(180./np.pi)**2.*3600.) * np.exp( ell*(ell+1)* beams_sigma_rad[i]**2. ))
-
-## plot the temperature noise curves
-plt.clf()
-for i in xrange(N_bands):
-    plt.loglog(ell,N_ell_LA_T[i], label=str((Simons_Observatory_V3_LA_bands())[i])+' GHz', ls='-', lw=2.)
-# include correlated atmospheric noise across frequencies
-plt.loglog(ell, N_ell_LA_T[N_bands], label=r'$27 \times 39$ GHz atm.', lw=1.5, ls='--')
-plt.loglog(ell, N_ell_LA_T[N_bands+1], label=r'$93 \times 145$ GHz atm.', lw=1.5, ls='--')
-plt.loglog(ell, N_ell_LA_T[N_bands+2], label=r'$225 \times 280$ GHz atm.', lw=1.5, ls='--')
-plt.title(r"SO LAT $N(\ell$) Temperature", fontsize=18)
-plt.ylabel(r"$N(\ell$) [$\mu$K${}^2$]", fontsize=16)
-plt.xlabel(r"$\ell$", fontsize=16)
-plt.ylim(5e-7,1)
-plt.xlim(100,10000)
-plt.legend(loc='lower left', ncol=2, fontsize=8)
-plt.grid()
-plt.savefig('SO_calc_mode'+str(mode)+'_fsky'+str(fsky)+'_defaultdist_noise_LAT_T.pdf')
-plt.close()
-
-## plot the polarization noise curves
-plt.clf()
-for i in xrange(N_bands):
-    plt.loglog(ell,N_ell_LA_Pol[i], label=str((Simons_Observatory_V3_LA_bands())[i])+' GHz', ls='-', lw=2.)
-# include correlated atmospheric noise across frequencies
-plt.loglog(ell, N_ell_LA_Pol[N_bands], label=r'$27 \times 39$ GHz atm.', lw=1.5, ls='--')
-plt.loglog(ell, N_ell_LA_Pol[N_bands+1], label=r'$93 \times 145$ GHz atm.', lw=1.5, ls='--')
-plt.loglog(ell, N_ell_LA_Pol[N_bands+2], label=r'$225 \times 280$ GHz atm.', lw=1.5, ls='--')
-plt.title(r"SO LAT $N(\ell$) Polarization", fontsize=18)
-plt.ylabel(r"$N(\ell$) [$\mu$K${}^2$]", fontsize=16)
-plt.xlabel(r"$\ell$", fontsize=16)
-plt.ylim(5e-7,1)
-plt.xlim(100,10000)
-plt.legend(loc='upper left', ncol=2, fontsize=9)
-plt.grid()
-plt.savefig('SO_calc_mode'+str(mode)+'_fsky'+str(fsky)+'_defaultdist_noise_LAT_P.pdf')
-plt.close()
-####################################################################
-####################################################################
-
-
 ####################################################################
 ####################################################################
 ### SAT CALCULATOR ###
@@ -439,31 +367,3 @@ def Simons_Observatory_V3_SA_noise(sensitivity_mode,one_over_f_mode,SAT_yrs_LF,f
     
     ####################################################################
     return(ell,N_ell_P_SA,Map_white_noise_levels)
-
-####################################################################
-####################################################################
-##                   demonstration of the code
-####################################################################
-print("band centers: ", Simons_Observatory_V3_SA_bands(), "[GHz]")
-print("beam sizes: "  , Simons_Observatory_V3_SA_beams(), "[arcminute]")
-
-## run the code to generate noise curves
-fsky_SAT = 0.1
-sens_mode = 2 #goal sensitivity
-one_over_f_mode_SAT = 0 #pessimistic 1/f
-SAT_yrs_LF = 1
-ell, N_ell_SA_Pol,WN_levels = Simons_Observatory_V3_SA_noise(sens_mode,one_over_f_mode_SAT,SAT_yrs_LF,fsky_SAT,500,1)
- 
-## plot the polarization noise curves
-N_bands = np.size(Simons_Observatory_V3_LA_bands())
-for i in xrange(N_bands):
-    plt.loglog(ell,N_ell_SA_Pol[i], label=str((Simons_Observatory_V3_SA_bands())[i])+' GHz', ls='-', lw=2.)
-plt.title(r"SO SATs $N(\ell$) Polarization", fontsize=18)
-plt.ylabel(r"$N(\ell$) [$\mu$K${}^2$]", fontsize=16)
-plt.xlabel(r"$\ell$", fontsize=16)
-plt.ylim(5e-7,0.01)
-plt.xlim(10,500)
-plt.legend(loc='lower left', ncol=2, fontsize=8)
-plt.grid()
-plt.savefig('SO_calc_mode'+str(sens_mode)+'-'+str(one_over_f_mode_SAT)+'_SATyrsLF'+str(SAT_yrs_LF)+'_fsky'+str(fsky)+'_defaultdist_noise_SAT_P.pdf')
-plt.close()
