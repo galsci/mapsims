@@ -1,5 +1,5 @@
 import healpy as hp, numpy as np
-from pixell import enmap, curvedsky
+import so_pysm_models as spm
 
 def get_cmb_sky(iteration_num, 
                 nside = None, #set this if healpix is desired
@@ -7,10 +7,14 @@ def get_cmb_sky(iteration_num,
                 wcs = None,
                 lensed = True,
                 aberrated = False,
-                pol = True,
+                modulation = False,
+                has_polarization = True,
                 cmb_set = 0, #We allow for more than one CMB map per lensing map
                 cmb_dir = None, 
-                nfreqs = 1):
+                nu = None,
+                input_units="uK_RJ",
+                pixel_indices = None
+):
     '''
     Return a CMB map from stored alm's.  This can be in Healpix format
     (if nside is specified) or rectangular pixel format (if wcs and shape are
@@ -38,31 +42,19 @@ def get_cmb_sky(iteration_num,
         returns (nfreqs,ncomp,Ny,Nx) rectangular pixel ndmap.
         
     '''
-    ncomp = 3 if pol else 1
+    ncomp = 3 if has_polarization else 1
     filename = _get_cmb_map_string(cmb_dir,iteration_num,cmb_set,lensed,aberrated)
     #The hdu = (1, 2,3) means get all of T, E, B
     #Note the alm's are stored as complex32, so upgrade this for processing
-    alm_teb = np.complex128(hp.fitsfunc.read_alm(filename, hdu = (1,2,3) if pol else 1))
-    #Here we can multiply the alms by the appropriate beam;
-    #hp.sphtfunc.almxfl can be used.  Not included yet.  Once we
-    #do, we will have to call the inverse SHT nfreqs times, as in actsims.
-    if nside is not None:
-        #Then we are outputting a healpix map
-        map_tqu = hp.alm2map(alm_teb, nside)
-        output = np.tile(map_tqu, (nfreqs, 1, 1)) # if nfreqs>1 else map_tqu
-        #Here we want to multiply the map by the modulation factor.  FIXME: not implemented yet
-    elif (wcs is not None and shape is not None):
-        map_tqu = enmap.empty( (ncomp,)+shape[-2:], wcs)
-        curvedsky.alm2map(alm_teb, map_tqu, spin = [0, 2], verbose = True)
-        #Tile this to return something of shape (nfreqs, 3, Ny, Nx)
-        #Why do we need to return this nfreqs times? Because in the
-        #future we will multiply by a frequency-dependent modulation
-        #factor.
-        output = enmap.ndmap(np.tile(mapTqu, (nfreqs, 1, 1, 1)), wcs) #if nfreqs>1 else map_tqu 
-        #Here we want to multiply the map by the modulation factor.  FIXME: not implemented yet
-    else:
-        raise ValueError("You must specify either nside or both of shape and wcs")
-    return output
+
+    sgen = spm.PrecomputedAlms(filename,
+                               target_nside = nside, 
+                               target_shape = shape,
+                               target_wcs = wcs,
+                               input_units=input_units,
+                               has_polarization=has_polarization, pixel_indices=pixel_indices)
+
+    return sgen.signal(nu=nu,modulation=modulation)
 
 def  _get_default_cmb_directory():
     #FIXME: remove hard-coding to use preferred directory path system
