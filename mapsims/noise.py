@@ -133,9 +133,9 @@ class SONoiseSimulator:
 
         # extract the relevant band
 
-        bands = getattr(so_noise, "Simons_Observatory_V3_{}_bands".format(self.telescope))().astype(
-            np.int
-        )
+        bands = getattr(
+            so_noise, "Simons_Observatory_V3_{}_bands".format(self.telescope)
+        )().astype(np.int)
         band_index = bands.searchsorted(self.band)
         self.noise_ell_T = self.noise_ell_T[band_index]
         self.noise_ell_P = self.noise_ell_P[band_index]
@@ -149,12 +149,24 @@ class SONoiseSimulator:
         if seed is not None:
             np.random.seed(seed)
         zeros = np.zeros_like(self.noise_ell_T)
-        output_map = np.array(hp.synfast(
-            [self.noise_ell_T, self.noise_ell_P, self.noise_ell_P, zeros, zeros, zeros],
-            nside=self.nside,
-            pol=True,
-            new=True,
-            verbose=False,
-        ))
-        #output_map /= np.sqrt(self.hitmap)
+        output_map = np.array(
+            hp.synfast(
+                [
+                    self.noise_ell_T,
+                    self.noise_ell_P,
+                    self.noise_ell_P,
+                    zeros,
+                    zeros,
+                    zeros,
+                ],
+                nside=self.nside,
+                pol=True,
+                new=True,
+                verbose=False,
+            )
+        )
+        output_map /= np.sqrt(self.hitmap)
+        mask = self.hitmap == 0
+        for each in output_map:
+            each[mask] = hp.UNSEEN
         return output_map
