@@ -21,7 +21,7 @@ def Simons_Observatory_V3_LA_beams():
     beam_LAT_280 = 0.9
     return(np.array([beam_LAT_27,beam_LAT_39,beam_LAT_93,beam_LAT_145,beam_LAT_225,beam_LAT_280]))
 
-def Simons_Observatory_V3_LA_noise(sensitivity_mode,f_sky,ell_max,delta_ell,N_LF=1.,N_MF=4.,N_UHF=2.):
+def Simons_Observatory_V3_LA_noise(sensitivity_mode,f_sky,ell_max,delta_ell,N_LF=1.,N_MF=4.,N_UHF=2., apply_beam_correction=True, apply_kludge_correction=True):
     ## returns noise curves in both temperature and polarization, including the impact of the beam, for the SO large aperture telescope
     # sensitivity_mode:
     #     1: baseline, 
@@ -88,7 +88,8 @@ def Simons_Observatory_V3_LA_noise(sensitivity_mode,f_sky,ell_max,delta_ell,N_LF
     survey_time = 5. #years
     t = survey_time * 365.25 * 24. * 3600.    ## convert years to seconds
     t = t * 0.2   ## retention after observing efficiency and cuts
-    t = t * 0.85  ## a kludge for the noise non-uniformity of the map edges
+    if apply_kludge_correction:
+        t = t * 0.85  ## a kludge for the noise non-uniformity of the map edges
     A_SR = 4. * np.pi * f_sky  ## sky areas in steradians
     A_deg =  A_SR * (180/np.pi)**2  ## sky area in square degrees
     A_arcmin = A_deg * 3600.
@@ -159,18 +160,19 @@ def Simons_Observatory_V3_LA_noise(sensitivity_mode,f_sky,ell_max,delta_ell,N_LF
     N_ell_T_93x145 = AN_T_93x145
     N_ell_T_225x280 = AN_T_225x280
 
-    ## include the impact of the beam
-    LA_beams = Simons_Observatory_V3_LA_beams() / np.sqrt(8. * np.log(2)) /60. * np.pi/180.
-    ## LAT beams as a sigma expressed in radians
-    N_ell_T_27  *= np.exp( ell*(ell+1)* LA_beams[0]**2. )
-    N_ell_T_39  *= np.exp( ell*(ell+1)* LA_beams[1]**2. )
-    N_ell_T_93  *= np.exp( ell*(ell+1)* LA_beams[2]**2. )
-    N_ell_T_145 *= np.exp( ell*(ell+1)* LA_beams[3]**2. )
-    N_ell_T_225 *= np.exp( ell*(ell+1)* LA_beams[4]**2. )
-    N_ell_T_280 *= np.exp( ell*(ell+1)* LA_beams[5]**2. )
-    N_ell_T_27x39 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[0]**2. + LA_beams[1]**2.) )
-    N_ell_T_93x145 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[2]**2. + LA_beams[3]**2.) )
-    N_ell_T_225x280 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[4]**2. + LA_beams[5]**2.) )
+    if apply_beam_correction:
+        ## include the impact of the beam
+        LA_beams = Simons_Observatory_V3_LA_beams() / np.sqrt(8. * np.log(2)) /60. * np.pi/180.
+        ## LAT beams as a sigma expressed in radians
+        N_ell_T_27  *= np.exp( ell*(ell+1)* LA_beams[0]**2. )
+        N_ell_T_39  *= np.exp( ell*(ell+1)* LA_beams[1]**2. )
+        N_ell_T_93  *= np.exp( ell*(ell+1)* LA_beams[2]**2. )
+        N_ell_T_145 *= np.exp( ell*(ell+1)* LA_beams[3]**2. )
+        N_ell_T_225 *= np.exp( ell*(ell+1)* LA_beams[4]**2. )
+        N_ell_T_280 *= np.exp( ell*(ell+1)* LA_beams[5]**2. )
+        N_ell_T_27x39 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[0]**2. + LA_beams[1]**2.) )
+        N_ell_T_93x145 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[2]**2. + LA_beams[3]**2.) )
+        N_ell_T_225x280 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[4]**2. + LA_beams[5]**2.) )
     
     ## make an array of noise curves for T
     # include cross-correlations due to atmospheric noise
@@ -243,7 +245,7 @@ def Simons_Observatory_V3_SA_beams():
     beam_SAT_280 = 9.
     return(np.array([beam_SAT_27,beam_SAT_39,beam_SAT_93,beam_SAT_145,beam_SAT_225,beam_SAT_280]))
 
-def Simons_Observatory_V3_SA_noise(sensitivity_mode,one_over_f_mode,SAT_yrs_LF,f_sky,ell_max,delta_ell):
+def Simons_Observatory_V3_SA_noise(sensitivity_mode,one_over_f_mode,SAT_yrs_LF,f_sky,ell_max,delta_ell,apply_beam_correction=True, apply_kludge_correction=True):
     ## returns noise curves in polarization only, including the impact of the beam, for the SO small aperture telescopes
     ## noise curves are polarization only
     # sensitivity_mode
@@ -301,7 +303,8 @@ def Simons_Observatory_V3_SA_noise(sensitivity_mode,one_over_f_mode,SAT_yrs_LF,f
     ## calculate the survey area and time
     t = 5* 365. * 24. * 3600    ## five years in seconds
     t = t * 0.2  ## retention after observing efficiency and cuts
-    t = t* 0.85  ## a kludge for the noise non-uniformity of the map edges
+    if apply_kludge_correction:
+        t = t* 0.85  ## a kludge for the noise non-uniformity of the map edges
     A_SR = 4 * np.pi * f_sky  ## sky area in steradians
     A_deg =  A_SR * (180/np.pi)**2  ## sky area in square degrees
     A_arcmin = A_deg * 3600.
@@ -352,15 +355,16 @@ def Simons_Observatory_V3_SA_noise(sensitivity_mode,one_over_f_mode,SAT_yrs_LF,f
     N_ell_P_225  = (W_T_225 * np.sqrt(2))**2.* A_SR * AN_P_225
     N_ell_P_280  = (W_T_280 * np.sqrt(2))**2.* A_SR * AN_P_280
     
-    ## include the impact of the beam
-    SA_beams = Simons_Observatory_V3_SA_beams() / np.sqrt(8. * np.log(2)) /60. * np.pi/180.
-    ## SAT beams as a sigma expressed in radians
-    N_ell_P_27  *= np.exp( ell*(ell+1)* SA_beams[0]**2. )
-    N_ell_P_39  *= np.exp( ell*(ell+1)* SA_beams[1]**2. )
-    N_ell_P_93  *= np.exp( ell*(ell+1)* SA_beams[2]**2. )
-    N_ell_P_145 *= np.exp( ell*(ell+1)* SA_beams[3]**2. )
-    N_ell_P_225 *= np.exp( ell*(ell+1)* SA_beams[4]**2. )
-    N_ell_P_280 *= np.exp( ell*(ell+1)* SA_beams[5]**2. )
+    if apply_beam_correction:
+        ## include the impact of the beam
+        SA_beams = Simons_Observatory_V3_SA_beams() / np.sqrt(8. * np.log(2)) /60. * np.pi/180.
+        ## SAT beams as a sigma expressed in radians
+        N_ell_P_27  *= np.exp( ell*(ell+1)* SA_beams[0]**2. )
+        N_ell_P_39  *= np.exp( ell*(ell+1)* SA_beams[1]**2. )
+        N_ell_P_93  *= np.exp( ell*(ell+1)* SA_beams[2]**2. )
+        N_ell_P_145 *= np.exp( ell*(ell+1)* SA_beams[3]**2. )
+        N_ell_P_225 *= np.exp( ell*(ell+1)* SA_beams[4]**2. )
+        N_ell_P_280 *= np.exp( ell*(ell+1)* SA_beams[5]**2. )
     
     ## make an array of noise curves for P
     N_ell_P_SA = np.array([N_ell_P_27,N_ell_P_39,N_ell_P_93,N_ell_P_145,N_ell_P_225,N_ell_P_280])
