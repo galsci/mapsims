@@ -99,6 +99,8 @@ class SONoiseSimulator:
             )
         )
         self.hitmap /= self.hitmap.max()
+        # Discard pixels with very few hits that cause border effects
+        self.hitmap[self.hitmap < 1e-3] = 0
         # count() counts only un-masked elements
         self.sky_fraction = self.hitmap.count() / len(self.hitmap)
 
