@@ -1,5 +1,7 @@
+import os.path
 import numpy as np
 import healpy as hp
+from astropy.utils import data
 
 import pysm
 
@@ -18,13 +20,14 @@ class SONoiseSimulator:
         nside,
         return_K_CMB=True,
         sensitivity_mode="baseline",
-        apply_beam_correction=False,
+        apply_beam_correction=True,
+        apply_kludge_correction=True,
         scanning_strategy="classical",
         LA_number_LF=1,
         LA_number_MF=4,
-        LA_number_UHF=4,
-        SA_years_LF=None,
-        SA_one_over_f_mode=None,
+        LA_number_UHF=2,
+        SA_years_LF=1,
+        SA_one_over_f_mode="pessimistic",
         SA_remove_kluge=False,
     ):
         """Simulate noise maps for Simons Observatory
@@ -46,8 +49,11 @@ class SONoiseSimulator:
             Value should be threshold, baseline or goal to use predefined sensitivities
         apply_beam_correction : bool
             Include the effect of the beam in the noise angular power spectrum
-        scanning_strategy : {"classical", "opportunistic"}
-            Choose between the available scanning strategy hitmaps
+        apply_kludge_correction : bool
+            If True, reduce the hitcount by a factor of 0.85 to account for not-uniformity in the scanning
+        scanning_strategy : str
+            Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
+            path to another hitmap
         LA_number_LF : int
             Number of Low Frequency tubes in LAT
         LA_number_MF : int
@@ -65,8 +71,7 @@ class SONoiseSimulator:
         self.band = int(band)
         self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
         self.apply_beam_correction = apply_beam_correction
-        self.scanning_strategy = scanning_strategy
-        assert scanning_strategy in ["classical", "opportunistic"]
+        self.apply_kludge_correction = apply_kludge_correction
         self.nside = nside
         self.return_K_CMB = return_K_CMB
         self.ell_max = 3 * nside
@@ -76,6 +81,25 @@ class SONoiseSimulator:
         self.SA_years_LF = SA_years_LF
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
         self.SA_remove_kluge = SA_remove_kluge
+
+        # Load hitmap and compute sky fraction
+
+        if os.path.exists(scanning_strategy):
+            hitmap_filename = scanning_strategy
+        else:
+            hitmap_filename = data.get_pkg_data_filename(
+                "data/total_hits_{}_{}.fits.gz".format(
+                    self.telescope, scanning_strategy
+                )
+            )
+        self.hitmap = hp.ma(
+            hp.ud_grade(
+                hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
+            )
+        )
+        self.hitmap /= self.hitmap.max()
+        # count() counts only un-masked elements
+        self.sky_fraction = self.hitmap.count() / len(self.hitmap)
 
         if self.telescope == "SA":
             self.ell, self.noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
@@ -106,7 +130,7 @@ class SONoiseSimulator:
 
         # extract the relevant band
 
-        bands = getattr(so_noise, "so_V3_{}_bands".format(self.telescope)()).astype(
+        bands = getattr(so_noise, "Simons_Observatory_V3_{}_bands".format(self.telescope))().astype(
             np.int
         )
         band_index = bands.searchsorted(self.band)
@@ -122,11 +146,12 @@ class SONoiseSimulator:
         if seed is not None:
             np.random.seed(seed)
         zeros = np.zeros_like(self.noise_ell_T)
-        output_map = hp.synfast(
+        output_map = np.array(hp.synfast(
             [self.noise_ell_T, self.noise_ell_P, self.noise_ell_P, zeros, zeros, zeros],
             nside=self.nside,
             pol=True,
             new=True,
             verbose=False,
-        )
+        ))
+        #output_map /= np.sqrt(self.hitmap)
         return output_map
