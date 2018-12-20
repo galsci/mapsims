@@ -11,6 +11,24 @@ sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
 
 
+def get_bands(telescope):
+    """Returns the available bands for a telescope
+
+    Parameters
+    ----------
+    telescope : {"SA", "LA"}
+
+    Returns
+    -------
+    bands : ndarray of ints
+    Available bands
+    """
+    bands = getattr(
+        so_noise, "Simons_Observatory_V3_{}_bands".format(telescope)
+    )().astype(np.int)
+    return bands
+
+
 class SONoiseSimulator:
 
     def __init__(
@@ -132,11 +150,17 @@ class SONoiseSimulator:
             )
 
         # extract the relevant band
+        bands = get_bands(self.telescope)
+        try:
+            band_index = bands.tolist().index(self.band)
+        except ValueError:
+            print(
+                "Band {} not available, available bands for {} are {}".format(
+                    self.band, self.telescope, bands
+                )
+            )
+            raise
 
-        bands = getattr(
-            so_noise, "Simons_Observatory_V3_{}_bands".format(self.telescope)
-        )().astype(np.int)
-        band_index = bands.searchsorted(self.band)
         self.noise_ell_T = self.noise_ell_T[band_index]
         self.noise_ell_P = self.noise_ell_P[band_index]
 
