@@ -111,16 +111,13 @@ class SONoiseSimulator:
                     self.telescope, scanning_strategy
                 )
             )
-        self.hitmap = hp.ma(
-            hp.ud_grade(
-                hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
-            )
+        self.hitmap = hp.ud_grade(
+            hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
         )
         self.hitmap /= self.hitmap.max()
         # Discard pixels with very few hits that cause border effects
         self.hitmap[self.hitmap < 1e-3] = 0
-        # count() counts only un-masked elements
-        self.sky_fraction = self.hitmap.count() / len(self.hitmap)
+        self.sky_fraction = (self.hitmap != 0).sum() / len(self.hitmap)
 
         if self.telescope == "SA":
             self.ell, self.noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
@@ -173,24 +170,25 @@ class SONoiseSimulator:
         if seed is not None:
             np.random.seed(seed)
         zeros = np.zeros_like(self.noise_ell_T)
-        output_map = np.array(
-            hp.synfast(
-                [
-                    self.noise_ell_T,
-                    self.noise_ell_P,
-                    self.noise_ell_P,
-                    zeros,
-                    zeros,
-                    zeros,
-                ],
-                nside=self.nside,
-                pol=True,
-                new=True,
-                verbose=False,
+        output_map = hp.ma(
+            np.array(
+                hp.synfast(
+                    [
+                        self.noise_ell_T,
+                        self.noise_ell_P,
+                        self.noise_ell_P,
+                        zeros,
+                        zeros,
+                        zeros,
+                    ],
+                    nside=self.nside,
+                    pol=True,
+                    new=True,
+                    verbose=False,
+                )
             )
         )
-        output_map /= np.sqrt(self.hitmap)
-        mask = self.hitmap == 0
-        for each in output_map:
-            each[mask] = hp.UNSEEN
+        good = self.hitmap != 0
+        output_map[:, good] /= np.sqrt(self.hitmap[good])
+        output_map[:, np.logical_not(good)] = hp.UNSEEN
         return output_map
