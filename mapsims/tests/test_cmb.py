@@ -5,7 +5,7 @@ from mapsims import cmb # FIXME: relative path import?
 from astropy.utils.data import get_pkg_data_filename
 
 def test_load_sim():
-    cmb_dir = 'mapsims/data' # FIXME: better way to get path to data?
+    cmb_dir = 'mapsims/data' # FIXME: how do I get path to data?
     save_name = 'mapsims/data/test_map.fits'
     nside = 32
     # Make an IQU sim
