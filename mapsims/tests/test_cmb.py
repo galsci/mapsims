@@ -1,13 +1,13 @@
 import numpy as np
-import os, sys
 import healpy as hp
+import os
 from mapsims import cmb  # FIXME: relative path import?
 from astropy.utils.data import get_pkg_data_filename
 
 
 def test_load_sim():
-    cmb_dir = "mapsims/data"  # FIXME: how do I get path to data?
-    save_name = "mapsims/data/test_map.fits"
+    save_name = get_pkg_data_filename("../data/test_map.fits")
+    cmb_dir = os.path.dirname(save_name)
     nside = 32
     # Make an IQU sim
     imap = cmb.get_cmb_sky(
