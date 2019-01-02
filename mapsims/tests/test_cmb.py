@@ -1,8 +1,11 @@
+import os
+
 import numpy as np
 import healpy as hp
-import os
-from mapsims import cmb  # FIXME: relative path import?
+
 from astropy.utils.data import get_pkg_data_filename
+
+from .. import cmb
 
 
 def test_load_sim():
