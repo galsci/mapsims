@@ -18,34 +18,34 @@ def get_cmb_sky(
     pixel_indices=None,
 ):
     """
-    Return a CMB map from stored alm's.  This can be in Healpix format
+    Return a CMB map from stored alm's.  This can be in HEALPix format
     (if nside is specified) or rectangular pixel format (if wcs and shape are
     specified).  The lensed alm's are pre-stored.
     If rectangular, it returns a stack of enmaps of shape (nfreqs, ncomp, ny, nx). 
-    If Healpix, it will return a numpy array of shape (nfreqs, ncomp, npix) 
+    If HEALPix, it will return a numpy array of shape (nfreqs, ncomp, npix) 
 
     Parameters
     ----------
-    iteration_num
+    iteration_num : int
         integer specifying which sim iteration to use
-    nside
+    nside : int
         nside of healpix map to project alms to. If None, uses 
         rectangular pixel geometry specified through shape and wcs.
-    shape
+    shape : tuple of ints
         shape of ndmap array (see pixell.enmap)
-    wcs
+    wcs : str
         World Coordinate System for geometry of map (see pixell.enmap)
-    lensed
+    lensed : bool
         Whether to load lensed or unlensed sims
-    aberrated
+    aberrated : bool
         Whether to load aberrated or unaberrated sims
-    pol
+    pol : bool
         If True, return ncomp=3 I,Q,U components, else just ncomp=1 I
-    cmb_set
+    cmb_set : int
         Integer specifying which set of sims to use
-    cmb_dir
+    cmb_dir : path
         Override the default lensed alm directory path
-    nfreqs
+    nfreqs : int
         Number of copies of the CMB sky to provide. When modulation
         is implemented, this argument will be changed to a frequency bandpass
         specification that applies frequency-dependent modulation to the sims.
@@ -53,7 +53,7 @@ def get_cmb_sky(
     Returns
     -------
     output
-        (nfreqs,ncomp,npix) healpix array if nside is specified, else
+        (nfreqs,ncomp,npix) HEALPix numpy array if nside is specified, else
         returns (nfreqs,ncomp,Ny,Nx) rectangular pixel ndmap.
         
     """
