@@ -93,7 +93,7 @@ def Simons_Observatory_V3_LA_noise(sensitivity_mode,f_sky,ell_max,delta_ell,N_LF
     A_SR = 4. * np.pi * f_sky  ## sky areas in steradians
     A_deg =  A_SR * (180/np.pi)**2  ## sky area in square degrees
     A_arcmin = A_deg * 3600.
-    print("sky area: ", A_deg, "degrees^2")
+    #print("sky area: ", A_deg, "degrees^2")
     
     ####################################################################
     ## make the ell array for the output noise curves
@@ -117,7 +117,7 @@ def Simons_Observatory_V3_LA_noise(sensitivity_mode,f_sky,ell_max,delta_ell,N_LF
     MN_T_225 = W_T_225 * np.sqrt(A_arcmin)
     MN_T_280 = W_T_280 * np.sqrt(A_arcmin)
     Map_white_noise_levels= np.array([MN_T_27,MN_T_39,MN_T_93,MN_T_145,MN_T_225,MN_T_280])
-    print("white noise levels (T): ",Map_white_noise_levels ,"[uK-arcmin]")
+    #print("white noise levels (T): ",Map_white_noise_levels ,"[uK-arcmin]")
     
     ## calculate the atmospheric contribution for T
     ## see Sec. 2.2 of SO science goals paper
@@ -308,9 +308,9 @@ def Simons_Observatory_V3_SA_noise(sensitivity_mode,one_over_f_mode,SAT_yrs_LF,f
     A_SR = 4 * np.pi * f_sky  ## sky area in steradians
     A_deg =  A_SR * (180/np.pi)**2  ## sky area in square degrees
     A_arcmin = A_deg * 3600.
-    print("sky area: ", A_deg, "degrees^2")
-    print("Note that this code includes a factor of 1/0.85 increase in the noise power, corresponding to assumed mode loss due to map depth non-uniformity.")
-    print("If you have your own N_hits map that already includes such non-uniformity, you should increase the total integration time by a factor of 1/0.85 when generating noise realizations from the power spectra produced by this code, so that this factor is not mistakenly introduced twice.")
+    #print("sky area: ", A_deg, "degrees^2")
+    #print("Note that this code includes a factor of 1/0.85 increase in the noise power, corresponding to assumed mode loss due to map depth non-uniformity.")
+    #print("If you have your own N_hits map that already includes such non-uniformity, you should increase the total integration time by a factor of 1/0.85 when generating noise realizations from the power spectra produced by this code, so that this factor is not mistakenly introduced twice.")
     
     ####################################################################
     ## make the ell array for the output noise curves
@@ -334,7 +334,7 @@ def Simons_Observatory_V3_SA_noise(sensitivity_mode,one_over_f_mode,SAT_yrs_LF,f
     MN_T_225 = W_T_225 * np.sqrt(A_arcmin)
     MN_T_280 = W_T_280 * np.sqrt(A_arcmin)
     Map_white_noise_levels = np.array([MN_T_27,MN_T_39,MN_T_93,MN_T_145,MN_T_225,MN_T_280])
-    print("white noise levels (T): ",Map_white_noise_levels ,"[uK-arcmin]")
+    #print("white noise levels (T): ",Map_white_noise_levels ,"[uK-arcmin]")
     
     ####################################################################
     ###   CALCULATE N(ell) for Polarization
