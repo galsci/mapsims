@@ -24,23 +24,36 @@ def get_cmb_sky(
     If rectangular, it returns a stack of enmaps of shape (nfreqs, ncomp, ny, nx). 
     If Healpix, it will return a numpy array of shape (nfreqs, ncomp, npix) 
 
-    Args:
-        iteration_num: integer specifying which sim iteration to use
-        nside: nside of healpix map to project alms to. If None, uses 
+    Parameters
+    ----------
+    iteration_num
+        integer specifying which sim iteration to use
+    nside
+        nside of healpix map to project alms to. If None, uses 
         rectangular pixel geometry specified through shape and wcs.
-        shape: shape of ndmap array (see pixell.enmap)
-        wcs: World Coordinate System for geometry of map (see pixell.enmap)
-        lensed: whether to load lensed or unlensed sims
-        aberrated: whether to load aberrated or unaberrated sims
-        pol: if True, return ncomp=3 I,Q,U components, else just ncomp=1 I
-        cmb_set: integer specifying which set of sims to use
-        cmb_dir: override the default lensed alm directory path
-        nfreqs: number of copies of the CMB sky to provide. When modulation
+    shape
+        shape of ndmap array (see pixell.enmap)
+    wcs
+        World Coordinate System for geometry of map (see pixell.enmap)
+    lensed
+        Whether to load lensed or unlensed sims
+    aberrated
+        Whether to load aberrated or unaberrated sims
+    pol
+        If True, return ncomp=3 I,Q,U components, else just ncomp=1 I
+    cmb_set
+        Integer specifying which set of sims to use
+    cmb_dir
+        Override the default lensed alm directory path
+    nfreqs
+        Number of copies of the CMB sky to provide. When modulation
         is implemented, this argument will be changed to a frequency bandpass
         specification that applies frequency-dependent modulation to the sims.
 
-    Returns:
-        output: (nfreqs,ncomp,npix) healpix array if nside is specified, else
+    Returns
+    -------
+    output
+        (nfreqs,ncomp,npix) healpix array if nside is specified, else
         returns (nfreqs,ncomp,Ny,Nx) rectangular pixel ndmap.
         
     """
