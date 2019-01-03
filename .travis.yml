@@ -42,7 +42,7 @@ env:
         
         # List other runtime dependencies for the package that are available as
         # pip packages here.
-        - PIP_DEPENDENCIES=''
+        - PIP_DEPENDENCIES='git+https://github.com/bthorne93/PySM_public.git'
 
         # Conda packages for affiliated packages are hosted in channel
         # "astropy" while builds for astropy LTS with recent numpy versions
@@ -72,8 +72,8 @@ matrix:
 
     include:
         # Try MacOS X
-        - os: osx
-          env: SETUP_CMD='test'
+        #- os: osx
+        #  env: SETUP_CMD='test'
 
         # Do a coverage test.
         - os: linux
@@ -132,6 +132,7 @@ install:
 
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
+    - pip install https://github.com/simonsobs/so_pysm_models/archive/master.zip
 
     # As described above, using ci-helpers, you should be able to set up an
     # environment with dependencies installed using conda and pip, but in some
