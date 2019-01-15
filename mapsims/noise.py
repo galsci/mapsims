@@ -21,7 +21,7 @@ def get_bands(telescope):
     Returns
     -------
     bands : ndarray of ints
-    Available bands
+        Available bands
     """
     bands = getattr(
         so_noise, "Simons_Observatory_V3_{}_bands".format(telescope)
@@ -72,7 +72,7 @@ class SONoiseSimulator:
             If True, reduce the hitcount by a factor of 0.85 to account for not-uniformity in the scanning
         scanning_strategy : str
             Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
-            path to another hitmap
+            path to a custom hitmap, it will be normalized, absolute hitcount does not matter
         LA_number_LF : int
             Number of Low Frequency tubes in LAT
         LA_number_MF : int
