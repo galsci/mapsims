@@ -1,10 +1,10 @@
-# import os
+import os
 
 # If this package has tests data in the tests/data directory, add them to
 # the paths here, see commented example
 paths = [
     "coveragerc",
-    #         os.path.join('data', '*fits')
+    os.path.join('data', '*')
 ]
 
 

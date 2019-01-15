@@ -11,6 +11,7 @@ recursive-include licenses *
 recursive-include cextern *
 recursive-include scripts *
 recursive-include mapsims/data *
+recursive-include mapsims/tests/data *
 
 prune build
 prune docs/_build
