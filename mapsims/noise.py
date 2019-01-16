@@ -20,7 +20,7 @@ class SONoiseSimulator:
         band,
         nside,
         ell_max=None,
-        seed = None,
+        seed=None,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
         apply_beam_correction=True,

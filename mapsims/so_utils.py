@@ -1,6 +1,7 @@
 import numpy as np
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
 
+
 def get_bands(telescope):
     """Returns the available bands for a telescope
 
@@ -18,6 +19,7 @@ def get_bands(telescope):
     )().astype(np.int)
     return bands
 
+
 def get_band_index(telescope, band):
 
     bands = get_bands(telescope)
@@ -31,6 +33,7 @@ def get_band_index(telescope, band):
         )
         raise
     return band_index
+
 
 def get_beam(telescope, band):
     """Returns the beam in arcminutes for a band
@@ -46,7 +49,5 @@ def get_beam(telescope, band):
     beam : float
         Full width half max in arcmin
     """
-    beams = getattr(
-        so_noise, "Simons_Observatory_V3_{}_beams".format(telescope)
-    )()
+    beams = getattr(so_noise, "Simons_Observatory_V3_{}_beams".format(telescope))()
     return beams[get_band_index(telescope, band)]
