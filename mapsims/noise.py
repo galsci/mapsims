@@ -20,6 +20,7 @@ class SONoiseSimulator:
         band,
         nside,
         ell_max=None,
+        seed = None,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
         apply_beam_correction=True,
@@ -47,6 +48,8 @@ class SONoiseSimulator:
             Output HEALPix NSIDE
         ell_max : int
             Maximum ell for the angular power spectrum, if not provided set to 3 * nside
+        seed : int
+            Numpy random seed
         return_uK_CMB : bool
             True, output is in microK_CMB, False output is in microK_RJ
         sensitivity_mode : str
@@ -77,6 +80,7 @@ class SONoiseSimulator:
         self.apply_beam_correction = apply_beam_correction
         self.apply_kludge_correction = apply_kludge_correction
         self.nside = nside
+        self.seed = seed
         self.return_uK_CMB = return_uK_CMB
         self.ell_max = ell_max if ell_max is not None else 3 * nside
         self.LA_number_LF = LA_number_LF
@@ -148,9 +152,9 @@ class SONoiseSimulator:
             self.noise_ell_T *= to_K_RJ
             self.noise_ell_P *= to_K_RJ
 
-    def simulate(self, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
+    def simulate(self):
+        if self.seed is not None:
+            np.random.seed(self.seed)
         zeros = np.zeros_like(self.noise_ell_T)
         output_map = hp.ma(
             np.array(
