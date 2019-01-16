@@ -6,27 +6,10 @@ from astropy.utils import data
 import pysm
 
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
+from .so_utils import get_band_index
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
-
-
-def get_bands(telescope):
-    """Returns the available bands for a telescope
-
-    Parameters
-    ----------
-    telescope : {"SA", "LA"}
-
-    Returns
-    -------
-    bands : ndarray of ints
-        Available bands
-    """
-    bands = getattr(
-        so_noise, "Simons_Observatory_V3_{}_bands".format(telescope)
-    )().astype(np.int)
-    return bands
 
 
 class SONoiseSimulator:
@@ -148,16 +131,7 @@ class SONoiseSimulator:
             )
 
         # extract the relevant band
-        bands = get_bands(self.telescope)
-        try:
-            band_index = bands.tolist().index(self.band)
-        except ValueError:
-            print(
-                "Band {} not available, available bands for {} are {}".format(
-                    self.band, self.telescope, bands
-                )
-            )
-            raise
+        band_index = get_band_index(self.telescope, self.band)
 
         # so_noise returns power spectrum starting with ell=2, start instead at 0
         # repeat the value at ell=2 for lower multipoles
