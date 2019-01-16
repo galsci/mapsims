@@ -37,12 +37,12 @@ env:
         
         # List runtime dependencies for the package that are available as conda
         # packages here.
-        - CONDA_DEPENDENCIES='healpy'
-        - CONDA_DEPENDENCIES_DOC='healpy sphinx-astropy'
+        - CONDA_DEPENDENCIES='configobj healpy'
+        - CONDA_DEPENDENCIES_DOC='configobj healpy sphinx-astropy'
         
         # List other runtime dependencies for the package that are available as
         # pip packages here.
-        - PIP_DEPENDENCIES='git+https://github.com/bthorne93/PySM_public.git'
+        - PIP_DEPENDENCIES='git+https://github.com/bthorne93/PySM_public.git git+https://github.com/simonsobs/so_pysm_models'
 
         # Conda packages for affiliated packages are hosted in channel
         # "astropy" while builds for astropy LTS with recent numpy versions
