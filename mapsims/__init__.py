@@ -4,7 +4,9 @@
 # should keep this content at the top.
 # ----------------------------------------------------------------------------
 from ._astropy_init import *
-from noise import SONoiseSimulator
+from .so_utils import get_bands, get_band_index, get_beam
+from .noise import SONoiseSimulator
+from .runner import MapSim, from_config
 
 # ----------------------------------------------------------------------------
 

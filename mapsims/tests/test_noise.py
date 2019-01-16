@@ -27,9 +27,10 @@ def test_noise_simulator(telescope):
         LA_number_UHF=2,
         SA_years_LF=1,
         SA_one_over_f_mode="optimistic",
+        seed=1234,
     )
 
-    output_map = simulator.simulate(seed=1234)
+    output_map = simulator.simulate()
     expected_map = hp.read_map(
         data.get_pkg_data_filename(
             "data/noise_{}_uKCMB_classical_nside16_channel2_seed1234.fits.gz".format(telescope)
