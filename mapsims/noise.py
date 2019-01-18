@@ -36,6 +36,7 @@ class SONoiseSimulator:
         telescope,
         band,
         nside,
+        ell_max=None,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
         apply_beam_correction=True,
@@ -62,6 +63,8 @@ class SONoiseSimulator:
             Detectors frequency band in GHz
         nside : int
             Output HEALPix NSIDE
+        ell_max : int
+            Maximum ell for the angular power spectrum, if not provided set to 3 * nside
         return_uK_CMB : bool
             True, output is in microK_CMB, False output is in microK_RJ
         sensitivity_mode : str
@@ -93,7 +96,7 @@ class SONoiseSimulator:
         self.apply_kludge_correction = apply_kludge_correction
         self.nside = nside
         self.return_uK_CMB = return_uK_CMB
-        self.ell_max = 3 * nside
+        self.ell_max = ell_max if ell_max is not None else 3 * nside
         self.LA_number_LF = LA_number_LF
         self.LA_number_MF = LA_number_MF
         self.LA_number_UHF = LA_number_UHF
