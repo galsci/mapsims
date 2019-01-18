@@ -197,10 +197,10 @@ class SONoiseSimulator:
             )
         )
         good = self.hitmap != 0
-        # see explanation of the normalization at:
+        # Normalize on the Effective sky fraction, see discussion in:
         # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
         output_map[:, good] /= np.sqrt(
-            self.hitmap[good] * self.hitmap.mean() / self.sky_fraction
+            self.hitmap[good] / self.hitmap.mean() * self.sky_fraction
         )
         output_map[:, np.logical_not(good)] = hp.UNSEEN
         return output_map
