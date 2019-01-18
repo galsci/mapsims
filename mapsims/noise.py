@@ -133,7 +133,7 @@ class SONoiseSimulator:
             )
             # For SA, so_noise simulates only Polarization,
             # Assume that T is half
-            noise_ell_T = self.noise_ell_P / 2
+            noise_ell_T = noise_ell_P / 2
         elif self.telescope == "LA":
             ell, noise_ell_T, noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
                 self.sensitivity_mode,
@@ -160,11 +160,14 @@ class SONoiseSimulator:
             raise
 
         # so_noise returns power spectrum starting with ell=2, start instead at 0
+        # repeat the value at ell=2 for lower multipoles
         self.ell = np.arange(ell[-1]+1)
         self.noise_ell_T = np.zeros(len(self.ell), dtype=np.double)
         self.noise_ell_P = self.noise_ell_T.copy()
         self.noise_ell_T[2:] = noise_ell_T[band_index]
+        self.noise_ell_T[:2] = self.noise_ell_T[2]
         self.noise_ell_P[2:] = noise_ell_P[band_index]
+        self.noise_ell_P[:2] = self.noise_ell_P[2]
 
         if not self.return_uK_CMB:
             to_K_RJ = pysm.convert_units("K_CMB", "K_RJ", band) ** 2
