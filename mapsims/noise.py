@@ -47,7 +47,6 @@ class SONoiseSimulator:
         LA_number_UHF=2,
         SA_years_LF=1,
         SA_one_over_f_mode="pessimistic",
-        SA_remove_kluge=False,
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -102,7 +101,6 @@ class SONoiseSimulator:
         self.LA_number_UHF = LA_number_UHF
         self.SA_years_LF = SA_years_LF
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
-        self.SA_remove_kluge = SA_remove_kluge
 
         # Load hitmap and compute sky fraction
 

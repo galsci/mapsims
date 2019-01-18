@@ -26,7 +26,6 @@ def test_noise_simulator(telescope):
         LA_number_UHF=2,
         SA_years_LF=1,
         SA_one_over_f_mode="pessimistic",
-        SA_remove_kluge=False,
     )
 
     output_map = simulator.simulate(seed=100)
