@@ -117,7 +117,7 @@ class SONoiseSimulator:
         )
         self.hitmap /= self.hitmap.max()
         # Discard pixels with very few hits that cause border effects
-        self.hitmap[self.hitmap < 1e-3] = 0
+        # self.hitmap[self.hitmap < 1e-3] = 0
         self.sky_fraction = (self.hitmap != 0).sum() / len(self.hitmap)
 
         if self.telescope == "SA":
