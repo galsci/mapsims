@@ -123,7 +123,7 @@ class SONoiseSimulator:
         self.sky_fraction = (self.hitmap != 0).sum() / len(self.hitmap)
 
         if self.telescope == "SA":
-            self.ell, self.noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
+            ell, noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
                 self.sensitivity_mode,
                 self.SA_one_over_f_mode,
                 self.SA_years_LF,
@@ -135,9 +135,9 @@ class SONoiseSimulator:
             )
             # For SA, so_noise simulates only Polarization,
             # Assume that T is half
-            self.noise_ell_T = self.noise_ell_P / 2
+            noise_ell_T = self.noise_ell_P / 2
         elif self.telescope == "LA":
-            self.ell, self.noise_ell_T, self.noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
+            ell, noise_ell_T, noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
                 self.sensitivity_mode,
                 self.sky_fraction,
                 self.ell_max,
@@ -161,8 +161,12 @@ class SONoiseSimulator:
             )
             raise
 
-        self.noise_ell_T = self.noise_ell_T[band_index]
-        self.noise_ell_P = self.noise_ell_P[band_index]
+        # so_noise returns power spectrum starting with ell=2, start instead at 0
+        self.ell = np.arange(ell[-1]+1)
+        self.noise_ell_T = np.zeros(len(self.ell), dtype=np.double)
+        self.noise_ell_P = self.noise_ell_T.copy()
+        self.noise_ell_T[2:] = noise_ell_T[band_index]
+        self.noise_ell_P[2:] = noise_ell_P[band_index]
 
         if not self.return_uK_CMB:
             to_K_RJ = pysm.convert_units("K_CMB", "K_RJ", band) ** 2
