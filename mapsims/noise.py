@@ -164,10 +164,10 @@ class SONoiseSimulator:
         self.noise_ell_T = self.noise_ell_T[band_index]
         self.noise_ell_P = self.noise_ell_P[band_index]
 
-        if self.return_uK_CMB:
-            to_K_CMB = pysm.convert_units("K_RJ", "K_CMB", band) ** 2
-            self.noise_ell_T *= to_K_CMB
-            self.noise_ell_P *= to_K_CMB
+        if not self.return_uK_CMB:
+            to_K_RJ = pysm.convert_units("K_CMB", "K_RJ", band) ** 2
+            self.noise_ell_T *= to_K_RJ
+            self.noise_ell_P *= to_K_RJ
 
     def simulate(self, seed=None):
         if seed is not None:
