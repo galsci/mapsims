@@ -14,8 +14,9 @@ def test_noise_simulator(telescope):
 
     simulator = noise.SONoiseSimulator(
         telescope=telescope,
-        band=27,
+        band=93,
         nside=NSIDE,
+        ell_max=500,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
         apply_beam_correction=True,
@@ -25,15 +26,15 @@ def test_noise_simulator(telescope):
         LA_number_MF=4,
         LA_number_UHF=2,
         SA_years_LF=1,
-        SA_one_over_f_mode="pessimistic",
-        SA_remove_kluge=False,
+        SA_one_over_f_mode="optimistic",
     )
 
-    output_map = simulator.simulate(seed=100)
+    output_map = simulator.simulate(seed=1234)
     expected_map = hp.read_map(
         data.get_pkg_data_filename(
-            "data/{}_noise_classical_seed100.fits.gz".format(telescope)
+            "data/noise_{}_uKCMB_classical_nside16_channel2_seed1234.fits.gz".format(telescope)
         ),
         (0, 1, 2),
     )
+    expected_map[expected_map == 0] = hp.UNSEEN
     np.testing.assert_allclose(output_map, expected_map)

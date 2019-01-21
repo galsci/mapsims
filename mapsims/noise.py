@@ -36,6 +36,7 @@ class SONoiseSimulator:
         telescope,
         band,
         nside,
+        ell_max=None,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
         apply_beam_correction=True,
@@ -46,7 +47,6 @@ class SONoiseSimulator:
         LA_number_UHF=2,
         SA_years_LF=1,
         SA_one_over_f_mode="pessimistic",
-        SA_remove_kluge=False,
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -62,6 +62,8 @@ class SONoiseSimulator:
             Detectors frequency band in GHz
         nside : int
             Output HEALPix NSIDE
+        ell_max : int
+            Maximum ell for the angular power spectrum, if not provided set to 3 * nside
         return_uK_CMB : bool
             True, output is in microK_CMB, False output is in microK_RJ
         sensitivity_mode : str
@@ -93,13 +95,12 @@ class SONoiseSimulator:
         self.apply_kludge_correction = apply_kludge_correction
         self.nside = nside
         self.return_uK_CMB = return_uK_CMB
-        self.ell_max = 3 * nside
+        self.ell_max = ell_max if ell_max is not None else 3 * nside
         self.LA_number_LF = LA_number_LF
         self.LA_number_MF = LA_number_MF
         self.LA_number_UHF = LA_number_UHF
         self.SA_years_LF = SA_years_LF
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
-        self.SA_remove_kluge = SA_remove_kluge
 
         # Load hitmap and compute sky fraction
 
@@ -116,11 +117,11 @@ class SONoiseSimulator:
         )
         self.hitmap /= self.hitmap.max()
         # Discard pixels with very few hits that cause border effects
-        self.hitmap[self.hitmap < 1e-3] = 0
+        # self.hitmap[self.hitmap < 1e-3] = 0
         self.sky_fraction = (self.hitmap != 0).sum() / len(self.hitmap)
 
         if self.telescope == "SA":
-            self.ell, self.noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
+            ell, noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
                 self.sensitivity_mode,
                 self.SA_one_over_f_mode,
                 self.SA_years_LF,
@@ -132,9 +133,9 @@ class SONoiseSimulator:
             )
             # For SA, so_noise simulates only Polarization,
             # Assume that T is half
-            self.noise_ell_T = self.noise_ell_P / 2
+            noise_ell_T = noise_ell_P / 2
         elif self.telescope == "LA":
-            self.ell, self.noise_ell_T, self.noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
+            ell, noise_ell_T, noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
                 self.sensitivity_mode,
                 self.sky_fraction,
                 self.ell_max,
@@ -158,13 +159,20 @@ class SONoiseSimulator:
             )
             raise
 
-        self.noise_ell_T = self.noise_ell_T[band_index]
-        self.noise_ell_P = self.noise_ell_P[band_index]
+        # so_noise returns power spectrum starting with ell=2, start instead at 0
+        # repeat the value at ell=2 for lower multipoles
+        self.ell = np.arange(ell[-1]+1)
+        self.noise_ell_T = np.zeros(len(self.ell), dtype=np.double)
+        self.noise_ell_P = self.noise_ell_T.copy()
+        self.noise_ell_T[2:] = noise_ell_T[band_index]
+        self.noise_ell_T[:2] = 0
+        self.noise_ell_P[2:] = noise_ell_P[band_index]
+        self.noise_ell_P[:2] = 0
 
-        if self.return_uK_CMB:
-            to_K_CMB = pysm.convert_units("K_RJ", "K_CMB", band) ** 2
-            self.noise_ell_T *= to_K_CMB
-            self.noise_ell_P *= to_K_CMB
+        if not self.return_uK_CMB:
+            to_K_RJ = pysm.convert_units("K_CMB", "K_RJ", band) ** 2
+            self.noise_ell_T *= to_K_RJ
+            self.noise_ell_P *= to_K_RJ
 
     def simulate(self, seed=None):
         if seed is not None:
@@ -189,10 +197,10 @@ class SONoiseSimulator:
             )
         )
         good = self.hitmap != 0
-        # see explanation of the normalization at:
+        # Normalize on the Effective sky fraction, see discussion in:
         # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
         output_map[:, good] /= np.sqrt(
-            self.hitmap[good] * self.hitmap.mean() / self.sky_fraction
+            self.hitmap[good] / self.hitmap.mean() * self.sky_fraction
         )
         output_map[:, np.logical_not(good)] = hp.UNSEEN
         return output_map
