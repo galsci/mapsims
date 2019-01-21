@@ -165,9 +165,9 @@ class SONoiseSimulator:
         self.noise_ell_T = np.zeros(len(self.ell), dtype=np.double)
         self.noise_ell_P = self.noise_ell_T.copy()
         self.noise_ell_T[2:] = noise_ell_T[band_index]
-        self.noise_ell_T[:2] = self.noise_ell_T[2]
+        self.noise_ell_T[:2] = 0
         self.noise_ell_P[2:] = noise_ell_P[band_index]
-        self.noise_ell_P[:2] = self.noise_ell_P[2]
+        self.noise_ell_P[:2] = 0
 
         if not self.return_uK_CMB:
             to_K_RJ = pysm.convert_units("K_CMB", "K_RJ", band) ** 2
