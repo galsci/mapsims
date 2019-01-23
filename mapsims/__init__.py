@@ -6,6 +6,7 @@
 from ._astropy_init import *
 from .so_utils import get_bands, get_band_index, get_beam
 from .noise import SONoiseSimulator
+from .cmb import SOPrecomputedCMB
 from .runner import MapSim, from_config
 
 # ----------------------------------------------------------------------------

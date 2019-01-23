@@ -42,7 +42,10 @@ def from_config(config_file):
                         else:
                             comp_config[k] = int(v)
                     except ValueError:
-                        pass
+                        if v == "True":
+                            comp_config[k] = True
+                        elif v == "False":
+                            comp_config[k] = False
                 components[component_type][comp_name] = comp_class(**comp_config)
 
     map_sim = MapSim(

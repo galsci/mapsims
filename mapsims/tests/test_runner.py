@@ -71,13 +71,24 @@ def test_from_classes():
         seed=10001,
     )
 
+    cmb = mapsims.SOPrecomputedCMB(
+        iteration_num=0,
+        nside=NSIDE,
+        lensed=False,
+        aberrated=False,
+        has_polarization=True,
+        cmb_set=0,
+        cmb_dir="mapsims/data",
+        input_units="uK_RJ",
+    )
+
     simulator = mapsims.MapSim(
         telescope="SA",
         band=27,
         nside=NSIDE,
         unit="uK_CMB",
         pysm_components_string="a1",
-        pysm_custom_components={"dust": dust, "synchrotron": sync},
+        pysm_custom_components={"dust": dust, "synchrotron": sync, "cmb": cmb},
         other_components={"noise": noise},
     )
     output_map = simulator.execute()

@@ -13,19 +13,19 @@ def test_load_sim():
     cmb_dir = os.path.dirname(save_name)
     nside = 32
     # Make an IQU sim
-    imap = cmb.get_cmb_sky(
+    imap = cmb.SOPrecomputedCMB(
         iteration_num=0, nside=nside, cmb_dir=cmb_dir, lensed=False, aberrated=False
-    )
+    ).signal(nu=[148.])
     imap_test = hp.read_map(save_name, field=(0, 1, 2))
     np.testing.assert_allclose(imap, imap_test)
     assert imap.shape[0] == 3
     # Make an I only sim
-    imap = cmb.get_cmb_sky(
+    imap = cmb.SOPrecomputedCMB(
         iteration_num=0,
         nside=nside,
         has_polarization=False,
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
-    )
+    ).signal(nu=[148.])
     assert imap.ndim == 2
