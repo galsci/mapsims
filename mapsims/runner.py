@@ -21,32 +21,38 @@ def import_class_from_string(class_string):
 def from_config(config_file):
     config = configobj.ConfigObj(config_file, interpolation="Template")
 
-    pysm_custom_components = {}
-    other_components = {}
-    for comp_name in config.sections:
-        comp_config = config[comp_name]
-        comp_class = import_class_from_string(comp_config.pop("class"))
-        for k, v in comp_config.items():
-            try:
-                if "." in v:
-                    comp_config[k] = float(v)
-                else:
-                    comp_config[k] = int(v)
-            except ValueError:
-                pass
-        if comp_config.pop("is_pysm_component", default=False):
-            pysm_custom_components[comp_name] = comp_class(**comp_config)
-        else:
-            other_components[comp_name] = comp_class(**comp_config)
+    pysm_components_string = None
+
+    components = {}
+    for component_type in ["pysm_components", "other_components"]:
+        components[component_type] = {}
+        if component_type in config.sections:
+            component_type_config = config[component_type]
+            if component_type == "pysm_components":
+                pysm_components_string = component_type_config.pop(
+                    "pysm_components_string", default=None
+                )
+            for comp_name in component_type_config:
+                comp_config = component_type_config[comp_name]
+                comp_class = import_class_from_string(comp_config.pop("class"))
+                for k, v in comp_config.items():
+                    try:
+                        if "." in v:
+                            comp_config[k] = float(v)
+                        else:
+                            comp_config[k] = int(v)
+                    except ValueError:
+                        pass
+                components[component_type][comp_name] = comp_class(**comp_config)
 
     map_sim = MapSim(
         config["SO_telescope"],
         int(config["SO_band"]),
         int(config["output_nside"]),
         config["unit"],
-        pysm_components_string=config.get("pysm_components_string"),
-        pysm_custom_components=pysm_custom_components,
-        other_components=other_components,
+        pysm_components_string=pysm_components_string,
+        pysm_custom_components=components["pysm_components"],
+        other_components=components["other_components"],
     )
     return map_sim
 
