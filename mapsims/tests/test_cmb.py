@@ -9,7 +9,7 @@ from .. import cmb
 
 
 def test_load_sim():
-    save_name = get_pkg_data_filename("../data/test_map.fits")
+    save_name = get_pkg_data_filename("data/test_map.fits")
     cmb_dir = os.path.dirname(save_name)
     nside = 32
     # Make an IQU sim

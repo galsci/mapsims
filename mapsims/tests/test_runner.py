@@ -78,7 +78,7 @@ def test_from_classes():
         aberrated=False,
         has_polarization=True,
         cmb_set=0,
-        cmb_dir="mapsims/data",
+        cmb_dir="mapsims/tests/data",
         input_units="uK_RJ",
     )
 
