@@ -9,7 +9,6 @@ def get_cmb_sky(
     wcs=None,
     lensed=True,
     aberrated=False,
-    modulation=False,
     has_polarization=True,
     cmb_set=0,  # We allow for more than one CMB map per lensing map
     cmb_dir=None,
@@ -72,7 +71,7 @@ def get_cmb_sky(
         pixel_indices=pixel_indices,
     )
 
-    return sgen.signal(nu=nu, modulation=modulation)
+    return sgen.signal(nu=nu)
 
 
 def _get_default_cmb_directory():
