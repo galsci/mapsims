@@ -34,7 +34,7 @@ See the ``example_config.cfg`` file included in the package, create the simulato
     import mapsims
     simulator = mapsims.from_config("example_config.cfg")
 
-produce the output map with:
+produce the output map with::
 
     output_map = simulator.execute()
 
