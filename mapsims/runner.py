@@ -46,7 +46,7 @@ def from_config(config_file):
                             comp_config[k] = True
                         elif v == "False":
                             comp_config[k] = False
-                components[component_type][comp_name] = comp_class(**comp_config)
+                components[component_type][comp_name] = comp_class(**(comp_config.dict()))
 
     map_sim = MapSim(
         config["SO_telescope"],
