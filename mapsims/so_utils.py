@@ -1,5 +1,8 @@
+from collections import namedtuple
 import numpy as np
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
+
+Channel = namedtuple("Channel", ["telescope", "band"])
 
 
 def get_bands(telescope):

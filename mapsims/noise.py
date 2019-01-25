@@ -6,18 +6,18 @@ from astropy.utils import data
 import pysm
 
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
-from .so_utils import get_band_index
+from .so_utils import get_bands
+from . import Channel
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
+telescope_seed_offset = {"LA": 0, "SA": 1000}
 
 
 class SONoiseSimulator:
 
     def __init__(
         self,
-        telescope,
-        band,
         nside,
         ell_max=None,
         seed=None,
@@ -37,19 +37,19 @@ class SONoiseSimulator:
         Simulate the noise power spectrum in spherical harmonics domain and then generate a map
         in microK_CMB or microK_RJ (based on return_uK_CMB)
 
+        In the constructor, this object calls the published 20180822 noise simulator and generates
+        the expected noise power spectra for all channels.
+        Then you need to call the `simulate` method with a channel identifier to create a simulated map.
+
         Parameters
         ----------
 
-        telescope : {"SA", "LA"}
-            Either LA or SA for Large and Small aperture
-        band : int
-            Detectors frequency band in GHz
         nside : int
             Output HEALPix NSIDE
         ell_max : int
             Maximum ell for the angular power spectrum, if not provided set to 3 * nside
         seed : int
-            Numpy random seed
+            Numpy random seed, each band is going to get a different seed as seed + band + (1000 for SA)
         return_uK_CMB : bool
             True, output is in microK_CMB, False output is in microK_RJ
         sensitivity_mode : str
@@ -73,9 +73,6 @@ class SONoiseSimulator:
             Correlated noise performance of the detectors on the Small Aperture telescopes
         """
 
-        self.telescope = telescope
-        assert telescope in ["LA", "SA"]
-        self.band = int(band)
         self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
         self.apply_beam_correction = apply_beam_correction
         self.apply_kludge_correction = apply_kludge_correction
@@ -91,78 +88,98 @@ class SONoiseSimulator:
 
         # Load hitmap and compute sky fraction
 
-        if os.path.exists(scanning_strategy):
-            hitmap_filename = scanning_strategy
-        else:
-            hitmap_filename = data.get_pkg_data_filename(
-                "data/total_hits_{}_{}.fits.gz".format(
-                    self.telescope, scanning_strategy
+        self.hitmap = {}
+        self.sky_fraction = {}
+        self.noise_ell_T = {}
+        self.noise_ell_P = {}
+        for telescope in ["LA", "SA"]:
+            if os.path.exists(scanning_strategy.format(telescope=telescope)):
+                hitmap_filename = scanning_strategy
+            else:
+                hitmap_filename = data.get_pkg_data_filename(
+                    "data/total_hits_{}_{}.fits.gz".format(telescope, scanning_strategy)
                 )
+            hitmap = hp.ud_grade(
+                hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
             )
-        self.hitmap = hp.ud_grade(
-            hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
-        )
-        self.hitmap /= self.hitmap.max()
-        # Discard pixels with very few hits that cause border effects
-        # self.hitmap[self.hitmap < 1e-3] = 0
-        self.sky_fraction = (self.hitmap != 0).sum() / len(self.hitmap)
+            hitmap /= hitmap.max()
+            # Discard pixels with very few hits that cause border effects
+            # hitmap[hitmap < 1e-3] = 0
+            self.hitmap[telescope] = hitmap
+            self.sky_fraction[telescope] = (hitmap != 0).sum() / len(hitmap)
 
-        if self.telescope == "SA":
-            ell, noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
-                self.sensitivity_mode,
-                self.SA_one_over_f_mode,
-                self.SA_years_LF,
-                self.sky_fraction,
-                self.ell_max,
-                delta_ell=1,
-                apply_beam_correction=self.apply_beam_correction,
-                apply_kludge_correction=self.apply_kludge_correction,
-            )
-            # For SA, so_noise simulates only Polarization,
-            # Assume that T is half
-            noise_ell_T = noise_ell_P / 2
-        elif self.telescope == "LA":
-            ell, noise_ell_T, noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
-                self.sensitivity_mode,
-                self.sky_fraction,
-                self.ell_max,
-                delta_ell=1,
-                N_LF=self.LA_number_LF,
-                N_MF=self.LA_number_MF,
-                N_UHF=self.LA_number_UHF,
-                apply_beam_correction=self.apply_beam_correction,
-                apply_kludge_correction=self.apply_kludge_correction,
-            )
+            if telescope == "SA":
+                ell, noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
+                    self.sensitivity_mode,
+                    self.SA_one_over_f_mode,
+                    self.SA_years_LF,
+                    self.sky_fraction[telescope],
+                    self.ell_max,
+                    delta_ell=1,
+                    apply_beam_correction=self.apply_beam_correction,
+                    apply_kludge_correction=self.apply_kludge_correction,
+                )
+                # For SA, so_noise simulates only Polarization,
+                # Assume that T is half
+                noise_ell_T = noise_ell_P / 2
+            elif telescope == "LA":
+                ell, noise_ell_T, noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
+                    self.sensitivity_mode,
+                    self.sky_fraction[telescope],
+                    self.ell_max,
+                    delta_ell=1,
+                    N_LF=self.LA_number_LF,
+                    N_MF=self.LA_number_MF,
+                    N_UHF=self.LA_number_UHF,
+                    apply_beam_correction=self.apply_beam_correction,
+                    apply_kludge_correction=self.apply_kludge_correction,
+                )
 
-        # extract the relevant band
-        band_index = get_band_index(self.telescope, self.band)
+            self.ell = np.arange(ell[-1] + 1)
 
-        # so_noise returns power spectrum starting with ell=2, start instead at 0
-        # repeat the value at ell=2 for lower multipoles
-        self.ell = np.arange(ell[-1]+1)
-        self.noise_ell_T = np.zeros(len(self.ell), dtype=np.double)
-        self.noise_ell_P = self.noise_ell_T.copy()
-        self.noise_ell_T[2:] = noise_ell_T[band_index]
-        self.noise_ell_T[:2] = 0
-        self.noise_ell_P[2:] = noise_ell_P[band_index]
-        self.noise_ell_P[:2] = 0
+            for band_index, band in enumerate(get_bands(telescope)):
 
-        if not self.return_uK_CMB:
-            to_K_RJ = pysm.convert_units("K_CMB", "K_RJ", band) ** 2
-            self.noise_ell_T *= to_K_RJ
-            self.noise_ell_P *= to_K_RJ
+                ch = Channel(telescope, band)
 
-    def simulate(self):
+                # so_noise returns power spectrum starting with ell=2, start instead at 0
+                # repeat the value at ell=2 for lower multipoles
+                self.noise_ell_T[ch] = np.zeros(len(self.ell), dtype=np.double)
+                self.noise_ell_P[ch] = self.noise_ell_T[ch].copy()
+                self.noise_ell_T[ch][2:] = noise_ell_T[band_index]
+                self.noise_ell_T[ch][:2] = 0
+                self.noise_ell_P[ch][2:] = noise_ell_P[band_index]
+                self.noise_ell_P[ch][:2] = 0
+
+                if not self.return_uK_CMB:
+                    to_K_RJ = pysm.convert_units("K_CMB", "K_RJ", band) ** 2
+                    self.noise_ell_T[ch] *= to_K_RJ
+                    self.noise_ell_P[ch] *= to_K_RJ
+
+    def simulate(self, ch):
+        """Create a random realization of the noise power spectrum
+
+        Parameters
+        ----------
+
+        ch : mapsims.Channel
+            Channel identifier, create with e.g. mapsims.Channel("SA", 27)
+
+        Returns
+        -------
+
+        output_map : ndarray
+            Numpy array with the HEALPix map realization of noise
+        """
         if self.seed is not None:
-            np.random.seed(self.seed)
-        zeros = np.zeros_like(self.noise_ell_T)
+            np.random.seed(self.seed + ch.band + telescope_seed_offset[ch.telescope])
+        zeros = np.zeros_like(self.noise_ell_T[ch])
         output_map = hp.ma(
             np.array(
                 hp.synfast(
                     [
-                        self.noise_ell_T,
-                        self.noise_ell_P,
-                        self.noise_ell_P,
+                        self.noise_ell_T[ch],
+                        self.noise_ell_P[ch],
+                        self.noise_ell_P[ch],
                         zeros,
                         zeros,
                         zeros,
@@ -174,11 +191,13 @@ class SONoiseSimulator:
                 )
             )
         )
-        good = self.hitmap != 0
+        good = self.hitmap[ch.telescope] != 0
         # Normalize on the Effective sky fraction, see discussion in:
         # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
         output_map[:, good] /= np.sqrt(
-            self.hitmap[good] / self.hitmap.mean() * self.sky_fraction
+            self.hitmap[ch.telescope][good]
+            / self.hitmap[ch.telescope].mean()
+            * self.sky_fraction[ch.telescope]
         )
         output_map[:, np.logical_not(good)] = hp.UNSEEN
         return output_map

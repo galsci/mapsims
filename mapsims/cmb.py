@@ -57,7 +57,9 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             returns (nfreqs,ncomp,Ny,Nx) rectangular pixel ndmap.
         """
 
-        filename = _get_cmb_map_string(cmb_dir, iteration_num, cmb_set, lensed, aberrated)
+        filename = _get_cmb_map_string(
+            cmb_dir, iteration_num, cmb_set, lensed, aberrated
+        )
 
         super().__init__(
             filename,
@@ -68,6 +70,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             has_polarization=has_polarization,
             pixel_indices=pixel_indices,
         )
+
 
 def _get_default_cmb_directory():
     # FIXME: remove hard-coding to use preferred directory path system

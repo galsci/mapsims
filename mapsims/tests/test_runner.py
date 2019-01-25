@@ -14,7 +14,7 @@ def test_from_config():
     simulator = mapsims.from_config(
         data.get_pkg_data_filename("example_config.cfg", package="mapsims")
     )
-    output_map = simulator.execute()
+    output_map = simulator.execute(write_outputs=False)[simulator.channels[0]]
 
     expected_map = hp.read_map(
         data.get_pkg_data_filename("data/example_run.fits.gz"), (0, 1, 2)
@@ -55,8 +55,6 @@ def test_from_classes():
     )
 
     noise = mapsims.SONoiseSimulator(
-        telescope="SA",
-        band=27,
         nside=NSIDE,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
@@ -68,7 +66,7 @@ def test_from_classes():
         LA_number_UHF=2,
         SA_years_LF=1,
         SA_one_over_f_mode="pessimistic",
-        seed=10001,
+        seed=8974,
     )
 
     cmb = mapsims.SOPrecomputedCMB(
@@ -83,15 +81,14 @@ def test_from_classes():
     )
 
     simulator = mapsims.MapSim(
-        telescope="SA",
-        band=27,
+        channels=["SA_27"],
         nside=NSIDE,
         unit="uK_CMB",
         pysm_components_string="a1",
         pysm_custom_components={"dust": dust, "synchrotron": sync, "cmb": cmb},
         other_components={"noise": noise},
     )
-    output_map = simulator.execute()
+    output_map = simulator.execute(write_outputs=False)[simulator.channels[0]]
 
     expected_map = hp.read_map(
         data.get_pkg_data_filename("data/example_run.fits.gz"), (0, 1, 2)
