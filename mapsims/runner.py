@@ -1,3 +1,4 @@
+import os.path
 import importlib
 import numpy as np
 
@@ -55,6 +56,8 @@ def from_config(config_file):
         channels=config["channels"],
         nside=int(config["output_nside"]),
         unit=config["unit"],
+        output_folder=config.get("output_folder", "output"),
+        output_filename_template=config.get("output_filename_template")  ,
         pysm_components_string=pysm_components_string,
         pysm_custom_components=components["pysm_components"],
         other_components=components["other_components"],
@@ -69,6 +72,8 @@ class MapSim:
         channels,
         nside,
         unit="uK_CMB",
+        output_folder="output",
+        output_filename_template="simonsobs_{telescope}{band:03d}_nside{nside}.fits",
         pysm_components_string=None,
         pysm_custom_components=None,
         other_components=None,
@@ -81,8 +86,8 @@ class MapSim:
         elif channels in ["all", "SO"]:
             self.channels = [
                 Channel(telescope, band)
-                for band in so_utils.get_bands(telescope)
                 for telescope in ["LA", "SA"]
+                for band in so_utils.get_bands(telescope)
             ]
         else:
             self.channels = []
@@ -97,22 +102,28 @@ class MapSim:
         self.unit = unit
         self.pysm_components_string = pysm_components_string
         self.pysm_custom_components = pysm_custom_components
+        self.run_pysm = not ((pysm_components_string is None) and (pysm_custom_components is None or len(pysm_custom_components) == 0))
         self.other_components = other_components
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        self.output_folder = output_folder
+        self.output_filename_template = output_filename_template
 
-    def execute(self, seed=None, write_outputs=False):
+    def execute(self, write_outputs=False):
 
-        sky_config = {}
-        if self.pysm_components_string is not None:
-            for model in self.pysm_components_string.split(","):
-                sky_config[PYSM_COMPONENTS[model[0]]] = pysm.nominal.models(
-                    model, self.nside
-                )
+        if self.run_pysm:
+            sky_config = {}
+            if self.pysm_components_string is not None:
+                for model in self.pysm_components_string.split(","):
+                    sky_config[PYSM_COMPONENTS[model[0]]] = pysm.nominal.models(
+                        model, self.nside
+                    )
 
-        self.pysm_sky = pysm.Sky(sky_config)
+            self.pysm_sky = pysm.Sky(sky_config)
 
-        if self.pysm_custom_components is not None:
-            for comp_name, comp in self.pysm_custom_components.items():
-                self.pysm_sky.add_component(comp_name, comp)
+            if self.pysm_custom_components is not None:
+                for comp_name, comp in self.pysm_custom_components.items():
+                    self.pysm_sky.add_component(comp_name, comp)
 
         if not write_outputs:
             output = {}
@@ -128,27 +139,31 @@ class MapSim:
                 "use_smoothing": False,
             }
 
-            instrument = pysm.Instrument(instrument)
-            band_map = hp.ma(
-                instrument.observe(self.pysm_sky, write_outputs=False)[0][0]
-            )
+            if self.run_pysm:
+                instrument = pysm.Instrument(instrument)
+                band_map = hp.ma(
+                    instrument.observe(self.pysm_sky, write_outputs=False)[0][0]
+                )
 
-            assert band_map.ndim == 2
-            assert band_map.shape[0] == 3
+                assert band_map.ndim == 2
+                assert band_map.shape[0] == 3
 
             for ch in self.channels:
                 if ch.band == band:
-                    beam_width_arcmin = so_utils.get_beam(ch.telescope, ch.band)
-                    output_map = hp.smoothing(
-                        band_map, fwhm=np.radians(beam_width_arcmin / 60)
-                    )
+                    if self.run_pysm:
+                        beam_width_arcmin = so_utils.get_beam(ch.telescope, ch.band)
+                        output_map = hp.smoothing(
+                            band_map, fwhm=np.radians(beam_width_arcmin / 60)
+                        )
+                    else:
+                        output_map = np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
 
                     for comp in self.other_components.values():
                         output_map += hp.ma(comp.simulate(ch))
 
                     if write_outputs:
                         hp.write_map(
-                            "mapsims_{telescope}_{band}_nside{nside}.fits", output_map
+                            os.path.join(self.output_folder, self.output_filename_template.format(telescope=ch.telescope.lower(), band=ch.band, nside=self.nside)), output_map, overwrite=True
                         )
                     else:
                         output[ch] = output_map.filled()
