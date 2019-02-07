@@ -150,12 +150,7 @@ class SONoiseSimulator:
                 self.noise_ell_P[ch][2:] = noise_ell_P[band_index]
                 self.noise_ell_P[ch][:2] = 0
 
-                if not self.return_uK_CMB:
-                    to_K_RJ = pysm.convert_units("K_CMB", "K_RJ", band) ** 2
-                    self.noise_ell_T[ch] *= to_K_RJ
-                    self.noise_ell_P[ch] *= to_K_RJ
-
-    def simulate(self, ch):
+    def simulate(self, ch, output_units="uK_CMB"):
         """Create a random realization of the noise power spectrum
 
         Parameters
@@ -170,6 +165,8 @@ class SONoiseSimulator:
         output_map : ndarray
             Numpy array with the HEALPix map realization of noise
         """
+        unit_conv = pysm.convert_units("uK_CMB", output_units, ch.band)
+
         if self.seed is not None:
             np.random.seed(self.seed + ch.band + telescope_seed_offset[ch.telescope])
         zeros = np.zeros_like(self.noise_ell_T[ch])
@@ -190,7 +187,7 @@ class SONoiseSimulator:
                     verbose=False,
                 )
             )
-        )
+        ) * unit_conv
         good = self.hitmap[ch.telescope] != 0
         # Normalize on the Effective sky fraction, see discussion in:
         # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311

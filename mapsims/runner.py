@@ -159,7 +159,7 @@ class MapSim:
                         output_map = np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
 
                     for comp in self.other_components.values():
-                        output_map += hp.ma(comp.simulate(ch))
+                        output_map += hp.ma(comp.simulate(ch, output_units=self.unit))
 
                     if write_outputs:
                         hp.write_map(

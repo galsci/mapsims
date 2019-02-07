@@ -1,4 +1,5 @@
 import so_pysm_models
+from . import so_utils
 
 
 class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
@@ -77,6 +78,49 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             pixel_indices=pixel_indices,
         )
 
+class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
+
+    def __init__(
+        self,
+        iteration_num,
+        nside=None,  # set this if healpix is desired
+        shape=None,  # set shape and wcs if CAR maps are desired
+        wcs=None,
+        lensed=True,
+        aberrated=False,
+        has_polarization=True,
+        cmb_set=0,  # We allow for more than one CMB map per lensing map
+        cmb_dir=None,
+        input_units="uK_RJ",
+        input_reference_frequency_GHz=None,
+        pixel_indices=None,
+    ):
+        """
+        Equivalent of SOPrecomputedCMB to be executed outside of PySM.
+        This is useful if you are not simulating any other component with PySM.
+        It loads the Alms in the constructor, when `simulate(ch)` is called,
+        it convolves the Alms with the beam, generate a map and apply unit
+        conversion.
+        """
+
+        filename = _get_cmb_map_string(
+            cmb_dir, iteration_num, cmb_set, lensed, aberrated
+        )
+
+        super().__init__(
+            filename,
+            target_nside=nside,
+            target_shape=shape,
+            target_wcs=wcs,
+            input_units=input_units,
+            input_reference_frequency_GHz=input_reference_frequency_GHz,
+            has_polarization=has_polarization,
+            pixel_indices=pixel_indices,
+            precompute_output_map=False,
+        )
+
+    def simulate(self, ch, output_units="uK_CMB"):
+        return self.signal(nu=ch.band, fwhm_arcmin=so_utils.get_beam(ch.telescope, ch.band), output_units=output_units)
 
 def _get_default_cmb_directory():
     # FIXME: remove hard-coding to use preferred directory path system
