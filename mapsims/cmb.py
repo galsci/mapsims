@@ -15,6 +15,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
         cmb_set=0,  # We allow for more than one CMB map per lensing map
         cmb_dir=None,
         input_units="uK_RJ",
+        input_reference_frequency_GHz=None,
         pixel_indices=None,
     ):
         """
@@ -28,6 +29,10 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
         ----------
         iteration_num : int
             integer specifying which sim iteration to use
+        input_units : string
+            Input unit strings as defined by pysm.convert_units, e.g. K_CMB, uK_RJ, MJysr
+        input_reference_frequency_GHz : float
+            If input units are K_RJ or Jysr, the reference frequency
         nside : int
             nside of healpix map to project alms to. If None, uses 
             rectangular pixel geometry specified through shape and wcs.
@@ -67,6 +72,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             target_shape=shape,
             target_wcs=wcs,
             input_units=input_units,
+            input_reference_frequency_GHz=input_reference_frequency_GHz,
             has_polarization=has_polarization,
             pixel_indices=pixel_indices,
         )

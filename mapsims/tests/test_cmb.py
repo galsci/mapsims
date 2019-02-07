@@ -14,7 +14,12 @@ def test_load_sim():
     nside = 32
     # Make an IQU sim
     imap = cmb.SOPrecomputedCMB(
-        iteration_num=0, nside=nside, cmb_dir=cmb_dir, lensed=False, aberrated=False
+        iteration_num=0,
+        nside=nside,
+        cmb_dir=cmb_dir,
+        lensed=False,
+        aberrated=False,
+        input_reference_frequency_GHz=148,
     ).signal(nu=[148.])
     imap_test = hp.read_map(save_name, field=(0, 1, 2))
     np.testing.assert_allclose(imap, imap_test)
@@ -27,5 +32,6 @@ def test_load_sim():
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
+        input_reference_frequency_GHz=148,
     ).signal(nu=[148.])
     assert imap.ndim == 2

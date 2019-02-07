@@ -78,6 +78,7 @@ def test_from_classes():
         cmb_set=0,
         cmb_dir="mapsims/tests/data",
         input_units="uK_RJ",
+        input_reference_frequency_GHz=27
     )
 
     simulator = mapsims.MapSim(
