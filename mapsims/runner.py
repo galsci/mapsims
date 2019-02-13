@@ -15,6 +15,19 @@ PYSM_COMPONENTS = {
 }
 
 
+def command_line_script(args=None):
+
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Execute map based simulations for Simons Observatory"
+    )
+    parser.add_argument("config", type=str, help="Configuration file")
+    res = parser.parse_args(args)
+    simulator = from_config(res.config)
+    simulator.execute(write_outputs=True)
+
+
 def import_class_from_string(class_string):
     module_name, class_name = class_string.rsplit(".", 1)
     return getattr(importlib.import_module(module_name), class_name)
@@ -57,7 +70,7 @@ def from_config(config_file):
         nside=int(config["output_nside"]),
         unit=config["unit"],
         output_folder=config.get("output_folder", "output"),
-        output_filename_template=config.get("output_filename_template")  ,
+        output_filename_template=config.get("output_filename_template"),
         pysm_components_string=pysm_components_string,
         pysm_custom_components=components["pysm_components"],
         other_components=components["other_components"],
@@ -66,7 +79,6 @@ def from_config(config_file):
 
 
 class MapSim:
-
     def __init__(
         self,
         channels,
@@ -102,7 +114,10 @@ class MapSim:
         self.unit = unit
         self.pysm_components_string = pysm_components_string
         self.pysm_custom_components = pysm_custom_components
-        self.run_pysm = not ((pysm_components_string is None) and (pysm_custom_components is None or len(pysm_custom_components) == 0))
+        self.run_pysm = not (
+            (pysm_components_string is None)
+            and (pysm_custom_components is None or len(pysm_custom_components) == 0)
+        )
         self.other_components = other_components
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
@@ -156,14 +171,25 @@ class MapSim:
                             band_map, fwhm=np.radians(beam_width_arcmin / 60)
                         )
                     else:
-                        output_map = np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
+                        output_map = np.zeros(
+                            (3, hp.nside2npix(self.nside)), dtype=np.float64
+                        )
 
                     for comp in self.other_components.values():
                         output_map += hp.ma(comp.simulate(ch, output_units=self.unit))
 
                     if write_outputs:
                         hp.write_map(
-                            os.path.join(self.output_folder, self.output_filename_template.format(telescope=ch.telescope.lower(), band=ch.band, nside=self.nside)), output_map, overwrite=True
+                            os.path.join(
+                                self.output_folder,
+                                self.output_filename_template.format(
+                                    telescope=ch.telescope.lower(),
+                                    band=ch.band,
+                                    nside=self.nside,
+                                ),
+                            ),
+                            output_map,
+                            overwrite=True,
                         )
                     else:
                         output[ch] = output_map.filled()
