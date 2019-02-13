@@ -92,6 +92,7 @@ class SONoiseSimulator:
         self.sky_fraction = {}
         self.noise_ell_T = {}
         self.noise_ell_P = {}
+        self.ch = []
         for telescope in ["LA", "SA"]:
             if os.path.exists(scanning_strategy.format(telescope=telescope)):
                 hitmap_filename = scanning_strategy
@@ -140,6 +141,7 @@ class SONoiseSimulator:
             for band_index, band in enumerate(get_bands(telescope)):
 
                 ch = Channel(telescope, band)
+                self.ch.append(ch)
 
                 # so_noise returns power spectrum starting with ell=2, start instead at 0
                 # repeat the value at ell=2 for lower multipoles
