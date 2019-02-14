@@ -2,6 +2,7 @@ name: mapsims
 
 channels:
     - astropy
+    - conda-forge
 
 dependencies:
     - python>=3.6
@@ -10,5 +11,6 @@ dependencies:
     - matplotlib
     - numpy
     - sphinx-astropy
+    - healpy
     - pip:
         - https://github.com/zonca/PySM_public/archive/pysm_light.zip
