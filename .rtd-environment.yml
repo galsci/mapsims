@@ -10,5 +10,5 @@ dependencies:
     - matplotlib
     - numpy
     - sphinx-astropy
-#   - pip:
-#       - dependency_from_pip
+    - pip:
+        - https://github.com/zonca/PySM_public/archive/pysm_light.zip
