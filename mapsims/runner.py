@@ -22,7 +22,7 @@ def command_line_script(args=None):
     parser = argparse.ArgumentParser(
         description="Execute map based simulations for Simons Observatory"
     )
-    parser.add_argument("config", type=str, help="Configuration file")
+    parser.add_argument("config", type=str, help="Configuration file", nargs='+',)
     res = parser.parse_args(args)
     simulator = from_config(res.config)
     simulator.execute(write_outputs=True)
@@ -34,7 +34,15 @@ def import_class_from_string(class_string):
 
 
 def from_config(config_file):
-    config = configobj.ConfigObj(config_file, interpolation="Template")
+    if isinstance(config_file, str):
+        config_file = [config_file]
+
+    config = configobj.ConfigObj(config_file[0], interpolation=False)
+
+    for other_config in config_file[1:]:
+        config.merge(configobj.ConfigObj(other_config, interpolation=False))
+
+    config = configobj.ConfigObj(config, interpolation="Template")
 
     pysm_components_string = None
 
