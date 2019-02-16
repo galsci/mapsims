@@ -77,8 +77,8 @@ def test_from_classes():
         has_polarization=True,
         cmb_set=0,
         cmb_dir="mapsims/tests/data",
-        input_units="uK_RJ",
-        input_reference_frequency_GHz=27
+        input_units="uK_CMB",
+        input_reference_frequency_GHz=None
     )
 
     simulator = mapsims.MapSim(
