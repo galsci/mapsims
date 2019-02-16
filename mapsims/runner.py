@@ -13,7 +13,7 @@ from . import Channel
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
-
+default_output_filename_template="simonsobs_{telescope}{band:03d}_nside{nside}.fits"
 
 def command_line_script(args=None):
 
@@ -78,7 +78,7 @@ def from_config(config_file):
         nside=int(config["output_nside"]),
         unit=config["unit"],
         output_folder=config.get("output_folder", "output"),
-        output_filename_template=config.get("output_filename_template"),
+        output_filename_template=config.get("output_filename_template", default_output_filename_template),
         pysm_components_string=pysm_components_string,
         pysm_custom_components=components["pysm_components"],
         other_components=components["other_components"],
@@ -93,7 +93,7 @@ class MapSim:
         nside,
         unit="uK_CMB",
         output_folder="output",
-        output_filename_template="simonsobs_{telescope}{band:03d}_nside{nside}.fits",
+        output_filename_template=default_output_filename_template,
         pysm_components_string=None,
         pysm_custom_components=None,
         other_components=None,
