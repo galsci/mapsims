@@ -6,17 +6,15 @@ Configuration file
 ==================
 
 First you need to create a configuration file, see ``example_config.cfg`` included in the package
-or `in the repository<https://github.com/simonsobs/mapsims/blob/master/mapsims/example_config.cfg>`_.
+or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/example_config.cfg>`_.
 
 It first defines some global configuration options like output :math:`N_{side}`, the unit and the
 channels, then has 2 subsections. They both define subsections with a ``class`` attribute that
 specifies which object should be instantiated; all other arguments are passed into the class
 constructor.
 
-* The ``pysm_components`` subsection allows to choose any pre-existing PySM model and later add
-any custom class, for example one from ``so_pysm_models``.
-* The ``other_components`` section instead includes models that generate a map to be summed after
-PySM has been executed, for example the noise simulation.
+* The ``pysm_components`` subsection allows to choose any pre-existing PySM model and later add any custom class, for example one from ``so_pysm_models``.
+* The ``other_components`` section instead includes models that generate a map to be summed after PySM has been executed, for example the noise simulation.
 
 mapsims_run
 ===========
