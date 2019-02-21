@@ -4,7 +4,7 @@ import healpy as hp
 import pytest
 
 from astropy.utils import data
-from mapsims import noise
+import mapsims
 
 NSIDE = 16
 
@@ -12,9 +12,11 @@ NSIDE = 16
 @pytest.mark.parametrize("telescope", ["SA", "LA"])
 def test_noise_simulator(telescope):
 
-    simulator = noise.SONoiseSimulator(
-        telescope=telescope,
-        band=93,
+    seed = 1234 - 93
+    if telescope == "SA":
+        seed -= 1000
+
+    simulator = mapsims.SONoiseSimulator(
         nside=NSIDE,
         ell_max=500,
         return_uK_CMB=True,
@@ -27,9 +29,10 @@ def test_noise_simulator(telescope):
         LA_number_UHF=2,
         SA_years_LF=1,
         SA_one_over_f_mode="optimistic",
+        seed=seed,
     )
 
-    output_map = simulator.simulate(seed=1234)
+    output_map = simulator.simulate(mapsims.Channel(telescope, 93))
     expected_map = hp.read_map(
         data.get_pkg_data_filename(
             "data/noise_{}_uKCMB_classical_nside16_channel2_seed1234.fits.gz".format(telescope)

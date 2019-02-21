@@ -208,16 +208,17 @@ def Simons_Observatory_V3_LA_noise(sensitivity_mode,f_sky,ell_max,delta_ell,N_LF
     N_ell_P_93x145 = r_atm * np.sqrt(N_ell_P_93_atm * N_ell_P_145_atm)
     N_ell_P_225x280 = r_atm * np.sqrt(N_ell_P_225_atm * N_ell_P_280_atm)
         
-    ## include the impact of the beam
-    N_ell_P_27  *= np.exp( ell*(ell+1)* LA_beams[0]**2 )
-    N_ell_P_39  *= np.exp( ell*(ell+1)* LA_beams[1]**2 )
-    N_ell_P_93  *= np.exp( ell*(ell+1)* LA_beams[2]**2 )
-    N_ell_P_145 *= np.exp( ell*(ell+1)* LA_beams[3]**2 )
-    N_ell_P_225 *= np.exp( ell*(ell+1)* LA_beams[4]**2 )
-    N_ell_P_280 *= np.exp( ell*(ell+1)* LA_beams[5]**2 )
-    N_ell_P_27x39 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[0]**2. + LA_beams[1]**2.) )
-    N_ell_P_93x145 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[2]**2. + LA_beams[3]**2.) )
-    N_ell_P_225x280 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[4]**2. + LA_beams[5]**2.) )
+    if apply_beam_correction:
+        ## include the impact of the beam
+        N_ell_P_27  *= np.exp( ell*(ell+1)* LA_beams[0]**2 )
+        N_ell_P_39  *= np.exp( ell*(ell+1)* LA_beams[1]**2 )
+        N_ell_P_93  *= np.exp( ell*(ell+1)* LA_beams[2]**2 )
+        N_ell_P_145 *= np.exp( ell*(ell+1)* LA_beams[3]**2 )
+        N_ell_P_225 *= np.exp( ell*(ell+1)* LA_beams[4]**2 )
+        N_ell_P_280 *= np.exp( ell*(ell+1)* LA_beams[5]**2 )
+        N_ell_P_27x39 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[0]**2. + LA_beams[1]**2.) )
+        N_ell_P_93x145 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[2]**2. + LA_beams[3]**2.) )
+        N_ell_P_225x280 *= np.exp( (ell*(ell+1)/2.) * (LA_beams[4]**2. + LA_beams[5]**2.) )
     
     ## make an array of noise curves for P
     N_ell_P_LA = np.array([N_ell_P_27,N_ell_P_39,N_ell_P_93,N_ell_P_145,N_ell_P_225,N_ell_P_280,N_ell_P_27x39,N_ell_P_93x145,N_ell_P_225x280])
