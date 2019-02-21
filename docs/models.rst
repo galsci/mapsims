@@ -8,7 +8,7 @@ available in the ``so_pysm_models`` package, see `the documentation about those 
 20180822 noise power spectra and hitmaps
 ========================================
 
-The :py:class`SONoiseSimulator` class provides a wrapper to call the software that was released on 20180822
+The :py:class:`SONoiseSimulator` class provides a wrapper to call the software that was released on 20180822
 to simulate power spectra of the noise taking into account the expected performance of the whole experiment.
 The noise simulator accepts a number of parameters to configure the simulation, see the documentation
 of the class of the source code of `the noise spectra simulator included in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/SO_Noise_Calculator_Public_20180822.py>`_.
