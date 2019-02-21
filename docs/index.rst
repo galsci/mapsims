@@ -7,7 +7,7 @@ mapsims Documentation
 It creates simulated Simons Observatory maps based on:
 
 * Foreground models included in PySM
-* Custom foregrounds models from the ``so_pysm_models`` package, currently :py:class:`so_pysm_models.GaussianDust` and :py:class:`so_pysm_models.GaussianSynchrotron`
+* Custom foregrounds models from the :py:mod:`so_pysm_models` package, currently :py:class:`so_pysm_models.GaussianDust` and :py:class:`so_pysm_models.GaussianSynchrotron`
 * Precomputed Cosmic Microwave Background simulations
 * Noise simulations based on expected performance and simulated hitmaps with either classical or opportunistic scanning strategy
 * Effect of gaussian beam convolution
