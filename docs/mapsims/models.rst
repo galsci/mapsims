@@ -28,5 +28,23 @@ As an example:
 Cosmic Microwave Background simulations
 =======================================
 
-The ``so_pysm_models`` package provides a generic `PrecomputedAlms<https://so-pysm-models.readthedocs.io/en/latest/api/so_pysm_models.PrecomputedAlms.html#so_pysm_models.PrecomputedAlms>`_
+The ``so_pysm_models`` package provides a generic `PrecomputedAlms<https://so-pysm-models.readthedocs.io/en/latest/api/so_pysm_models.PrecomputedAlms.html#so_pysm_models.PrecomputedAlms>`_ PySM component that can load a set of :math:`a_{\ell m}` coefficients and generate a map at the requested :math:`N_{side}`.
 
+``mapsims`` has 2 classes that derive from ``PrecomputedAlms``:
+
+* ``SOPrecomputedCMB`` provides a specific naming convention tailored to the Simons Observatory simulations that are already available
+* ``SOStandalonePrecomputedCMB`` is useful to simulate CMB only maps, in this case it is wasteful to use PySM because it first creates a map and then performs other 2 spherical harmonics transforms to apply the beam smoothing. This class instead keeps the input in spherical harmonics domain, first applies the beam and then returns a map. The `simulate(ch)` method gets a channel object and returns a map already convolved with the channel's beam.
+
+Available Cosmic Microwave Background simulations
+=================================================
+
+**Lensed CMB**
+
+Available at NERSC at: ``/global/project/projectdirs/sobs/v4_sims/mbs/cmb``
+
+FIXME: add documentation about these simulations:
+
+* :math:`\ell_{max}`
+* input theory spectrum and parameters (also make them available in folder)
+* what maps used for lensing?
+* any primordial B-modes?
