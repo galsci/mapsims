@@ -197,3 +197,5 @@ github_issues_url = 'https://github.com/{0}/issues/'.format(setup_cfg['github_pr
 #     dtype, target = line.split(None, 1)
 #     target = target.strip()
 #     nitpick_ignore.append((dtype, six.u(target)))
+
+intersphinx_mapping = {'so_pysm_models': ('https://so-pysm-models.readthedocs.io/en/latest', None)}
