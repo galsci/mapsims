@@ -44,7 +44,8 @@ Available at NERSC at: ``/global/project/projectdirs/sobs/v4_sims/mbs/cmb``
 
 FIXME: add documentation about these simulations:
 
-* :math:`\ell_{max}`
-* input theory spectrum and parameters (also make them available in folder)
-* what maps used for lensing?
-* any primordial B-modes?
+
+* input theory spectrum and parameters: The input spectra are based on a best-fit Planck cosmology.  The unlensed power spectra  and are available at https://github.com/ACTCollaboration/actsims/blob/master/data/cosmo2017_10K_acc3_scalCls.dat.  The maps are generated at lmax = 8000.  
+* The lensing (i.e. kappa or phi) maps are Gaussian random fields obtained with the same cosmology.   The lensing is done at one-arcminute resolution using the routine pixell.lensing.rand_map().  We pass separate random seeds to make the CMB and phi maps, meaning that there is no correlation between T and phi (or E and phi) arising from the ISW effect (this might have an impact for people studying primordial non-Gaussianity).  
+* The lensed power spectra, which represent the lensed maps to a very good approximation are at https://github.com/ACTCollaboration/actsims/blob/master/data/cosmo2017_10K_acc3_lensedCls.dat
+* There are no primordial B modes (and similarly no contribution from tensors to the T maps).
