@@ -107,6 +107,9 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
             cmb_dir, iteration_num, cmb_set, lensed, aberrated
         )
 
+        self.iteration_num = iteration_num
+        self.cmb_dir = cmb_dir
+
         super().__init__(
             filename,
             target_nside=nside,
@@ -121,6 +124,10 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
 
     def simulate(self, ch, output_units="uK_CMB"):
         return self.signal(nu=ch.band, fwhm_arcmin=so_utils.get_beam(ch.telescope, ch.band), output_units=output_units)
+    def get_phi_alm(self):
+        # Return the lensing potential (phi) alms corresponding to this sim
+        import healpy as hp
+        return hp.read_alm(_get_phi_map_string(self.cmb_dir, self.iteration_num))
 
 def _get_default_cmb_directory():
     # FIXME: remove hard-coding to use preferred directory path system
@@ -138,6 +145,15 @@ def _get_cmb_map_string(cmb_dir, iteration_num, cmb_set, lensed, aberrated):
     filename = cmb_dir + "/fullsky%s_alm_set%02d_%05d.fits" % (
         cmb_map_type,
         cmb_set,
+        iteration_num,
+    )
+    return filename
+
+def _get_phi_map_string(cmb_dir, iteration_num):
+    # Implements the lensing potential alms file naming convention
+    # Ideally the same function should be used when saving sims
+    if cmb_dir is None: cmb_dir = _get_default_cmb_directory()
+    filename = cmb_dir + "/fullskyPhi_alm_%05d.fits" % (
         iteration_num,
     )
     return filename
