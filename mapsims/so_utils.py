@@ -3,6 +3,18 @@ import numpy as np
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
 
 Channel = namedtuple("Channel", ["telescope", "band"])
+Channel.__doc__ = """Single Simons Observatory frequency channel
+
+Simple way of referencing a frequency band, this will be replaced
+in the future by a common metadata handling package
+
+Parameters
+----------
+telescope : str
+    LA or SA for Large and Small Aperture telescope
+band : int
+    Frequency in GHz as an integer
+"""
 
 
 def get_bands(telescope):

@@ -33,7 +33,7 @@ The ``so_pysm_models`` package provides a generic :py:class:`so_pysm_models.Prec
 ``mapsims`` has 2 classes that derive from ``PrecomputedAlms``:
 
 * :py:class:`SOPrecomputedCMB` provides a specific naming convention tailored to the Simons Observatory simulations that are already available
-* :py:class:`SOStandalonePrecomputedCMB` is useful to simulate CMB only maps, in this case it is wasteful to use PySM because it first creates a map and then performs other 2 spherical harmonics transforms to apply the beam smoothing. This class instead keeps the input in spherical harmonics domain, first applies the beam and then returns a map. The :py:meth:`SOStandalonePrecomputedCMB.simulate(ch)` method gets a channel object and returns a map already convolved with the channel's beam.
+* :py:class:`SOStandalonePrecomputedCMB` is useful to simulate CMB only maps, in this case it is wasteful to use PySM because it first creates a map and then performs other 2 spherical harmonics transforms to apply the beam smoothing. This class instead keeps the input in spherical harmonics domain, first applies the beam and then returns a map. The :py:meth:`SOStandalonePrecomputedCMB.simulate(ch)` method gets a :py:class:`Channel` object and returns a map already convolved with the channel's beam.
 
 Available Cosmic Microwave Background simulations
 =================================================

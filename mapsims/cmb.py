@@ -3,7 +3,6 @@ from . import so_utils
 
 
 class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
-
     def __init__(
         self,
         iteration_num,
@@ -78,8 +77,8 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             pixel_indices=pixel_indices,
         )
 
-class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
 
+class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
     def __init__(
         self,
         iteration_num,
@@ -120,7 +119,21 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         )
 
     def simulate(self, ch, output_units="uK_CMB"):
-        return self.signal(nu=ch.band, fwhm_arcmin=so_utils.get_beam(ch.telescope, ch.band), output_units=output_units)
+        """Return a simulated noise map for a specific Simons Observatory channel
+
+        Parameters
+        ----------
+        ch : mapsims.Channel
+            Simons Observatory Channel object
+        output_units : str
+            Units as defined by `pysm.convert_units`, e.g. uK_CMB or K_RJ
+        """
+        return self.signal(
+            nu=ch.band,
+            fwhm_arcmin=so_utils.get_beam(ch.telescope, ch.band),
+            output_units=output_units,
+        )
+
 
 def _get_default_cmb_directory():
     # FIXME: remove hard-coding to use preferred directory path system
