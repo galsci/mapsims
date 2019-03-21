@@ -7,13 +7,16 @@ import configobj
 
 import healpy as hp
 
+from so_pysm_models import get_so_models
+
 from . import so_utils
 from . import Channel
 
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
-default_output_filename_template="simonsobs_{telescope}{band:03d}_nside{nside}.fits"
+default_output_filename_template = "simonsobs_{telescope}{band:03d}_nside{nside}.fits"
+
 
 def command_line_script(args=None):
 
@@ -22,7 +25,7 @@ def command_line_script(args=None):
     parser = argparse.ArgumentParser(
         description="Execute map based simulations for Simons Observatory"
     )
-    parser.add_argument("config", type=str, help="Configuration file", nargs='+',)
+    parser.add_argument("config", type=str, help="Configuration file", nargs="+")
     res = parser.parse_args(args)
     simulator = from_config(res.config)
     simulator.execute(write_outputs=True)
@@ -78,7 +81,9 @@ def from_config(config_file):
         nside=int(config["output_nside"]),
         unit=config["unit"],
         output_folder=config.get("output_folder", "output"),
-        output_filename_template=config.get("output_filename_template", default_output_filename_template),
+        output_filename_template=config.get(
+            "output_filename_template", default_output_filename_template
+        ),
         pysm_components_string=pysm_components_string,
         pysm_custom_components=components["pysm_components"],
         other_components=components["other_components"],
@@ -87,6 +92,7 @@ def from_config(config_file):
 
 
 class MapSim:
+
     def __init__(
         self,
         channels,
@@ -138,8 +144,10 @@ class MapSim:
             sky_config = {}
             if self.pysm_components_string is not None:
                 for model in self.pysm_components_string.split(","):
-                    sky_config[PYSM_COMPONENTS[model[0]]] = pysm.nominal.models(
-                        model, self.nside
+                    sky_config[PYSM_COMPONENTS[model.split("_")[-1][0]]] = (
+                        get_so_models(model, self.nside)
+                        if model.startswith("SO")
+                        else pysm.nominal.models(model, self.nside)
                     )
 
             self.pysm_sky = pysm.Sky(sky_config)
