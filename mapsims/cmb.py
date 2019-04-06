@@ -1,9 +1,9 @@
 import so_pysm_models
 from . import so_utils
+import healpy as hp
 
 
 class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
-
     def __init__(
         self,
         iteration_num,
@@ -78,8 +78,8 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             pixel_indices=pixel_indices,
         )
 
-class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
 
+class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
     def __init__(
         self,
         iteration_num,
@@ -98,9 +98,10 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         """
         Equivalent of SOPrecomputedCMB to be executed outside of PySM.
         This is useful if you are not simulating any other component with PySM.
-        It loads the Alms in the constructor, when `simulate(ch)` is called,
-        it convolves the Alms with the beam, generate a map and apply unit
-        conversion.
+        It loads the Alms in the constructor. When `simulate(ch)` is called,
+        it convolves the Alms with the beam, generates a map and applies unit
+        conversion. The lensing potential map corresponding to the simulation
+        can be obtained by calling `get_phi_alm()`.
         """
 
         filename = _get_cmb_map_string(
@@ -122,12 +123,27 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
             precompute_output_map=False,
         )
 
-    def simulate(self, ch, output_units="uK_CMB"):
-        return self.signal(nu=ch.band, fwhm_arcmin=so_utils.get_beam(ch.telescope, ch.band), output_units=output_units)
     def get_phi_alm(self):
-        # Return the lensing potential (phi) alms corresponding to this sim
-        import healpy as hp
+        """Return the lensing potential (phi) alms corresponding to this sim
+        """
         return hp.read_alm(_get_phi_map_string(self.cmb_dir, self.iteration_num))
+
+    def simulate(self, ch, output_units="uK_CMB"):
+        """Return a simulated noise map for a specific Simons Observatory channel
+
+        Parameters
+        ----------
+        ch : mapsims.Channel
+            Simons Observatory Channel object
+        output_units : str
+            Units as defined by `pysm.convert_units`, e.g. uK_CMB or K_RJ
+        """
+        return self.signal(
+            nu=ch.band,
+            fwhm_arcmin=so_utils.get_beam(ch.telescope, ch.band),
+            output_units=output_units,
+        )
+
 
 def _get_default_cmb_directory():
     # FIXME: remove hard-coding to use preferred directory path system
@@ -135,8 +151,9 @@ def _get_default_cmb_directory():
 
 
 def _get_cmb_map_string(cmb_dir, iteration_num, cmb_set, lensed, aberrated):
-    # Implements the CMB lensed alms file naming convention
-    # Ideally the same function should be used when saving sims
+    """Implements the CMB lensed alms file naming convention
+    Ideally the same function should be used when saving sims
+    """
     if cmb_dir is None:
         cmb_dir = _get_default_cmb_directory()
     lstring = "Lensed" if lensed else "Unlensed"
@@ -149,11 +166,12 @@ def _get_cmb_map_string(cmb_dir, iteration_num, cmb_set, lensed, aberrated):
     )
     return filename
 
+
 def _get_phi_map_string(cmb_dir, iteration_num):
-    # Implements the lensing potential alms file naming convention
-    # Ideally the same function should be used when saving sims
-    if cmb_dir is None: cmb_dir = _get_default_cmb_directory()
-    filename = cmb_dir + "/fullskyPhi_alm_%05d.fits" % (
-        iteration_num,
-    )
+    """Implements the lensing potential alms file naming convention
+    Ideally the same function should be used when saving sims
+    """
+    if cmb_dir is None:
+        cmb_dir = _get_default_cmb_directory()
+    filename = cmb_dir + "/fullskyPhi_alm_%05d.fits" % (iteration_num,)
     return filename
