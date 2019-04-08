@@ -1,5 +1,6 @@
 import so_pysm_models
 from . import so_utils
+import healpy as hp
 
 
 class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
@@ -97,14 +98,18 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         """
         Equivalent of SOPrecomputedCMB to be executed outside of PySM.
         This is useful if you are not simulating any other component with PySM.
-        It loads the Alms in the constructor, when `simulate(ch)` is called,
-        it convolves the Alms with the beam, generate a map and apply unit
-        conversion.
+        It loads the Alms in the constructor. When `simulate(ch)` is called,
+        it convolves the Alms with the beam, generates a map and applies unit
+        conversion. The lensing potential map corresponding to the simulation
+        can be obtained by calling `get_phi_alm()`.
         """
 
         filename = _get_cmb_map_string(
             cmb_dir, iteration_num, cmb_set, lensed, aberrated
         )
+
+        self.iteration_num = iteration_num
+        self.cmb_dir = cmb_dir
 
         super().__init__(
             filename,
@@ -117,6 +122,11 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
             pixel_indices=pixel_indices,
             precompute_output_map=False,
         )
+
+    def get_phi_alm(self):
+        """Return the lensing potential (phi) alms corresponding to this sim
+        """
+        return hp.read_alm(_get_phi_map_string(self.cmb_dir, self.iteration_num))
 
     def simulate(self, ch, output_units="uK_CMB"):
         """Return a simulated noise map for a specific Simons Observatory channel
@@ -141,8 +151,9 @@ def _get_default_cmb_directory():
 
 
 def _get_cmb_map_string(cmb_dir, iteration_num, cmb_set, lensed, aberrated):
-    # Implements the CMB lensed alms file naming convention
-    # Ideally the same function should be used when saving sims
+    """Implements the CMB lensed alms file naming convention
+    Ideally the same function should be used when saving sims
+    """
     if cmb_dir is None:
         cmb_dir = _get_default_cmb_directory()
     lstring = "Lensed" if lensed else "Unlensed"
@@ -153,4 +164,14 @@ def _get_cmb_map_string(cmb_dir, iteration_num, cmb_set, lensed, aberrated):
         cmb_set,
         iteration_num,
     )
+    return filename
+
+
+def _get_phi_map_string(cmb_dir, iteration_num):
+    """Implements the lensing potential alms file naming convention
+    Ideally the same function should be used when saving sims
+    """
+    if cmb_dir is None:
+        cmb_dir = _get_default_cmb_directory()
+    filename = cmb_dir + "/fullskyPhi_alm_%05d.fits" % (iteration_num,)
     return filename
