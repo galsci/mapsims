@@ -32,7 +32,7 @@ Create the simulator object with::
     import mapsims
     simulator = mapsims.from_config("example_config.cfg")
 
-This returns a :py:class:`MapSims` object, then you can
+This returns a :py:class:`.MapSims` object, then you can
 produce the output map with::
 
     output_map = simulator.execute()
@@ -52,7 +52,7 @@ an example we will use all defaults options::
         target_nside=NSIDE,
     )
 
-Then we can create a :py:class:`SONoiseSimulator`, the most important parameter is the scanning strategy,
+Then we can create a :py:class:`.SONoiseSimulator`, the most important parameter is the scanning strategy,
 it can be either "classical" or "opportunistic"::
 
     noise = mapsims.SONoiseSimulator(
@@ -72,7 +72,7 @@ it can be either "classical" or "opportunistic"::
         SA_remove_kluge=False,
     )
 
-Finally we can create the :py:class:`MapSim` simulator object and pass the PySM custom component and the noise
+Finally we can create the :py:class:`.MapSim` simulator object and pass the PySM custom component and the noise
 simulator as dictionaries, we can also specify any default model from PySM as a comma separated string,
 e.g. "d7,a1,s2"::
 
