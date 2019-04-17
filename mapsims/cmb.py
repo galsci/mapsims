@@ -173,5 +173,5 @@ def _get_phi_map_string(cmb_dir, iteration_num):
     """
     if cmb_dir is None:
         cmb_dir = _get_default_cmb_directory()
-    filename = cmb_dir + "/fullskyPhi_alm_%05d.fits" % (iteration_num,)
+    filename = cmb_dir + "/input_phi/fullskyPhi_alm_%05d.fits" % (iteration_num,)
     return filename
