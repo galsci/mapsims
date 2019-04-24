@@ -187,6 +187,8 @@ class MapSim:
         unless `write_outputs` is False, then return them.
         """
 
+        use_pixel_weights = self.nside >= 32
+
         if self.run_pysm:
             sky_config = {}
             if self.pysm_components_string is not None:
@@ -224,7 +226,6 @@ class MapSim:
                 )
 
                 if self.rot is not None:
-                    use_pixel_weights = self.nside >= 32
                     band_map = hp.ma(self.rot.rotate_map_alms(band_map, use_pixel_weights=use_pixel_weights))
 
                 assert band_map.ndim == 2
@@ -235,7 +236,7 @@ class MapSim:
                     if self.run_pysm:
                         beam_width_arcmin = so_utils.get_beam(ch.telescope, ch.band)
                         output_map = hp.smoothing(
-                            band_map, fwhm=np.radians(beam_width_arcmin / 60)
+                            band_map, fwhm=np.radians(beam_width_arcmin / 60), use_pixel_weights=use_pixel_weights,
                         )
                     else:
                         output_map = np.zeros(
