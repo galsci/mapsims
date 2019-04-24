@@ -59,7 +59,7 @@ def from_config(config_file):
                     "pysm_components_string", default=None
                 )
                 pysm_output_reference_frame = component_type_config.pop(
-                    "pysm_output_reference_frame", default="G",
+                    "pysm_output_reference_frame", default=None,
                 )
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
@@ -135,7 +135,8 @@ class MapSim:
         pysm_components_string : str
             Comma separated string of PySM components, i.e. "s1,d4,a2"
         pysm_output_reference_frame : str
-            The output of PySM is in Galactic coordinates, rotate to C for Equatorial or E for Ecliptic
+            The output of PySM is in Galactic coordinates, rotate to C for Equatorial or E for Ecliptic,
+            set to None to apply no rotation
         pysm_custom_components : dict
             Dictionary of other components executed through PySM
         other_components : dict
