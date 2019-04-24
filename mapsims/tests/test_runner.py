@@ -87,6 +87,7 @@ def test_from_classes():
         unit="uK_CMB",
         pysm_components_string="a1",
         pysm_custom_components={"dust": dust, "synchrotron": sync, "cmb": cmb},
+        pysm_output_reference_frame="G",
         other_components={"noise": noise},
     )
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0]]

@@ -58,6 +58,9 @@ def from_config(config_file):
                 pysm_components_string = component_type_config.pop(
                     "pysm_components_string", default=None
                 )
+                pysm_output_reference_frame = component_type_config.pop(
+                    "pysm_output_reference_frame", default="G",
+                )
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
@@ -86,6 +89,7 @@ def from_config(config_file):
         ),
         pysm_components_string=pysm_components_string,
         pysm_custom_components=components["pysm_components"],
+        pysm_output_reference_frame=pysm_output_reference_frame,
         other_components=components["other_components"],
     )
     return map_sim
@@ -101,6 +105,7 @@ class MapSim:
         output_folder="output",
         output_filename_template=default_output_filename_template,
         pysm_components_string=None,
+        pysm_output_reference_frame="C",
         pysm_custom_components=None,
         other_components=None,
     ):
@@ -137,6 +142,9 @@ class MapSim:
             os.makedirs(output_folder)
         self.output_folder = output_folder
         self.output_filename_template = output_filename_template
+        self.rot = None
+        if pysm_output_reference_frame is not None and pysm_output_reference_frame != "G":
+            self.rot = hp.Rotator(coord = ("G", pysm_output_reference_frame))
 
     def execute(self, write_outputs=False):
 
@@ -175,6 +183,10 @@ class MapSim:
                 band_map = hp.ma(
                     instrument.observe(self.pysm_sky, write_outputs=False)[0][0]
                 )
+
+                if self.rot is not None:
+                    use_pixel_weights = self.nside >= 32
+                    band_map = hp.ma(self.rot.rotate_map_alms(band_map, use_pixel_weights=use_pixel_weights))
 
                 assert band_map.ndim == 2
                 assert band_map.shape[0] == 3
