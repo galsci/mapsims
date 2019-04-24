@@ -229,9 +229,6 @@ class MapSim:
                 if self.rot is not None:
                     band_map = hp.ma(self.rot.rotate_map_alms(band_map, use_pixel_weights=use_pixel_weights))
 
-                assert band_map.ndim == 2
-                assert band_map.shape[0] == 3
-
             for ch in self.channels:
                 if ch.band == band:
                     if self.run_pysm:
