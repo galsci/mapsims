@@ -225,6 +225,8 @@ class MapSim:
                 band_map = hp.ma(
                     instrument.observe(self.pysm_sky, write_outputs=False)[0][0]
                 )
+                if len(band_map) == 1:
+                    band_map = band_map[0]
 
                 if self.rot is not None:
                     band_map = hp.ma(self.rot.rotate_map_alms(band_map, use_pixel_weights=use_pixel_weights))
