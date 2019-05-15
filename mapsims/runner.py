@@ -88,6 +88,7 @@ class MapSim:
         nside,
         unit="uK_CMB",
         output_folder="output",
+        tag="mapsim",
         output_filename_template=default_output_filename_template,
         pysm_components_string=None,
         pysm_output_reference_frame="C",
@@ -114,9 +115,12 @@ class MapSim:
         unit : str
             Unit of output maps
         output_folder : str
-            Relative or absolute path to output folder
+            Relative or absolute path to output folder, string template with {nside} and {tag} fields
+        tag : str
+            String to describe the current simulation, for example its content, which is used into
+            string interpolation for `output_folder` and `output_filename_template`
         output_filename_template : str
-            String template with {telescope} {channel} {nside} fields
+            String template with {telescope} {channel} {nside} {tag} fields
         pysm_components_string : str
             Comma separated string of PySM components, i.e. "s1,d4,a2"
         pysm_output_reference_frame : str
@@ -158,9 +162,10 @@ class MapSim:
             and (pysm_custom_components is None or len(pysm_custom_components) == 0)
         )
         self.other_components = other_components
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-        self.output_folder = output_folder
+        self.tag = tag
+        self.output_folder = output_folder.format(nside=self.nside, tag=self.tag)
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder)
         self.output_filename_template = output_filename_template
         self.rot = None
         if pysm_output_reference_frame is not None and pysm_output_reference_frame != "G":
@@ -239,6 +244,7 @@ class MapSim:
                                     telescope=ch.telescope.lower(),
                                     band=ch.band,
                                     nside=self.nside,
+                                    tag=self.tag,
                                 ),
                             ),
                             output_map,
