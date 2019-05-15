@@ -3,6 +3,7 @@ import importlib
 import numpy as np
 
 import pysm
+from pysm import units as u
 import toml
 
 import healpy as hp
@@ -68,6 +69,7 @@ def from_config(config_file):
         channels=config["channels"],
         nside=int(config["nside"]),
         unit=config["unit"],
+        tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
         output_filename_template=config.get(
             "output_filename_template", default_output_filename_template
@@ -168,8 +170,7 @@ class MapSim:
             os.makedirs(self.output_folder)
         self.output_filename_template = output_filename_template
         self.rot = None
-        if pysm_output_reference_frame is not None and pysm_output_reference_frame != "G":
-            self.rot = hp.Rotator(coord = ("G", pysm_output_reference_frame))
+        self.pysm_output_reference_frame = pysm_output_reference_frame
 
     def execute(self, write_outputs=False):
         """Run map simulations
@@ -178,19 +179,17 @@ class MapSim:
         unless `write_outputs` is False, then return them.
         """
 
-        use_pixel_weights = self.nside >= 32
-
         if self.run_pysm:
-            sky_config = {}
+            sky_config = []
             if self.pysm_components_string is not None:
                 for model in self.pysm_components_string.split(","):
-                    sky_config[PYSM_COMPONENTS[model.split("_")[-1][0]]] = (
+                    sky_config.append(
                         get_so_models(model, self.nside)
                         if model.startswith("SO")
                         else pysm.nominal.models(model, self.nside)
                     )
 
-            self.pysm_sky = pysm.Sky(sky_config)
+            self.pysm_sky = pysm.Sky(nside=self.nside, component_objects=sky_config)
 
             if self.pysm_custom_components is not None:
                 for comp_name, comp in self.pysm_custom_components.items():
@@ -201,33 +200,15 @@ class MapSim:
 
         for band in self.bands:
 
-            instrument = {
-                "frequencies": np.array([band]),
-                "nside": self.nside,
-                "use_bandpass": False,
-                "add_noise": False,
-                "output_units": self.unit,
-                "use_smoothing": False,
-            }
-
             if self.run_pysm:
-                instrument = pysm.Instrument(instrument)
-                band_map = hp.ma(
-                    instrument.observe(self.pysm_sky, write_outputs=False)[0][0]
-                )
-                if len(band_map) == 1:
-                    band_map = band_map[0]
-
-                if self.rot is not None:
-                    band_map = hp.ma(self.rot.rotate_map_alms(band_map, use_pixel_weights=use_pixel_weights))
+                band_map = self.pysm_sky.get_emission(band * u.GHz)
 
             for ch in self.channels:
                 if ch.band == band:
                     if self.run_pysm:
                         beam_width_arcmin = so_utils.get_beam(ch.telescope, ch.band)
-                        output_map = hp.smoothing(
-                            band_map, fwhm=np.radians(beam_width_arcmin / 60), use_pixel_weights=use_pixel_weights,
-                        )
+                        # smoothing and coordinate rotation with 1 spherical harmonics transform
+                        output_map = pysm.apply_smoothing(band_map, fwhms=[beam_width_arcmin], lmax=2*self.nside, coord=self.pysm_output_reference_frame)[0]
                     else:
                         output_map = np.zeros(
                             (3, hp.nside2npix(self.nside)), dtype=np.float64
