@@ -69,7 +69,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
 
         super().__init__(
             filename,
-            target_nside=nside,
+            nside=nside,
             target_shape=shape,
             target_wcs=wcs,
             input_units=input_units,
@@ -113,7 +113,7 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
 
         super().__init__(
             filename,
-            target_nside=nside,
+            nside=nside,
             target_shape=shape,
             target_wcs=wcs,
             input_units=input_units,

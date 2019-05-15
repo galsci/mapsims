@@ -12,7 +12,7 @@ NSIDE = 16
 def test_from_config():
 
     simulator = mapsims.from_config(
-        data.get_pkg_data_filename("example_config.cfg", package="mapsims")
+        data.get_pkg_data_filename("example_config.toml", package="mapsims")
     )
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0]]
 
@@ -25,7 +25,7 @@ def test_from_config():
 def test_from_classes():
 
     dust = so_pysm_models.GaussianDust(
-        target_nside=NSIDE,
+        nside=NSIDE,
         has_polarization=True,
         TT_amplitude=350.,
         Toffset=18.,
@@ -40,7 +40,7 @@ def test_from_classes():
     )
 
     sync = so_pysm_models.GaussianSynchrotron(
-        target_nside=NSIDE,
+        nside=NSIDE,
         has_polarization=True,
         TT_amplitude=20.0,
         Toffset=72.,

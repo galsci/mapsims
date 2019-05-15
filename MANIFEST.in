@@ -3,7 +3,7 @@ include CHANGES.rst
 
 include ah_bootstrap.py
 include setup.cfg
-include mapsims/example_config.cfg
+include mapsims/example_config.toml
 include mapsims/tests/coveragerc
 
 recursive-include mapsims *.pyx *.c *.pxd

@@ -3,7 +3,7 @@ import importlib
 import numpy as np
 
 import pysm
-import configobj
+import toml
 
 import healpy as hp
 
@@ -40,48 +40,33 @@ def from_config(config_file):
     if isinstance(config_file, str):
         config_file = [config_file]
 
-    config = configobj.ConfigObj(config_file[0], interpolation=False)
-
-    for other_config in config_file[1:]:
-        config.merge(configobj.ConfigObj(other_config, interpolation=False))
-
-    config = configobj.ConfigObj(config, interpolation="Template")
+    config = toml.load(config_file)
 
     pysm_components_string = None
 
     components = {}
     for component_type in ["pysm_components", "other_components"]:
         components[component_type] = {}
-        if component_type in config.sections:
+        if component_type in config:
             component_type_config = config[component_type]
             if component_type == "pysm_components":
                 pysm_components_string = component_type_config.pop(
-                    "pysm_components_string", default=None
+                    "pysm_components_string", None
                 )
                 pysm_output_reference_frame = component_type_config.pop(
-                    "pysm_output_reference_frame", default=None,
+                    "pysm_output_reference_frame", None,
                 )
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
-                for k, v in comp_config.items():
-                    try:
-                        if "." in v:
-                            comp_config[k] = float(v)
-                        else:
-                            comp_config[k] = int(v)
-                    except ValueError:
-                        if v == "True":
-                            comp_config[k] = True
-                        elif v == "False":
-                            comp_config[k] = False
                 components[component_type][comp_name] = comp_class(
-                    **(comp_config.dict())
+                    nside=config["nside"],
+                    **comp_config
                 )
 
     map_sim = MapSim(
         channels=config["channels"],
-        nside=int(config["output_nside"]),
+        nside=int(config["nside"]),
         unit=config["unit"],
         output_folder=config.get("output_folder", "output"),
         output_filename_template=config.get(
