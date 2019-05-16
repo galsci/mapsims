@@ -208,7 +208,7 @@ class MapSim:
                     if self.run_pysm:
                         beam_width_arcmin = so_utils.get_beam(ch.telescope, ch.band)
                         # smoothing and coordinate rotation with 1 spherical harmonics transform
-                        output_map = pysm.apply_smoothing(band_map, fwhms=[beam_width_arcmin], lmax=2*self.nside, coord=self.pysm_output_reference_frame)[0]
+                        output_map = pysm.apply_smoothing(band_map, fwhms=[beam_width_arcmin], lmax=3*self.nside-1, coord=self.pysm_output_reference_frame)[0]
                     else:
                         output_map = np.zeros(
                             (3, hp.nside2npix(self.nside)), dtype=np.float64
