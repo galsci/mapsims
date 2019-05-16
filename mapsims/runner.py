@@ -189,7 +189,7 @@ class MapSim:
                         else pysm.nominal.models(model, self.nside)
                     )
 
-            self.pysm_sky = pysm.Sky(nside=self.nside, component_objects=sky_config)
+            self.pysm_sky = pysm.Sky(nside=self.nside, component_objects=sky_config, output_unit=u.Unit(self.unit))
 
             if self.pysm_custom_components is not None:
                 for comp_name, comp in self.pysm_custom_components.items():
