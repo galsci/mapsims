@@ -27,8 +27,10 @@ def command_line_script(args=None):
         description="Execute map based simulations for Simons Observatory"
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
+    parser.add_argument("--nside", type=int, help="NSIDE")
+    parser.add_argument("--channels", type=str, help="Channels e.g. all, SA, LA, LA_27")
     res = parser.parse_args(args)
-    simulator = from_config(res.config)
+    simulator = from_config(res.config, override={"nside":res.nside, "channels":res.channels})
     simulator.execute(write_outputs=True)
 
 
@@ -37,11 +39,13 @@ def import_class_from_string(class_string):
     return getattr(importlib.import_module(module_name), class_name)
 
 
-def from_config(config_file):
+def from_config(config_file, override=None):
     if isinstance(config_file, str):
         config_file = [config_file]
 
     config = toml.load(config_file)
+    if override is not None:
+        config.update(override)
 
     pysm_components_string = None
 
@@ -111,7 +115,8 @@ class MapSim:
 
         channels : string
             all/SO for all channels, LA for all Large Aperture channels, SA for Small,
-            otherwise a single channel label, e.g. LA_27 or a list of channel labels
+            otherwise a single channel label, e.g. LA_27 or a list of channel labels,
+            or "027" for "LA_27" and "SA_27"
         nside : int
             output HEALPix Nside
         unit : str
@@ -145,6 +150,11 @@ class MapSim:
                 Channel(telescope, band)
                 for telescope in ["LA", "SA"]
                 for band in so_utils.get_bands(telescope)
+            ]
+        elif len(channels) == 3:
+            self.channels = [
+                Channel(telescope, int(channels))
+                for telescope in ["LA", "SA"]
             ]
         else:
             self.channels = []
