@@ -27,8 +27,8 @@ def command_line_script(args=None):
         description="Execute map based simulations for Simons Observatory"
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
-    parser.add_argument("--nside", type=int, help="NSIDE")
-    parser.add_argument("--channels", type=str, help="Channels e.g. all, SA, LA, LA_27")
+    parser.add_argument("--nside", type=int, required=True, help="NSIDE")
+    parser.add_argument("--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all")
     res = parser.parse_args(args)
     simulator = from_config(res.config, override={"nside":res.nside, "channels":res.channels})
     simulator.execute(write_outputs=True)
@@ -203,7 +203,7 @@ class MapSim:
 
             if self.pysm_custom_components is not None:
                 for comp_name, comp in self.pysm_custom_components.items():
-                    self.pysm_sky.add_component(comp_name, comp)
+                    self.pysm_sky.add_component(comp)
 
         if not write_outputs:
             output = {}
