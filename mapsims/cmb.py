@@ -1,6 +1,7 @@
 import so_pysm_models
 from . import so_utils
 import healpy as hp
+import pysm.units as u
 
 
 class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
@@ -16,8 +17,8 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
         cmb_set=0,  # We allow for more than one CMB map per lensing map
         cmb_dir=None,
         input_units="uK_RJ",
-        input_reference_frequency_GHz=None,
-        pixel_indices=None,
+        input_reference_frequency=None,
+        map_dist=None
     ):
         """
         Return a CMB map from stored alm's.  This can be in HEALPix format
@@ -73,9 +74,9 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             target_shape=shape,
             target_wcs=wcs,
             input_units=input_units,
-            input_reference_frequency_GHz=input_reference_frequency_GHz,
+            input_reference_frequency=input_reference_frequency,
             has_polarization=has_polarization,
-            pixel_indices=pixel_indices,
+            map_dist=map_dist,
         )
 
 
@@ -92,8 +93,8 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         cmb_set=0,  # We allow for more than one CMB map per lensing map
         cmb_dir=None,
         input_units="uK_RJ",
-        input_reference_frequency_GHz=None,
-        pixel_indices=None,
+        input_reference_frequency=None,
+        map_dist=None,
     ):
         """
         Equivalent of SOPrecomputedCMB to be executed outside of PySM.
@@ -117,9 +118,9 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
             target_shape=shape,
             target_wcs=wcs,
             input_units=input_units,
-            input_reference_frequency_GHz=input_reference_frequency_GHz,
+            input_reference_frequency=input_reference_frequency,
             has_polarization=has_polarization,
-            pixel_indices=pixel_indices,
+            map_dist=map_dist,
             precompute_output_map=False,
         )
 
@@ -138,9 +139,9 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         output_units : str
             Units as defined by `pysm.convert_units`, e.g. uK_CMB or K_RJ
         """
-        return self.signal(
-            nu=ch.band,
-            fwhm_arcmin=so_utils.get_beam(ch.telescope, ch.band),
+        return self.get_emission(
+            nu=ch.band << u.GHz,
+            fwhm=so_utils.get_beam(ch.telescope, ch.band)*u.arcmin,
             output_units=output_units,
         )
 
