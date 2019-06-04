@@ -8,11 +8,12 @@ dependencies:
     - python>=3.6
     - astropy
     - Cython
+    - toml
+    - numba
     - matplotlib
     - numpy
     - sphinx-astropy
     - healpy
     - pip:
-        - configobj
-        - https://github.com/zonca/PySM_public/archive/pysm_light.zip
-        - https://github.com/simonsobs/so_pysm_models/archive/master.zip
+        - https://github.com/healpy/pysm/archive/master.zip
+        - https://github.com/simonsobs/so_pysm_models/archive/pysm3.zip

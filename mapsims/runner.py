@@ -3,7 +3,8 @@ import importlib
 import numpy as np
 
 import pysm
-import configobj
+from pysm import units as u
+import toml
 
 import healpy as hp
 
@@ -26,8 +27,14 @@ def command_line_script(args=None):
         description="Execute map based simulations for Simons Observatory"
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
+    parser.add_argument("--nside", type=int, required=True, help="NSIDE")
+    parser.add_argument(
+        "--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all"
+    )
     res = parser.parse_args(args)
-    simulator = from_config(res.config)
+    simulator = from_config(
+        res.config, override={"nside": res.nside, "channels": res.channels}
+    )
     simulator.execute(write_outputs=True)
 
 
@@ -36,53 +43,40 @@ def import_class_from_string(class_string):
     return getattr(importlib.import_module(module_name), class_name)
 
 
-def from_config(config_file):
+def from_config(config_file, override=None):
     if isinstance(config_file, str):
         config_file = [config_file]
 
-    config = configobj.ConfigObj(config_file[0], interpolation=False)
-
-    for other_config in config_file[1:]:
-        config.merge(configobj.ConfigObj(other_config, interpolation=False))
-
-    config = configobj.ConfigObj(config, interpolation="Template")
+    config = toml.load(config_file)
+    if override is not None:
+        config.update(override)
 
     pysm_components_string = None
 
     components = {}
     for component_type in ["pysm_components", "other_components"]:
         components[component_type] = {}
-        if component_type in config.sections:
+        if component_type in config:
             component_type_config = config[component_type]
             if component_type == "pysm_components":
                 pysm_components_string = component_type_config.pop(
-                    "pysm_components_string", default=None
+                    "pysm_components_string", None
                 )
                 pysm_output_reference_frame = component_type_config.pop(
-                    "pysm_output_reference_frame", default=None,
+                    "pysm_output_reference_frame", None
                 )
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
-                for k, v in comp_config.items():
-                    try:
-                        if "." in v:
-                            comp_config[k] = float(v)
-                        else:
-                            comp_config[k] = int(v)
-                    except ValueError:
-                        if v == "True":
-                            comp_config[k] = True
-                        elif v == "False":
-                            comp_config[k] = False
                 components[component_type][comp_name] = comp_class(
-                    **(comp_config.dict())
+                    nside=config["nside"], **comp_config
                 )
 
     map_sim = MapSim(
         channels=config["channels"],
-        nside=int(config["output_nside"]),
+        nside=int(config["nside"]),
         unit=config["unit"],
+        tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
         output_filename_template=config.get(
             "output_filename_template", default_output_filename_template
@@ -96,13 +90,13 @@ def from_config(config_file):
 
 
 class MapSim:
-
     def __init__(
         self,
         channels,
         nside,
         unit="uK_CMB",
         output_folder="output",
+        tag="mapsim",
         output_filename_template=default_output_filename_template,
         pysm_components_string=None,
         pysm_output_reference_frame="C",
@@ -123,15 +117,19 @@ class MapSim:
 
         channels : string
             all/SO for all channels, LA for all Large Aperture channels, SA for Small,
-            otherwise a single channel label, e.g. LA_27 or a list of channel labels
+            otherwise a single channel label, e.g. LA_27 or a list of channel labels,
+            or "027" for "LA_27" and "SA_27"
         nside : int
             output HEALPix Nside
         unit : str
             Unit of output maps
         output_folder : str
-            Relative or absolute path to output folder
+            Relative or absolute path to output folder, string template with {nside} and {tag} fields
+        tag : str
+            String to describe the current simulation, for example its content, which is used into
+            string interpolation for `output_folder` and `output_filename_template`
         output_filename_template : str
-            String template with {telescope} {channel} {nside} fields
+            String template with {telescope} {channel} {nside} {tag} fields
         pysm_components_string : str
             Comma separated string of PySM components, i.e. "s1,d4,a2"
         pysm_output_reference_frame : str
@@ -155,6 +153,10 @@ class MapSim:
                 for telescope in ["LA", "SA"]
                 for band in so_utils.get_bands(telescope)
             ]
+        elif len(channels) == 3:
+            self.channels = [
+                Channel(telescope, int(channels)) for telescope in ["LA", "SA"]
+            ]
         else:
             self.channels = []
             if isinstance(channels, str):
@@ -173,13 +175,13 @@ class MapSim:
             and (pysm_custom_components is None or len(pysm_custom_components) == 0)
         )
         self.other_components = other_components
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-        self.output_folder = output_folder
+        self.tag = tag
+        self.output_folder = output_folder.format(nside=self.nside, tag=self.tag)
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder)
         self.output_filename_template = output_filename_template
         self.rot = None
-        if pysm_output_reference_frame is not None and pysm_output_reference_frame != "G":
-            self.rot = hp.Rotator(coord = ("G", pysm_output_reference_frame))
+        self.pysm_output_reference_frame = pysm_output_reference_frame
 
     def execute(self, write_outputs=False):
         """Run map simulations
@@ -188,60 +190,52 @@ class MapSim:
         unless `write_outputs` is False, then return them.
         """
 
-        use_pixel_weights = self.nside >= 32
-
         if self.run_pysm:
-            sky_config = {}
+            sky_config = []
+            preset_strings = []
             if self.pysm_components_string is not None:
                 for model in self.pysm_components_string.split(","):
-                    sky_config[PYSM_COMPONENTS[model.split("_")[-1][0]]] = (
-                        get_so_models(model, self.nside)
-                        if model.startswith("SO")
-                        else pysm.nominal.models(model, self.nside)
-                    )
+                    if model.startswith("SO"):
+                        sky_config.append(get_so_models(model, self.nside))
+                    else:
+                        preset_strings.append(model)
 
-            self.pysm_sky = pysm.Sky(sky_config)
+            self.pysm_sky = pysm.Sky(
+                nside=self.nside,
+                preset_strings=preset_strings,
+                component_objects=sky_config,
+                output_unit=u.Unit(self.unit),
+            )
 
             if self.pysm_custom_components is not None:
                 for comp_name, comp in self.pysm_custom_components.items():
-                    self.pysm_sky.add_component(comp_name, comp)
+                    self.pysm_sky.components.append(comp)
 
         if not write_outputs:
             output = {}
 
         for band in self.bands:
 
-            instrument = {
-                "frequencies": np.array([band]),
-                "nside": self.nside,
-                "use_bandpass": False,
-                "add_noise": False,
-                "output_units": self.unit,
-                "use_smoothing": False,
-            }
-
             if self.run_pysm:
-                instrument = pysm.Instrument(instrument)
-                band_map = hp.ma(
-                    instrument.observe(self.pysm_sky, write_outputs=False)[0][0]
-                )
-                if len(band_map) == 1:
-                    band_map = band_map[0]
-
-                if self.rot is not None:
-                    band_map = hp.ma(self.rot.rotate_map_alms(band_map, use_pixel_weights=use_pixel_weights))
+                band_map = self.pysm_sky.get_emission(band * u.GHz).value
 
             for ch in self.channels:
                 if ch.band == band:
                     if self.run_pysm:
-                        beam_width_arcmin = so_utils.get_beam(ch.telescope, ch.band)
-                        output_map = hp.smoothing(
-                            band_map, fwhm=np.radians(beam_width_arcmin / 60), use_pixel_weights=use_pixel_weights,
+                        beam_width_arcmin = (
+                            so_utils.get_beam(ch.telescope, ch.band) * u.arcmin
                         )
+                        # smoothing and coordinate rotation with 1 spherical harmonics transform
+                        output_map = hp.ma(pysm.apply_smoothing_and_coord_transform(
+                            band_map,
+                            fwhm=beam_width_arcmin,
+                            lmax=3 * self.nside - 1,
+                            coord=self.pysm_output_reference_frame,
+                        ))
                     else:
-                        output_map = np.zeros(
+                        output_map = hp.ma(np.zeros(
                             (3, hp.nside2npix(self.nside)), dtype=np.float64
-                        )
+                        ))
 
                     for comp in self.other_components.values():
                         output_map += hp.ma(comp.simulate(ch, output_units=self.unit))
@@ -254,6 +248,7 @@ class MapSim:
                                     telescope=ch.telescope.lower(),
                                     band=ch.band,
                                     nside=self.nside,
+                                    tag=self.tag,
                                 ),
                             ),
                             output_map,

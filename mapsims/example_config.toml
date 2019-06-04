@@ -1,20 +1,20 @@
 
-output_nside = 16
+nside = 16
 channels = "SA_27"
-unit = uK_CMB
+unit = "uK_CMB"
 mapsims_version = "0.1"
 so_pysm_models_version = "0.1"
+tag = "test_sim"
 
 [ other_components ]
 
-    [[ noise ]]
+    [ other_components.noise ]
 
-    class = mapsims.SONoiseSimulator
-    nside = $output_nside
-    return_uK_CMB = True
+    class = "mapsims.SONoiseSimulator"
+    return_uK_CMB = true
     sensitivity_mode = "baseline"
-    apply_beam_correction = True
-    apply_kludge_correction = True
+    apply_beam_correction = true
+    apply_kludge_correction = true
     scanning_strategy = "classical"
     LA_number_LF = 1
     LA_number_MF = 4
@@ -29,14 +29,13 @@ so_pysm_models_version = "0.1"
     pysm_components_string = "a1"
     pysm_output_reference_frame = "G"
 
-    [[ dust ]]
+    [ pysm_components.dust ]
 
-    class = so_pysm_models.GaussianDust
-    target_nside = $output_nside
-    has_polarization = True
-    TT_amplitude = 350.
-    Toffset = 18.
-    EE_amplitude = 100.
+    class = "so_pysm_models.GaussianDust"
+    has_polarization = true
+    TT_amplitude = 350
+    Toffset = 18
+    EE_amplitude = 100
     rTE = 0.35
     EtoB = 0.5
     alpha = -0.42
@@ -45,31 +44,29 @@ so_pysm_models_version = "0.1"
     nu_0 = 353
     seed = 20001
 
-    [[ synchrotron  ]]
+    [ pysm_components.synchrotron  ]
 
-    class = so_pysm_models.GaussianSynchrotron
-    target_nside = $output_nside
-    has_polarization = True
+    class = "so_pysm_models.GaussianSynchrotron"
+    has_polarization = true
     TT_amplitude = 20.0
-    Toffset = 72.
+    Toffset = 72
     EE_amplitude = 4.3
     rTE = 0.35
     EtoB = 0.5
     alpha = -1.0
     beta = -3.1
-    curv = 0.
-    nu_0 = 23.
+    curv = 0
+    nu_0 = 23
     seed = 30001
 
-    [[ cmb ]]
-    class  =  mapsims.SOPrecomputedCMB
+    [ pysm_components.cmb ]
+    class  =  "mapsims.SOPrecomputedCMB"
     iteration_num = 0
-    nside = $output_nside
-    lensed = False
+    lensed = false
     # At NERSC use:
-    # lensed = True
-    aberrated = False
-    has_polarization = True
+    # lensed = true
+    aberrated = false
+    has_polarization = true
     cmb_set = 0
     cmb_dir = "mapsims/tests/data"
     # At NERSC use:

@@ -5,8 +5,12 @@ import healpy as hp
 
 from astropy.utils.data import get_pkg_data_filename
 
+import pysm.units as u
+
 from .. import cmb
 from .. import so_utils
+
+from astropy.tests.helper import assert_quantity_allclose
 
 
 def test_load_sim():
@@ -20,10 +24,10 @@ def test_load_sim():
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
-        input_reference_frequency_GHz=148,
-    ).signal(nu=[148.])
-    imap_test = hp.read_map(save_name, field=(0, 1, 2))
-    np.testing.assert_allclose(imap, imap_test)
+        input_reference_frequency=148 * u.GHz,
+    ).get_emission(148 * u.GHz)
+    imap_test = hp.read_map(save_name, field=(0, 1, 2)) << u.uK_RJ
+    assert_quantity_allclose(imap, imap_test)
     assert imap.shape[0] == 3
     # Make an I only sim
     imap = cmb.SOPrecomputedCMB(
@@ -33,9 +37,9 @@ def test_load_sim():
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
-        input_reference_frequency_GHz=148,
-    ).signal(nu=[148.])
-    assert imap.ndim == 2
+        input_reference_frequency=148 * u.GHz,
+    ).get_emission(148 * u.GHz)
+
 
 def test_standalone_cmb():
 
@@ -51,7 +55,7 @@ def test_standalone_cmb():
         lensed=False,
         aberrated=False,
         input_units="uK_RJ",
-        input_reference_frequency_GHz=ch.band, # do not apply any frequency scaling
-    ).signal(ch.band, output_units="uK_RJ", fwhm_arcmin=1e-5)
-    imap_test = hp.read_map(save_name, field=(0, 1, 2))
-    np.testing.assert_allclose(imap, imap_test)
+        input_reference_frequency=ch.band * u.GHz,  # do not apply any frequency scaling
+    ).get_emission(ch.band * u.GHz, fwhm=1e-5 * u.arcmin)
+    imap_test = hp.read_map(save_name, field=(0, 1, 2)) << u.uK_RJ
+    assert_quantity_allclose(imap, imap_test)

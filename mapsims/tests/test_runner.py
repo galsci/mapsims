@@ -1,6 +1,8 @@
 import numpy as np
+from astropy.tests.helper import assert_quantity_allclose
 import healpy as hp
 
+import pysm.units as u
 from astropy.utils import data
 
 import mapsims
@@ -12,20 +14,20 @@ NSIDE = 16
 def test_from_config():
 
     simulator = mapsims.from_config(
-        data.get_pkg_data_filename("example_config.cfg", package="mapsims")
+        data.get_pkg_data_filename("example_config.toml", package="mapsims")
     )
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0]]
 
     expected_map = hp.read_map(
         data.get_pkg_data_filename("data/example_run.fits.gz"), (0, 1, 2)
     )
-    np.testing.assert_allclose(output_map, expected_map)
+    assert_quantity_allclose(output_map, expected_map, rtol=1e-3)
 
 
 def test_from_classes():
 
     dust = so_pysm_models.GaussianDust(
-        target_nside=NSIDE,
+        nside=NSIDE,
         has_polarization=True,
         TT_amplitude=350.,
         Toffset=18.,
@@ -40,7 +42,7 @@ def test_from_classes():
     )
 
     sync = so_pysm_models.GaussianSynchrotron(
-        target_nside=NSIDE,
+        nside=NSIDE,
         has_polarization=True,
         TT_amplitude=20.0,
         Toffset=72.,
@@ -78,7 +80,6 @@ def test_from_classes():
         cmb_set=0,
         cmb_dir="mapsims/tests/data",
         input_units="uK_CMB",
-        input_reference_frequency_GHz=None
     )
 
     simulator = mapsims.MapSim(
@@ -95,4 +96,4 @@ def test_from_classes():
     expected_map = hp.read_map(
         data.get_pkg_data_filename("data/example_run.fits.gz"), (0, 1, 2)
     )
-    np.testing.assert_allclose(output_map, expected_map)
+    assert_quantity_allclose(output_map, expected_map, rtol=1e-3)
