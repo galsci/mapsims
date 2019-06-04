@@ -2,9 +2,11 @@ import numpy as np
 import healpy as hp
 
 import pytest
+from astropy.tests.helper import assert_quantity_allclose
 
 from astropy.utils import data
 import mapsims
+import pysm.units as u
 
 NSIDE = 16
 
@@ -40,4 +42,5 @@ def test_noise_simulator(telescope):
         (0, 1, 2),
     )
     expected_map[expected_map == 0] = hp.UNSEEN
-    np.testing.assert_allclose(output_map, expected_map)
+    expected_map <<= u.uK_CMB
+    assert_quantity_allclose(output_map, expected_map)
