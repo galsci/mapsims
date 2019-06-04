@@ -3,7 +3,7 @@ import numpy as np
 import healpy as hp
 from astropy.utils import data
 
-import pysm
+import pysm.units as u
 
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
 from .so_utils import get_bands
@@ -167,7 +167,6 @@ class SONoiseSimulator:
         output_map : ndarray
             Numpy array with the HEALPix map realization of noise
         """
-        unit_conv = pysm.convert_units("uK_CMB", output_units, ch.band)
 
         if self.seed is not None:
             np.random.seed(self.seed + ch.band + telescope_seed_offset[ch.telescope])
@@ -189,7 +188,7 @@ class SONoiseSimulator:
                     verbose=False,
                 )
             )
-        ) * unit_conv
+        )
         good = self.hitmap[ch.telescope] != 0
         # Normalize on the Effective sky fraction, see discussion in:
         # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
@@ -199,4 +198,6 @@ class SONoiseSimulator:
             * self.sky_fraction[ch.telescope]
         )
         output_map[:, np.logical_not(good)] = hp.UNSEEN
+        unit_conv = (1 * u.uK_CMB).to_value(u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.band*u.GHz))
+        output_map *= unit_conv
         return output_map
