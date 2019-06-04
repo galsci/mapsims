@@ -96,4 +96,4 @@ def test_from_classes():
     expected_map = hp.read_map(
         data.get_pkg_data_filename("data/example_run.fits.gz"), (0, 1, 2)
     )
-    assert_quantity_allclose(output_map, expected_map)
+    assert_quantity_allclose(output_map, expected_map, rtol=1e-3)
