@@ -16,4 +16,4 @@ dependencies:
     - healpy
     - pip:
         - https://github.com/healpy/pysm/archive/master.zip
-        - https://github.com/simonsobs/so_pysm_models/archive/pysm3.zip
+        - https://github.com/simonsobs/so_pysm_models/archive/master.zip
