@@ -28,9 +28,13 @@ def command_line_script(args=None):
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
     parser.add_argument("--nside", type=int, required=True, help="NSIDE")
-    parser.add_argument("--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all")
+    parser.add_argument(
+        "--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all"
+    )
     res = parser.parse_args(args)
-    simulator = from_config(res.config, override={"nside":res.nside, "channels":res.channels})
+    simulator = from_config(
+        res.config, override={"nside": res.nside, "channels": res.channels}
+    )
     simulator.execute(write_outputs=True)
 
 
@@ -59,14 +63,13 @@ def from_config(config_file, override=None):
                     "pysm_components_string", None
                 )
                 pysm_output_reference_frame = component_type_config.pop(
-                    "pysm_output_reference_frame", None,
+                    "pysm_output_reference_frame", None
                 )
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
                 components[component_type][comp_name] = comp_class(
-                    nside=config["nside"],
-                    **comp_config
+                    nside=config["nside"], **comp_config
                 )
 
     map_sim = MapSim(
@@ -87,7 +90,6 @@ def from_config(config_file, override=None):
 
 
 class MapSim:
-
     def __init__(
         self,
         channels,
@@ -153,8 +155,7 @@ class MapSim:
             ]
         elif len(channels) == 3:
             self.channels = [
-                Channel(telescope, int(channels))
-                for telescope in ["LA", "SA"]
+                Channel(telescope, int(channels)) for telescope in ["LA", "SA"]
             ]
         else:
             self.channels = []
@@ -191,19 +192,24 @@ class MapSim:
 
         if self.run_pysm:
             sky_config = []
+            preset_strings = []
             if self.pysm_components_string is not None:
                 for model in self.pysm_components_string.split(","):
-                    sky_config.append(
-                        get_so_models(model, self.nside)
-                        if model.startswith("SO")
-                        else pysm.nominal.models(model, self.nside)
-                    )
+                    if model.startswith("SO"):
+                        sky_config.append(get_so_models(model, self.nside))
+                    else:
+                        preset_strings.append(model)
 
-            self.pysm_sky = pysm.Sky(nside=self.nside, component_objects=sky_config, output_unit=u.Unit(self.unit))
+            self.pysm_sky = pysm.Sky(
+                nside=self.nside,
+                preset_strings=preset_strings,
+                component_objects=sky_config,
+                output_unit=u.Unit(self.unit),
+            )
 
             if self.pysm_custom_components is not None:
                 for comp_name, comp in self.pysm_custom_components.items():
-                    self.pysm_sky.add_component(comp)
+                    self.pysm_sky.components.append(comp)
 
         if not write_outputs:
             output = {}
@@ -211,18 +217,25 @@ class MapSim:
         for band in self.bands:
 
             if self.run_pysm:
-                band_map = self.pysm_sky.get_emission(band * u.GHz)
+                band_map = self.pysm_sky.get_emission(band * u.GHz).value
 
             for ch in self.channels:
                 if ch.band == band:
                     if self.run_pysm:
-                        beam_width_arcmin = so_utils.get_beam(ch.telescope, ch.band)
-                        # smoothing and coordinate rotation with 1 spherical harmonics transform
-                        output_map = pysm.apply_smoothing(band_map, fwhms=[beam_width_arcmin], lmax=3*self.nside-1, coord=self.pysm_output_reference_frame)[0]
-                    else:
-                        output_map = np.zeros(
-                            (3, hp.nside2npix(self.nside)), dtype=np.float64
+                        beam_width_arcmin = (
+                            so_utils.get_beam(ch.telescope, ch.band) * u.arcmin
                         )
+                        # smoothing and coordinate rotation with 1 spherical harmonics transform
+                        output_map = hp.ma(pysm.apply_smoothing_and_coord_transform(
+                            band_map,
+                            fwhm=beam_width_arcmin,
+                            lmax=3 * self.nside - 1,
+                            coord=self.pysm_output_reference_frame,
+                        ))
+                    else:
+                        output_map = hp.ma(np.zeros(
+                            (3, hp.nside2npix(self.nside)), dtype=np.float64
+                        ))
 
                     for comp in self.other_components.values():
                         output_map += hp.ma(comp.simulate(ch, output_units=self.unit))
