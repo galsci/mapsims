@@ -28,12 +28,13 @@ def command_line_script(args=None):
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
     parser.add_argument("--nside", type=int, required=True, help="NSIDE")
+    parser.add_argument("--num", type=int, required=False, help="Simulation number, generally used as seed", default=0)
     parser.add_argument(
         "--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all"
     )
     res = parser.parse_args(args)
     simulator = from_config(
-        res.config, override={"nside": res.nside, "channels": res.channels}
+            res.config, override={"nside": res.nside, "channels": res.channels, "num": res.num}
     )
     simulator.execute(write_outputs=True)
 
@@ -75,6 +76,7 @@ def from_config(config_file, override=None):
     map_sim = MapSim(
         channels=config["channels"],
         nside=int(config["nside"]),
+        num=config["num"],
         unit=config["unit"],
         tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
@@ -94,6 +96,7 @@ class MapSim:
         self,
         channels,
         nside,
+        num=0,
         unit="uK_CMB",
         output_folder="output",
         tag="mapsim",
@@ -125,6 +128,8 @@ class MapSim:
             Unit of output maps
         output_folder : str
             Relative or absolute path to output folder, string template with {nside} and {tag} fields
+        num : int
+            Realization number, generally used as seed, default is 0, automatically padded to 4 digits
         tag : str
             String to describe the current simulation, for example its content, which is used into
             string interpolation for `output_folder` and `output_filename_template`
@@ -168,6 +173,7 @@ class MapSim:
         self.bands = np.unique([ch.band for ch in self.channels])
         self.nside = nside
         self.unit = unit
+        self.num = num
         self.pysm_components_string = pysm_components_string
         self.pysm_custom_components = pysm_custom_components
         self.run_pysm = not (
@@ -176,7 +182,7 @@ class MapSim:
         )
         self.other_components = other_components
         self.tag = tag
-        self.output_folder = output_folder.format(nside=self.nside, tag=self.tag)
+        self.output_folder = output_folder.format(nside=self.nside, tag=self.tag, num=self.num)
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
         self.output_filename_template = output_filename_template
@@ -249,6 +255,7 @@ class MapSim:
                                     band=ch.band,
                                     nside=self.nside,
                                     tag=self.tag,
+                                    num=self.num
                                 ),
                             ),
                             output_map,
