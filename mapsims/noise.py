@@ -26,6 +26,7 @@ class SONoiseSimulator:
         apply_beam_correction=True,
         apply_kludge_correction=True,
         scanning_strategy="classical",
+        no_power_below_ell=None,
         LA_number_LF=1,
         LA_number_MF=4,
         LA_number_UHF=2,
@@ -61,6 +62,9 @@ class SONoiseSimulator:
         scanning_strategy : str
             Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
             path to a custom hitmap, it will be normalized, absolute hitcount does not matter
+        no_power_below_ell : int
+            The input spectra have significant power at low ell, we can zero that power specifying an integer
+            :math:`\ell` value here. The power spectra at :math:`\ell < \ell_0` are set to zero.
         LA_number_LF : int
             Number of Low Frequency tubes in LAT
         LA_number_MF : int
@@ -80,6 +84,7 @@ class SONoiseSimulator:
         self.seed = seed
         self.return_uK_CMB = return_uK_CMB
         self.ell_max = ell_max if ell_max is not None else 3 * nside
+        self.no_power_below_ell = no_power_below_ell
         self.LA_number_LF = LA_number_LF
         self.LA_number_MF = LA_number_MF
         self.LA_number_UHF = LA_number_UHF
@@ -151,6 +156,10 @@ class SONoiseSimulator:
                 self.noise_ell_T[ch][:2] = 0
                 self.noise_ell_P[ch][2:] = noise_ell_P[band_index]
                 self.noise_ell_P[ch][:2] = 0
+
+                if self.no_power_below_ell is not None:
+                    self.noise_ell_T[ch][self.ell < self.no_power_below_ell] = 0
+                    self.noise_ell_P[ch][self.ell < self.no_power_below_ell] = 0
 
     def simulate(self, ch, output_units="uK_CMB"):
         """Create a random realization of the noise power spectrum
