@@ -5,7 +5,9 @@ Map based simulations package
 [![Documentation Status](https://readthedocs.org/projects/mapsims/badge/?version=latest)](https://mapsims.readthedocs.io/en/latest/?badge=latest)
 
 Map based simulations package for Simons Observatory,
-maintained by the Map-Based Simulation Pipeline Working Group (MBS), 
+maintained by the Map-Based Simulation Pipeline Working Group (MBS)
+
+**WARNING**: see the README of `so_pysm_models` for current requirements and reference frames.
 
 * For documentation, see <https://mapsims.readthedocs.io/>
 * For simulation results see <https://github.com/simonsobs/map_based_simulations>
