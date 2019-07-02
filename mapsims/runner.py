@@ -269,6 +269,8 @@ class MapSim:
                                 ),
                             ),
                             output_map,
+                            coord=self.pysm_output_reference_frame,
+                            column_units=self.unit,
                             overwrite=True,
                         )
                     else:
