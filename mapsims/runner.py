@@ -203,14 +203,13 @@ class MapSim:
                     else:
                         preset_strings.append(model)
 
-            if len(sky_config) > 0:
-                input_reference_frame = "C"
             if len(preset_strings) > 0:
                 input_reference_frame = "G"
                 assert (
                     len(sky_config) == 0
                 ), "Cannot mix PySM and SO models, they are defined in G and C frames"
-            input_reference_frame = "G"
+            else:
+                input_reference_frame = "C"
 
             self.pysm_sky = pysm.Sky(
                 nside=self.nside,
