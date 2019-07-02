@@ -6,7 +6,7 @@ from astropy.utils import data
 import pysm.units as u
 
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
-from .so_utils import get_bands
+from . import so_utils
 from . import Channel
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
@@ -95,8 +95,9 @@ class SONoiseSimulator:
 
         self.hitmap = {}
         self.sky_fraction = {}
-        self.noise_ell_T = {}
-        self.noise_ell_P = {}
+
+        self.noise_ell_T = {"SA":{}, "LA":{}}
+        self.noise_ell_P = {"SA":{}, "LA":{}}
         self.ch = []
         for telescope in ["LA", "SA"]:
             if os.path.exists(scanning_strategy.format(telescope=telescope)):
@@ -140,26 +141,25 @@ class SONoiseSimulator:
                     apply_beam_correction=self.apply_beam_correction,
                     apply_kludge_correction=self.apply_kludge_correction,
                 )
-
             self.ell = np.arange(ell[-1] + 1)
 
-            for band_index, band in enumerate(get_bands(telescope)):
 
-                ch = Channel(telescope, band)
-                self.ch.append(ch)
+            available_frequencies = np.unique(so_utils.frequencies)
+            for frequency in so_utils.frequencies:
+                band_index = available_frequencies.searchsorted(frequency)
 
                 # so_noise returns power spectrum starting with ell=2, start instead at 0
                 # repeat the value at ell=2 for lower multipoles
-                self.noise_ell_T[ch] = np.zeros(len(self.ell), dtype=np.double)
-                self.noise_ell_P[ch] = self.noise_ell_T[ch].copy()
-                self.noise_ell_T[ch][2:] = noise_ell_T[band_index]
-                self.noise_ell_T[ch][:2] = 0
-                self.noise_ell_P[ch][2:] = noise_ell_P[band_index]
-                self.noise_ell_P[ch][:2] = 0
+                self.noise_ell_T[telescope][frequency] = np.zeros(len(self.ell), dtype=np.double)
+                self.noise_ell_P[telescope][frequency] = self.noise_ell_T[telescope][frequency].copy()
+                self.noise_ell_T[telescope][frequency][2:] = noise_ell_T[band_index]
+                self.noise_ell_T[telescope][frequency][:2] = 0
+                self.noise_ell_P[telescope][frequency][2:] = noise_ell_P[band_index]
+                self.noise_ell_P[telescope][frequency][:2] = 0
 
                 if self.no_power_below_ell is not None:
-                    self.noise_ell_T[ch][self.ell < self.no_power_below_ell] = 0
-                    self.noise_ell_P[ch][self.ell < self.no_power_below_ell] = 0
+                    self.noise_ell_T[telescope][frequency][self.ell < self.no_power_below_ell] = 0
+                    self.noise_ell_P[telescope][frequency][self.ell < self.no_power_below_ell] = 0
 
     def simulate(self, ch, output_units="uK_CMB"):
         """Create a random realization of the noise power spectrum
@@ -178,15 +178,19 @@ class SONoiseSimulator:
         """
 
         if self.seed is not None:
-            np.random.seed(self.seed + ch.band + telescope_seed_offset[ch.telescope])
-        zeros = np.zeros_like(self.noise_ell_T[ch])
+            try:
+                frequency_offset = int(ch.band)
+            except ValueError:
+                frequency_offset = so_utils.bands.index(ch.band)*100
+            np.random.seed(self.seed + frequency_offset + telescope_seed_offset[ch.telescope])
+        zeros = np.zeros_like(self.noise_ell_T[ch.telescope][ch.frequency])
         output_map = hp.ma(
             np.array(
                 hp.synfast(
                     [
-                        self.noise_ell_T[ch],
-                        self.noise_ell_P[ch],
-                        self.noise_ell_P[ch],
+                        self.noise_ell_T[ch.telescope][ch.frequency],
+                        self.noise_ell_P[ch.telescope][ch.frequency],
+                        self.noise_ell_P[ch.telescope][ch.frequency],
                         zeros,
                         zeros,
                         zeros,
@@ -207,6 +211,6 @@ class SONoiseSimulator:
             * self.sky_fraction[ch.telescope]
         )
         output_map[:, np.logical_not(good)] = hp.UNSEEN
-        unit_conv = (1 * u.uK_CMB).to_value(u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.band*u.GHz))
+        unit_conv = (1 * u.uK_CMB).to_value(u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.frequency*u.GHz))
         output_map *= unit_conv
         return output_map
