@@ -28,9 +28,10 @@ class Channel:
         self.telescope = telescope
         try:
             self.frequency = int(band)
+            self.band = "{:03d}".format(self.frequency)
         except ValueError:
             self.frequency = frequencies[bands.index(band)]
-        self.band = str(band)
+            self.band = band
 
     @property
     def tag(self):
@@ -46,8 +47,11 @@ class Channel:
         """
         telescope_tag = {"SA": "SAT1", "LA": "LAT"}[self.telescope]
 
-        if self.band not in bands:
-            band = bands[frequencies.index(self.frequency)]
+        band = (
+            self.band
+            if self.band in bands
+            else bands[frequencies.index(self.frequency)]
+        )
         return hw.data["telescopes"][telescope_tag]["fwhm"][band] * u.arcmin
 
 
