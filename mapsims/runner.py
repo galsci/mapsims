@@ -78,6 +78,7 @@ def from_config(config_file, override=None):
         nside=int(config["nside"]),
         num=config["num"],
         unit=config["unit"],
+        tophat_bandpasses=config.get("tophat_bandpasses", False),
         tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
         output_filename_template=config.get(
@@ -105,6 +106,7 @@ class MapSim:
         pysm_output_reference_frame="C",
         pysm_custom_components=None,
         other_components=None,
+        tophat_bandpasses=False,
     ):
         """Run map based simulations
 
@@ -148,17 +150,14 @@ class MapSim:
 
         """
 
+        bands = so_utils.bands if tophat_bandpasses else so_utils.frequencies
         if channels in ["LA", "SA"]:
-            self.channels = [Channel(channels, band) for band in so_utils.bands]
+            self.channels = [Channel(channels, band) for band in bands]
         elif channels in ["all", "SO"]:
             self.channels = [
                 Channel(telescope, band)
                 for telescope in ["LA", "SA"]
-                for band in so_utils.bands
-            ]
-        elif len(channels) == 3:
-            self.channels = [
-                Channel(telescope, int(channels)) for telescope in ["LA", "SA"]
+                for band in bands
             ]
         else:
             self.channels = []
