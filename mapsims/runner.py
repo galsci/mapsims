@@ -9,6 +9,7 @@ import toml
 import healpy as hp
 
 from so_pysm_models import get_so_models
+from mpi4py import MPI
 
 from . import so_utils
 from . import Channel
@@ -161,8 +162,7 @@ class MapSim:
             ]
         else:
             self.channels = []
-            if isinstance(channels, str):
-                channels = [channels]
+            channels = channels.split(",")
             for ch in channels:
                 [telescope, str_band] = ch.split("_")
                 self.channels.append(Channel(telescope, str_band))
@@ -246,6 +246,7 @@ class MapSim:
                                     coord = (input_reference_frame,
                                     self.pysm_output_reference_frame)
                                 ),
+                                map_dist=pysm.MapDistribution(nside=self.nside, smoothing_lmax=3*self.nside-1, mpi_comm=MPI.COMM_WORLD)
                             )
                         )
                     else:
