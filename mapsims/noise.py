@@ -15,7 +15,6 @@ telescope_seed_offset = {"LA": 0, "SA": 1000}
 
 
 class SONoiseSimulator:
-
     def __init__(
         self,
         nside,
@@ -161,7 +160,7 @@ class SONoiseSimulator:
                     self.noise_ell_T[ch][self.ell < self.no_power_below_ell] = 0
                     self.noise_ell_P[ch][self.ell < self.no_power_below_ell] = 0
 
-    def simulate(self, ch, output_units="uK_CMB",seed=None):
+    def simulate(self, ch, output_units="uK_CMB", seed=None):
         """Create a random realization of the noise power spectrum
 
         Parameters
@@ -181,7 +180,9 @@ class SONoiseSimulator:
             np.random.seed(seed)
         else:
             if self.seed is not None:
-                np.random.seed(self.seed + ch.band + telescope_seed_offset[ch.telescope])
+                np.random.seed(
+                    self.seed + ch.band + telescope_seed_offset[ch.telescope]
+                )
         zeros = np.zeros_like(self.noise_ell_T[ch])
         output_map = hp.ma(
             np.array(
@@ -210,6 +211,8 @@ class SONoiseSimulator:
             * self.sky_fraction[ch.telescope]
         )
         output_map[:, np.logical_not(good)] = hp.UNSEEN
-        unit_conv = (1 * u.uK_CMB).to_value(u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.band*u.GHz))
+        unit_conv = (1 * u.uK_CMB).to_value(
+            u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.band * u.GHz)
+        )
         output_map *= unit_conv
         return output_map
