@@ -55,23 +55,23 @@ class Channel:
         return hw.data["telescopes"][telescope_tag]["fwhm"][band] * u.arcmin
 
 
-def get_bandpass(band):
-    """Returns tophat bandpass
+    def get_bandpass(self):
+        """Returns tophat bandpass
 
-    10 points between minimun and maximum with equal weights
+        10 points between minimun and maximum with equal weights
 
-    Returns
-    -------
-    frequency : astropy.units.Quantity
-        array of 10 frequency points equally spaced between min and max bandpass
-    weights : np.array
-        array of ones
-    """
-    try:
-        return int(band) * u.GHz, None
-    except ValueError:
-        properties = hw.data["bands"][band]
-        return (
-            np.linspace(properties["low"], properties["high"], 10) * u.GHz,
-            np.ones(10, dtype=np.float32),
-        )
+        Returns
+        -------
+        frequency : astropy.units.Quantity
+            array of 10 frequency points equally spaced between min and max bandpass
+        weights : np.array
+            array of ones
+        """
+        try:
+            return int(self.band) * u.GHz, None
+        except ValueError:
+            properties = hw.data["bands"][self.band]
+            return (
+                np.linspace(properties["low"], properties["high"], 10) * u.GHz,
+                np.ones(10, dtype=np.float32),
+            )

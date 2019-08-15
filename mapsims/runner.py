@@ -227,14 +227,15 @@ class MapSim:
 
         for band in self.bands:
 
-            if self.run_pysm:
-                band_map = self.pysm_sky.get_emission(
-                    *so_utils.get_bandpass(band)
-                ).value
+            band_map = None
 
             for ch in self.channels:
                 if ch.band == band:
                     if self.run_pysm:
+                        if band_map is None:
+                            band_map = self.pysm_sky.get_emission(
+                                *ch.get_bandpass()
+                            ).value
                         beam_width_arcmin = ch.get_beam()
                         # smoothing and coordinate rotation with 1 spherical harmonics transform
                         output_map = hp.ma(
