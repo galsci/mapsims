@@ -15,7 +15,6 @@ telescope_seed_offset = {"LA": 0, "SA": 1000}
 
 
 class SONoiseSimulator:
-
     def __init__(
         self,
         nside,
@@ -96,8 +95,8 @@ class SONoiseSimulator:
         self.hitmap = {}
         self.sky_fraction = {}
 
-        self.noise_ell_T = {"SA":{}, "LA":{}}
-        self.noise_ell_P = {"SA":{}, "LA":{}}
+        self.noise_ell_T = {"SA": {}, "LA": {}}
+        self.noise_ell_P = {"SA": {}, "LA": {}}
         self.ch = []
         for telescope in ["LA", "SA"]:
             if os.path.exists(scanning_strategy.format(telescope=telescope)):
@@ -143,23 +142,30 @@ class SONoiseSimulator:
                 )
             self.ell = np.arange(ell[-1] + 1)
 
-
             available_frequencies = np.unique(so_utils.frequencies)
             for frequency in so_utils.frequencies:
                 band_index = available_frequencies.searchsorted(frequency)
 
                 # so_noise returns power spectrum starting with ell=2, start instead at 0
                 # repeat the value at ell=2 for lower multipoles
-                self.noise_ell_T[telescope][frequency] = np.zeros(len(self.ell), dtype=np.double)
-                self.noise_ell_P[telescope][frequency] = self.noise_ell_T[telescope][frequency].copy()
+                self.noise_ell_T[telescope][frequency] = np.zeros(
+                    len(self.ell), dtype=np.double
+                )
+                self.noise_ell_P[telescope][frequency] = self.noise_ell_T[telescope][
+                    frequency
+                ].copy()
                 self.noise_ell_T[telescope][frequency][2:] = noise_ell_T[band_index]
                 self.noise_ell_T[telescope][frequency][:2] = 0
                 self.noise_ell_P[telescope][frequency][2:] = noise_ell_P[band_index]
                 self.noise_ell_P[telescope][frequency][:2] = 0
 
                 if self.no_power_below_ell is not None:
-                    self.noise_ell_T[telescope][frequency][self.ell < self.no_power_below_ell] = 0
-                    self.noise_ell_P[telescope][frequency][self.ell < self.no_power_below_ell] = 0
+                    self.noise_ell_T[telescope][frequency][
+                        self.ell < self.no_power_below_ell
+                    ] = 0
+                    self.noise_ell_P[telescope][frequency][
+                        self.ell < self.no_power_below_ell
+                    ] = 0
 
     def simulate(self, ch, output_units="uK_CMB"):
         """Create a random realization of the noise power spectrum
@@ -181,8 +187,10 @@ class SONoiseSimulator:
             try:
                 frequency_offset = int(ch.band)
             except ValueError:
-                frequency_offset = so_utils.bands.index(ch.band)*100
-            np.random.seed(self.seed + frequency_offset + telescope_seed_offset[ch.telescope])
+                frequency_offset = so_utils.bands.index(ch.band) * 100
+            np.random.seed(
+                self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
+            )
         zeros = np.zeros_like(self.noise_ell_T[ch.telescope][ch.frequency])
         output_map = hp.ma(
             np.array(
@@ -211,6 +219,9 @@ class SONoiseSimulator:
             * self.sky_fraction[ch.telescope]
         )
         output_map[:, np.logical_not(good)] = hp.UNSEEN
-        unit_conv = (1 * u.uK_CMB).to_value(u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.frequency*u.GHz))
+        unit_conv = (1 * u.uK_CMB).to_value(
+            u.Unit(output_units),
+            equivalencies=u.cmb_equivalencies(ch.frequency * u.GHz),
+        )
         output_map *= unit_conv
         return output_map

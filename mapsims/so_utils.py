@@ -54,7 +54,6 @@ class Channel:
         )
         return hw.data["telescopes"][telescope_tag]["fwhm"][band] * u.arcmin
 
-
     def get_bandpass(self):
         """Returns tophat bandpass
 

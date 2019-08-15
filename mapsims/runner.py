@@ -29,13 +29,20 @@ def command_line_script(args=None):
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
     parser.add_argument("--nside", type=int, required=True, help="NSIDE")
-    parser.add_argument("--num", type=int, required=False, help="Simulation number, generally used as seed", default=0)
+    parser.add_argument(
+        "--num",
+        type=int,
+        required=False,
+        help="Simulation number, generally used as seed",
+        default=0,
+    )
     parser.add_argument(
         "--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all"
     )
     res = parser.parse_args(args)
     simulator = from_config(
-            res.config, override={"nside": res.nside, "channels": res.channels, "num": res.num}
+        res.config,
+        override={"nside": res.nside, "channels": res.channels, "num": res.num},
     )
     simulator.execute(write_outputs=True)
 
@@ -156,9 +163,7 @@ class MapSim:
             self.channels = [Channel(channels, band) for band in bands]
         elif channels in ["all", "SO"]:
             self.channels = [
-                Channel(telescope, band)
-                for telescope in ["LA", "SA"]
-                for band in bands
+                Channel(telescope, band) for telescope in ["LA", "SA"] for band in bands
             ]
         else:
             self.channels = []
@@ -179,7 +184,9 @@ class MapSim:
         )
         self.other_components = other_components
         self.tag = tag
-        self.output_folder = output_folder.format(nside=self.nside, tag=self.tag, num=self.num)
+        self.output_folder = output_folder.format(
+            nside=self.nside, tag=self.tag, num=self.num
+        )
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
         self.output_filename_template = output_filename_template
@@ -244,10 +251,16 @@ class MapSim:
                                 fwhm=beam_width_arcmin,
                                 lmax=3 * self.nside - 1,
                                 rot=hp.Rotator(
-                                    coord = (input_reference_frame,
-                                    self.pysm_output_reference_frame)
+                                    coord=(
+                                        input_reference_frame,
+                                        self.pysm_output_reference_frame,
+                                    )
                                 ),
-                                map_dist=pysm.MapDistribution(nside=self.nside, smoothing_lmax=3*self.nside-1, mpi_comm=MPI.COMM_WORLD)
+                                map_dist=pysm.MapDistribution(
+                                    nside=self.nside,
+                                    smoothing_lmax=3 * self.nside - 1,
+                                    mpi_comm=MPI.COMM_WORLD,
+                                ),
                             )
                         )
                     else:
@@ -267,7 +280,7 @@ class MapSim:
                                     band=ch.band,
                                     nside=self.nside,
                                     tag=self.tag,
-                                    num=self.num
+                                    num=self.num,
                                 ),
                             ),
                             output_map,

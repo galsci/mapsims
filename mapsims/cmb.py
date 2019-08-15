@@ -18,7 +18,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
         cmb_dir=None,
         input_units="uK_RJ",
         input_reference_frequency=None,
-        map_dist=None
+        map_dist=None,
     ):
         """
         Return a CMB map from stored alm's.  This can be in HEALPix format
@@ -137,7 +137,7 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         """
         return self.get_emission(
             nu=ch.band << u.GHz,
-            fwhm=so_utils.get_beam(ch.telescope, ch.band)*u.arcmin,
+            fwhm=so_utils.get_beam(ch.telescope, ch.band) * u.arcmin,
             output_units=output_units,
         )
 
