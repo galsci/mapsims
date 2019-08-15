@@ -74,3 +74,36 @@ class Channel:
                 np.linspace(properties["low"], properties["high"], 10) * u.GHz,
                 np.ones(10, dtype=np.float32),
             )
+
+
+def parse_channels(channels):
+    """Parse a reference string into Channel objects
+
+    For example turns "LA" in a list of all LA Channels,
+    reference all channels either with "all" or "SO".
+
+    Parameters
+    ----------
+    channels : str
+        reference string to one or more channels, supported
+        values are LA,SA,all,SO and comma separated channel names
+        e.g. LA_LF1,SA_LF1
+
+    Returns
+    -------
+    channels : list of Channel objects
+        list of Channel objects
+    """
+
+    if channels in ["LA", "SA"]:
+        return [Channel(channels, band) for band in bands]
+    elif channels in ["all", "SO"]:
+        return [
+            Channel(telescope, band) for telescope in ["LA", "SA"] for band in bands
+        ]
+    else:
+        if "," in channels:
+            channels = channels.split(",")
+        if isinstance(channels, str):
+            channels = [channels]
+        return [Channel(*ch.split("_")) for ch in channels]

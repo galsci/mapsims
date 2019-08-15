@@ -158,19 +158,7 @@ class MapSim:
 
         """
 
-        bands = so_utils.bands if tophat_bandpasses else so_utils.frequencies
-        if channels in ["LA", "SA"]:
-            self.channels = [Channel(channels, band) for band in bands]
-        elif channels in ["all", "SO"]:
-            self.channels = [
-                Channel(telescope, band) for telescope in ["LA", "SA"] for band in bands
-            ]
-        else:
-            self.channels = []
-            channels = channels.split(",")
-            for ch in channels:
-                [telescope, str_band] = ch.split("_")
-                self.channels.append(Channel(telescope, str_band))
+        self.channels = so_utils.parse_channels(channels)
 
         self.bands = np.unique([ch.band for ch in self.channels])
         self.nside = nside

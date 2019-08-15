@@ -5,6 +5,7 @@ unit = "uK_CMB"
 mapsims_version = "0.1"
 so_pysm_models_version = "0.1"
 tag = "test_sim"
+num = 0
 
 [ other_components ]
 
