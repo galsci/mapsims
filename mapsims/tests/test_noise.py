@@ -37,7 +37,9 @@ def test_noise_simulator(telescope):
     output_map = simulator.simulate(mapsims.Channel(telescope, "MFF1")) * u.uK_CMB
     expected_map = hp.read_map(
         data.get_pkg_data_filename(
-            "data/noise_{}_uKCMB_classical_nside16_channel2_seed1234.fits.gz".format(telescope)
+            "data/noise_{}_uKCMB_classical_nside16_channel2_seed1234.fits.gz".format(
+                telescope
+            )
         ),
         (0, 1, 2),
     )

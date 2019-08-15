@@ -55,7 +55,8 @@ def test_standalone_cmb():
         lensed=False,
         aberrated=False,
         input_units="uK_RJ",
-        input_reference_frequency=ch.frequency * u.GHz,  # do not apply any frequency scaling
+        input_reference_frequency=ch.frequency
+        * u.GHz,  # do not apply any frequency scaling
     ).get_emission(ch.frequency * u.GHz, fwhm=1e-5 * u.arcmin)
     imap_test = hp.read_map(save_name, field=(0, 1, 2)) << u.uK_RJ
     assert_quantity_allclose(imap, imap_test)
