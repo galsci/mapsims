@@ -23,7 +23,7 @@ class Channel:
         telescope : str
             LA or SA for Large and Small Aperture telescope
         band : str
-            Band name, e.g. LF1
+            Band name, e.g. LF1 or frequency, e.g. 93
         """
         self.telescope = telescope
         try:
