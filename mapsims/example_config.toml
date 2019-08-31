@@ -2,8 +2,8 @@
 nside = 16
 channels = "SA_27"
 unit = "uK_CMB"
-mapsims_version = "0.1"
-so_pysm_models_version = "0.1"
+mapsims_version = "2.0.dev"
+so_pysm_models_version = "2.0.dev"
 tag = "test_sim"
 num = 0
 
@@ -27,38 +27,14 @@ num = 0
 [ pysm_components ]
 
     # Remove this if no default PySM components are needed
-    pysm_components_string = "a1"
-    pysm_output_reference_frame = "G"
+    pysm_components_string = "SO_d0"
+    pysm_output_reference_frame = "C"
 
-    [ pysm_components.dust ]
+    [ pysm_components.cib ]
+    class = "so_pysm_models.WebSkyCIB"
+    websky_version = "0.3"
+    interpolation_kind = "linear"
 
-    class = "so_pysm_models.GaussianDust"
-    has_polarization = true
-    TT_amplitude = 350
-    Toffset = 18
-    EE_amplitude = 100
-    rTE = 0.35
-    EtoB = 0.5
-    alpha = -0.42
-    beta = 1.53
-    temp = 19.6
-    nu_0 = 353
-    seed = 20001
-
-    [ pysm_components.synchrotron  ]
-
-    class = "so_pysm_models.GaussianSynchrotron"
-    has_polarization = true
-    TT_amplitude = 20.0
-    Toffset = 72
-    EE_amplitude = 4.3
-    rTE = 0.35
-    EtoB = 0.5
-    alpha = -1.0
-    beta = -3.1
-    curv = 0
-    nu_0 = 23
-    seed = 30001
 
     [ pysm_components.cmb ]
     class  =  "mapsims.SOPrecomputedCMB"

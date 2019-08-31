@@ -26,36 +26,6 @@ def test_from_config():
 
 def test_from_classes():
 
-    dust = so_pysm_models.GaussianDust(
-        nside=NSIDE,
-        has_polarization=True,
-        TT_amplitude=350.0,
-        Toffset=18.0,
-        EE_amplitude=100.0,
-        rTE=0.35,
-        EtoB=0.5,
-        alpha=-0.42,
-        beta=1.53,
-        temp=19.6,
-        nu_0=353,
-        seed=20001,
-    )
-
-    sync = so_pysm_models.GaussianSynchrotron(
-        nside=NSIDE,
-        has_polarization=True,
-        TT_amplitude=20.0,
-        Toffset=72.0,
-        EE_amplitude=4.3,
-        rTE=0.35,
-        EtoB=0.5,
-        alpha=-1.0,
-        beta=-3.1,
-        curv=0.0,
-        nu_0=23.0,
-        seed=30001,
-    )
-
     noise = mapsims.SONoiseSimulator(
         nside=NSIDE,
         return_uK_CMB=True,
@@ -82,13 +52,17 @@ def test_from_classes():
         input_units="uK_CMB",
     )
 
+    cib = so_pysm_models.WebSkyCIB(
+        websky_version="0.3", nside=NSIDE, interpolation_kind="linear"
+    )
+
     simulator = mapsims.MapSim(
         channels=["SA_27"],
         nside=NSIDE,
         unit="uK_CMB",
-        pysm_components_string="a1",
-        pysm_custom_components={"dust": dust, "synchrotron": sync, "cmb": cmb},
-        pysm_output_reference_frame="G",
+        pysm_components_string="SO_d0",
+        pysm_custom_components={"cib": cib, "cmb": cmb},
+        pysm_output_reference_frame="C",
         other_components={"noise": noise},
     )
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0]]
