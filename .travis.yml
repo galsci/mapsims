@@ -6,6 +6,8 @@ language: c
 os:
     - linux
 
+dist: bionic
+
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
 
