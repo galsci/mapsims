@@ -167,7 +167,7 @@ class SONoiseSimulator:
                         self.ell < self.no_power_below_ell
                     ] = 0
 
-    def simulate(self, ch, output_units="uK_CMB"):
+    def simulate(self, ch, output_units="uK_CMB", seed=None):
         """Create a random realization of the noise power spectrum
 
         Parameters
@@ -183,14 +183,17 @@ class SONoiseSimulator:
             Numpy array with the HEALPix map realization of noise
         """
 
-        if self.seed is not None:
-            try:
-                frequency_offset = int(ch.band)
-            except ValueError:
-                frequency_offset = so_utils.bands.index(ch.band) * 100
-            np.random.seed(
-                self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
-            )
+        if seed is not None:
+            np.random.seed(seed)
+        else:
+            if self.seed is not None:
+                try:
+                    frequency_offset = int(ch.band)
+                except ValueError:
+                    frequency_offset = so_utils.bands.index(ch.band) * 100
+                np.random.seed(
+                    self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
+                )
         zeros = np.zeros_like(self.noise_ell_T[ch.telescope][ch.frequency])
         output_map = hp.ma(
             np.array(
