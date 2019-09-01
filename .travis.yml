@@ -39,8 +39,8 @@ env:
         
         # List runtime dependencies for the package that are available as conda
         # packages here.
-        - CONDA_DEPENDENCIES='toml healpy numba mpi4py'
-        - CONDA_DEPENDENCIES_DOC='toml healpy sphinx-astropy numba'
+        - CONDA_DEPENDENCIES='cython toml healpy numba mpi4py'
+        - CONDA_DEPENDENCIES_DOC='cython toml healpy sphinx-astropy numba mpi4py'
         
         # List other runtime dependencies for the package that are available as
         # pip packages here.
@@ -136,15 +136,7 @@ install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
     - pip install https://github.com/simonsobs/so_pysm_models/archive/master.zip
-
-    # As described above, using ci-helpers, you should be able to set up an
-    # environment with dependencies installed using conda and pip, but in some
-    # cases this may not provide enough flexibility in how to install a
-    # specific dependency (and it will not be able to install non-Python
-    # dependencies). Therefore, you can also include commands below (as
-    # well as at the start of the install section or in the before_install
-    # section if they are needed before setting up conda) to install any
-    # other dependencies.
+    - bash ci/install_libsharp.sh
 
 script:
    - $MAIN_CMD $SETUP_CMD
