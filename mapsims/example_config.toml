@@ -30,10 +30,11 @@ num = 0
     pysm_components_string = "SO_d0"
     pysm_output_reference_frame = "C"
 
-    [ pysm_components.cib ]
-    class = "so_pysm_models.WebSkyCIB"
-    websky_version = "0.3"
-    interpolation_kind = "linear"
+    # CIB is only at nside 4096, too much memory for testing
+    # [ pysm_components.cib ]
+    # class = "so_pysm_models.WebSkyCIB"
+    # websky_version = "0.3"
+    # interpolation_kind = "linear"
 
 
     [ pysm_components.cmb ]

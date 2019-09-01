@@ -52,16 +52,17 @@ def test_from_classes():
         input_units="uK_CMB",
     )
 
-    cib = so_pysm_models.WebSkyCIB(
-        websky_version="0.3", nside=NSIDE, interpolation_kind="linear"
-    )
+    # CIB is only at NSIDE 4096, too much memory for testing
+    # cib = so_pysm_models.WebSkyCIB(
+    #    websky_version="0.3", nside=NSIDE, interpolation_kind="linear"
+    # )
 
     simulator = mapsims.MapSim(
         channels=["SA_27"],
         nside=NSIDE,
         unit="uK_CMB",
         pysm_components_string="SO_d0",
-        pysm_custom_components={"cib": cib, "cmb": cmb},
+        pysm_custom_components={"cmb": cmb},
         pysm_output_reference_frame="C",
         other_components={"noise": noise},
     )
