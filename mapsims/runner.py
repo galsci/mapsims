@@ -9,6 +9,7 @@ import toml
 import healpy as hp
 
 from so_pysm_models import get_so_models
+from mpi4py import MPI
 
 from . import so_utils
 from . import Channel
@@ -16,7 +17,7 @@ from . import Channel
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
-default_output_filename_template = "simonsobs_{telescope}{band:03d}_nside{nside}.fits"
+default_output_filename_template = "simonsobs_{telescope}{band}_nside{nside}.fits"
 
 
 def command_line_script(args=None):
@@ -28,13 +29,20 @@ def command_line_script(args=None):
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
     parser.add_argument("--nside", type=int, required=True, help="NSIDE")
-    parser.add_argument("--num", type=int, required=False, help="Simulation number, generally used as seed", default=0)
+    parser.add_argument(
+        "--num",
+        type=int,
+        required=False,
+        help="Simulation number, generally used as seed",
+        default=0,
+    )
     parser.add_argument(
         "--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all"
     )
     res = parser.parse_args(args)
     simulator = from_config(
-            res.config, override={"nside": res.nside, "channels": res.channels, "num": res.num}
+        res.config,
+        override={"nside": res.nside, "channels": res.channels, "num": res.num},
     )
     simulator.execute(write_outputs=True)
 
@@ -78,6 +86,7 @@ def from_config(config_file, override=None):
         nside=int(config["nside"]),
         num=config["num"],
         unit=config["unit"],
+        tophat_bandpasses=config.get("tophat_bandpasses", False),
         tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
         output_filename_template=config.get(
@@ -105,10 +114,11 @@ class MapSim:
         pysm_output_reference_frame="C",
         pysm_custom_components=None,
         other_components=None,
+        tophat_bandpasses=False,
     ):
         """Run map based simulations
 
-        MapSim executes PySM for each band of the input channels with a sky defined
+        MapSim executes PySM for each of the input channels with a sky defined
         by default PySM components in `pysm_components_string` and custom components in
         `pysm_custom_components` and rotates in Alm space to the reference frame `pysm_output_reference_frame`.
         Then for each of the channels specified, smoothes the map with the channel beam
@@ -148,27 +158,7 @@ class MapSim:
 
         """
 
-        if channels in ["LA", "SA"]:
-            self.channels = [
-                Channel(channels, band) for band in so_utils.get_bands(channels)
-            ]
-        elif channels in ["all", "SO"]:
-            self.channels = [
-                Channel(telescope, band)
-                for telescope in ["LA", "SA"]
-                for band in so_utils.get_bands(telescope)
-            ]
-        elif len(channels) == 3:
-            self.channels = [
-                Channel(telescope, int(channels)) for telescope in ["LA", "SA"]
-            ]
-        else:
-            self.channels = []
-            if isinstance(channels, str):
-                channels = [channels]
-            for ch in channels:
-                [telescope, str_band] = ch.split("_")
-                self.channels.append(Channel(telescope, int(str_band)))
+        self.channels = so_utils.parse_channels(channels)
 
         self.bands = np.unique([ch.band for ch in self.channels])
         self.nside = nside
@@ -182,7 +172,9 @@ class MapSim:
         )
         self.other_components = other_components
         self.tag = tag
-        self.output_folder = output_folder.format(nside=self.nside, tag=self.tag, num=self.num)
+        self.output_folder = output_folder.format(
+            nside=self.nside, tag=self.tag, num=self.num
+        )
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
         self.output_filename_template = output_filename_template
@@ -206,6 +198,14 @@ class MapSim:
                     else:
                         preset_strings.append(model)
 
+            if len(preset_strings) > 0:
+                input_reference_frame = "G"
+                assert (
+                    len(sky_config) == 0
+                ), "Cannot mix PySM and SO models, they are defined in G and C frames"
+            else:
+                input_reference_frame = "C"
+
             self.pysm_sky = pysm.Sky(
                 nside=self.nside,
                 preset_strings=preset_strings,
@@ -222,26 +222,39 @@ class MapSim:
 
         for band in self.bands:
 
-            if self.run_pysm:
-                band_map = self.pysm_sky.get_emission(band * u.GHz).value
+            band_map = None
 
             for ch in self.channels:
                 if ch.band == band:
                     if self.run_pysm:
-                        beam_width_arcmin = (
-                            so_utils.get_beam(ch.telescope, ch.band) * u.arcmin
-                        )
+                        if band_map is None:
+                            band_map = self.pysm_sky.get_emission(
+                                *ch.get_bandpass()
+                            ).value
+                        beam_width_arcmin = ch.get_beam()
                         # smoothing and coordinate rotation with 1 spherical harmonics transform
-                        output_map = hp.ma(pysm.apply_smoothing_and_coord_transform(
-                            band_map,
-                            fwhm=beam_width_arcmin,
-                            lmax=3 * self.nside - 1,
-                            coord=self.pysm_output_reference_frame,
-                        ))
+                        output_map = hp.ma(
+                            pysm.apply_smoothing_and_coord_transform(
+                                band_map,
+                                fwhm=beam_width_arcmin,
+                                lmax=3 * self.nside - 1,
+                                rot=hp.Rotator(
+                                    coord=(
+                                        input_reference_frame,
+                                        self.pysm_output_reference_frame,
+                                    )
+                                ),
+                                map_dist=pysm.MapDistribution(
+                                    nside=self.nside,
+                                    smoothing_lmax=3 * self.nside - 1,
+                                    mpi_comm=MPI.COMM_WORLD,
+                                ),
+                            )
+                        )
                     else:
-                        output_map = hp.ma(np.zeros(
-                            (3, hp.nside2npix(self.nside)), dtype=np.float64
-                        ))
+                        output_map = hp.ma(
+                            np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
+                        )
 
                     for comp in self.other_components.values():
                         output_map += hp.ma(comp.simulate(ch, output_units=self.unit))
@@ -255,10 +268,12 @@ class MapSim:
                                     band=ch.band,
                                     nside=self.nside,
                                     tag=self.tag,
-                                    num=self.num
+                                    num=self.num,
                                 ),
                             ),
                             output_map,
+                            coord=self.pysm_output_reference_frame,
+                            column_units=self.unit,
                             overwrite=True,
                         )
                     else:
