@@ -86,7 +86,6 @@ def from_config(config_file, override=None):
         nside=int(config["nside"]),
         num=config["num"],
         unit=config["unit"],
-        tophat_bandpasses=config.get("tophat_bandpasses", False),
         tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
         output_filename_template=config.get(
@@ -114,7 +113,6 @@ class MapSim:
         pysm_output_reference_frame="C",
         pysm_custom_components=None,
         other_components=None,
-        tophat_bandpasses=False,
     ):
         """Run map based simulations
 
