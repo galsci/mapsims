@@ -113,6 +113,7 @@ class MapSim:
         pysm_output_reference_frame="C",
         pysm_custom_components=None,
         other_components=None,
+        instrument_parameters=None
     ):
         """Run map based simulations
 
