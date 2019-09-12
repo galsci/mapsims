@@ -12,6 +12,25 @@ hw = sotodlib.hardware.config.get_example()
 
 
 class Channel:
+    def __init__(self, tag, telescope, band, beam, bandpass):
+        self.tag = tag
+        self.telescope = telescope
+        self.band = band
+        self.beam = beam
+        self.bandpass = bandpass
+
+    @property
+    def tag(self):
+        return self.tag
+
+    def get_beam(self):
+        return self.beam
+
+    def get_bandpass(self):
+        return self.bandpass
+
+
+class SOChannel(Channel):
     def __init__(self, telescope, band):
         """Single Simons Observatory frequency channel
 
