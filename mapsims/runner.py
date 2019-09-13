@@ -113,7 +113,7 @@ class MapSim:
         pysm_output_reference_frame="C",
         pysm_custom_components=None,
         other_components=None,
-        instrument_parameters=None
+        instrument_parameters=None,
     ):
         """Run map based simulations
 
@@ -154,10 +154,18 @@ class MapSim:
         other_components : dict
             Dictionary of component name, component class pairs, the output of these are **not** rotated,
             they should already be in the same reference frame specified in pysm_output_reference_frame.
+        instrument_parameters : HDF5 file path
+            Instrument parameters in HDF5 format, each channel tag is a group, each group has attributes
+            band, center_frequency_GHz, fwhm_arcmin, bandpass_frequency_GHz, bandpass_weight
 
         """
 
-        self.channels = so_utils.parse_channels(channels)
+        if instrument_parameters is None:
+            self.channels = so_utils.parse_channels(channels)
+        else:
+            self.channels = so_utils.parse_instrument_parameters(
+                instrument_parameters, channels
+            )
 
         self.bands = np.unique([ch.band for ch in self.channels])
         self.nside = nside
@@ -227,10 +235,8 @@ class MapSim:
                 if ch.band == band:
                     if self.run_pysm:
                         if band_map is None:
-                            band_map = self.pysm_sky.get_emission(
-                                *ch.get_bandpass()
-                            ).value
-                        beam_width_arcmin = ch.get_beam()
+                            band_map = self.pysm_sky.get_emission(*ch.bandpass).value
+                        beam_width_arcmin = ch.beam
                         # smoothing and coordinate rotation with 1 spherical harmonics transform
                         output_map = hp.ma(
                             pysm.apply_smoothing_and_coord_transform(

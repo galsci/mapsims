@@ -194,14 +194,14 @@ class SONoiseSimulator:
                 np.random.seed(
                     self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
                 )
-        zeros = np.zeros_like(self.noise_ell_T[ch.telescope][ch.frequency])
+        zeros = np.zeros_like(self.noise_ell_T[ch.telescope][ch.center_frequency.value])
         output_map = hp.ma(
             np.array(
                 hp.synfast(
                     [
-                        self.noise_ell_T[ch.telescope][ch.frequency],
-                        self.noise_ell_P[ch.telescope][ch.frequency],
-                        self.noise_ell_P[ch.telescope][ch.frequency],
+                        self.noise_ell_T[ch.telescope][ch.center_frequency.value],
+                        self.noise_ell_P[ch.telescope][ch.center_frequency.value],
+                        self.noise_ell_P[ch.telescope][ch.center_frequency.value],
                         zeros,
                         zeros,
                         zeros,
@@ -223,8 +223,7 @@ class SONoiseSimulator:
         )
         output_map[:, np.logical_not(good)] = hp.UNSEEN
         unit_conv = (1 * u.uK_CMB).to_value(
-            u.Unit(output_units),
-            equivalencies=u.cmb_equivalencies(ch.frequency * u.GHz),
+            u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.center_frequency)
         )
         output_map *= unit_conv
         return output_map
