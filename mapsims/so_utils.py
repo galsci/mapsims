@@ -167,6 +167,8 @@ def parse_instrument_parameters(instrument_parameters, channels="all"):
     with h5py.File(instrument_parameters) as f:
         if channels == "all":
             channels = f.keys()
+        if isinstance(channels, str):
+            channels = [channels]
         for ch in channels:
             channel_objects_list.append(
                 Channel(
@@ -174,6 +176,7 @@ def parse_instrument_parameters(instrument_parameters, channels="all"):
                     band=f[ch].attrs["band"],
                     beam=f[ch].attrs["fwhm_arcmin"] * u.arcmin,
                     center_frequency=f[ch].attrs["center_frequency_GHz"] * u.GHz,
+                    telescope=instrument_parameters.split(".")[0],
                     bandpass=(
                         f[ch].get(
                             "bandpass_frequency_GHz",
