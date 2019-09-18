@@ -5,6 +5,7 @@ except ImportError:
 from collections import namedtuple
 import numpy as np
 import astropy.units as u
+from pathlib import Path
 
 import sotodlib.hardware
 
@@ -161,6 +162,7 @@ def parse_channels(channels):
 
 
 def parse_instrument_parameters(instrument_parameters, channels="all"):
+    instrument_parameters = Path(instrument_parameters)
     if h5py is None:
         raise ImportError("h5py is needed to parse instrument parameter files")
     channel_objects_list = []
@@ -176,7 +178,7 @@ def parse_instrument_parameters(instrument_parameters, channels="all"):
                     band=f[ch].attrs["band"],
                     beam=f[ch].attrs["fwhm_arcmin"] * u.arcmin,
                     center_frequency=f[ch].attrs["center_frequency_GHz"] * u.GHz,
-                    telescope=instrument_parameters.split(".")[0],
+                    telescope=instrument_parameters.name.split(".")[0],
                     bandpass=(
                         f[ch].get(
                             "bandpass_frequency_GHz",
