@@ -18,7 +18,13 @@ hw = sotodlib.hardware.config.get_example()
 class Channel:
     @u.quantity_input
     def __init__(
-        self, tag, band, beam: u.arcmin, center_frequency: u.GHz, bandpass=None
+        self,
+        tag,
+        telescope,
+        band,
+        beam: u.arcmin,
+        center_frequency: u.GHz,
+        bandpass=None,
     ):
         """Base class of a channel
 
@@ -29,6 +35,8 @@ class Channel:
 
         tag : str
             channel identifier
+        telescope : str
+            telescope name
         band : str
             identifier of the frequency band, useful for multiple channels
             with different beams but same frequency response
@@ -42,10 +50,14 @@ class Channel:
             be performed in power units, MJ/sr
         """
         self.tag = tag
+        self.telescope = telescope
         self.band = band
         self.beam = beam
         self.center_frequency = center_frequency
         self.bandpass = bandpass
+
+    def __repr__(self):
+        return "Channel " + self.tag
 
 
 class SOChannel(Channel):
