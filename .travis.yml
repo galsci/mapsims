@@ -39,8 +39,8 @@ env:
         
         # List runtime dependencies for the package that are available as conda
         # packages here.
-        - CONDA_DEPENDENCIES='cython toml healpy numba mpi4py'
-        - CONDA_DEPENDENCIES_DOC='cython toml healpy sphinx-astropy numba mpi4py'
+        - CONDA_DEPENDENCIES='cython toml healpy numba mpi4py h5py'
+        - CONDA_DEPENDENCIES_DOC='cython toml healpy sphinx-astropy numba mpi4py h5py'
         
         # List other runtime dependencies for the package that are available as
         # pip packages here.
