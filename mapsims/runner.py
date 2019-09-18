@@ -1,6 +1,7 @@
 import os.path
 import importlib
 import numpy as np
+from astropy.utils import data
 
 import pysm
 from pysm import units as u
@@ -154,15 +155,20 @@ class MapSim:
         other_components : dict
             Dictionary of component name, component class pairs, the output of these are **not** rotated,
             they should already be in the same reference frame specified in pysm_output_reference_frame.
-        instrument_parameters : HDF5 file path
+        instrument_parameters : HDF5 file path or str
             Instrument parameters in HDF5 format, each channel tag is a group, each group has attributes
             band, center_frequency_GHz, fwhm_arcmin, bandpass_frequency_GHz, bandpass_weight
+
 
         """
 
         if instrument_parameters is None:
             self.channels = so_utils.parse_channels(channels)
         else:
+            if not instrument_parameters.endswith("h5"):
+                instrument_parameters = data.get_pkg_data_filename(
+                    "data/{}.h5".format(instrument_parameters)
+                )
             self.channels = so_utils.parse_instrument_parameters(
                 instrument_parameters, channels
             )
