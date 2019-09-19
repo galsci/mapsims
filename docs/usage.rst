@@ -5,8 +5,8 @@ Usage
 Configuration file
 ==================
 
-First you need to create a configuration file, see ``example_config.cfg`` included in the package
-or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/example_config.cfg>`_.
+First you need to create a configuration file, see ``example_config.toml`` included in the package
+or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/example_config.toml>`_.
 
 It first defines some global configuration options like output :math:`N_{side}`, the unit and the
 channels, then has 2 subsections. They both define subsections with a ``class`` attribute that
@@ -22,7 +22,7 @@ mapsims_run
 ``mapsims_run`` is a script included in the package, it can be used to execute pipelines described
 in a configuration file in the terminal::
 
-    mapsims_run example_config.cfg
+    mapsims_run example_config.toml
 
 MapSims object
 ==============
@@ -30,7 +30,7 @@ MapSims object
 Create the simulator object with::
 
     import mapsims
-    simulator = mapsims.from_config("example_config.cfg")
+    simulator = mapsims.from_config("example_config.toml")
 
 This returns a :py:class:`.MapSims` object, then you can
 produce the output map with::
@@ -44,20 +44,22 @@ Using instead the Python classes, we first need to create the custom component o
 an example we will use all defaults options::
 
     NSIDE = 16
-    dust = so_pysm_models.GaussianDust(
-        target_nside=NSIDE,
+    cmb = mapsims.SOPrecomputedCMB(
+        iteration_num=0,
+        nside=NSIDE,
+        lensed=False,
+        aberrated=False,
+        has_polarization=True,
+        cmb_set=0,
+        cmb_dir="mapsims/tests/data",
+        input_units="uK_CMB",
     )
 
-    sync = so_pysm_models.GaussianSynchrotron(
-        target_nside=NSIDE,
-    )
 
 Then we can create a :py:class:`.SONoiseSimulator`, the most important parameter is the scanning strategy,
 it can be either "classical" or "opportunistic"::
 
     noise = mapsims.SONoiseSimulator(
-        telescope="SA",
-        band=27,
         nside=NSIDE,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
@@ -69,7 +71,6 @@ it can be either "classical" or "opportunistic"::
         LA_number_UHF=2,
         SA_years_LF=1,
         SA_one_over_f_mode="pessimistic",
-        SA_remove_kluge=False,
     )
 
 Finally we can create the :py:class:`.MapSim` simulator object and pass the PySM custom component and the noise
@@ -77,15 +78,19 @@ simulator as dictionaries, we can also specify any default model from PySM as a 
 e.g. "d7,a1,s2"::
 
     simulator = mapsims.MapSim(
-        telescope="SA",
-        band=27,
+        channels="all",
         nside=NSIDE,
         unit="uK_CMB",
+        pysm_output_reference_frame="G",
         pysm_components_string="a1",
-        pysm_custom_components={"dust": dust, "synchrotron": sync},
+        pysm_custom_components={"cmb": cmb},
         other_components={"noise": noise},
     )
 
 and compute the output map using the ``execute`` method::
 
     output_map = simulator.execute()
+
+write instead directly output FITS maps to disk with::
+
+    simulator.execute(write_outputs=True)

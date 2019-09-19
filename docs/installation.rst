@@ -6,10 +6,12 @@ Requirements and installation
 Requirements
 ============
 
-* PySM
+* PySM 3 from https://github.com/healpy/pysm
+* ``numba``
+* ``h5py`` to read custom instrument parameter files
 * ``healpy``
 * ``so_pysm_models``
-* ``configobj``
+* ``toml``
 
 Installation
 ============
