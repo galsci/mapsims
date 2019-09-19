@@ -40,7 +40,7 @@ def test_from_classes_custominstrument():
         pysm_output_reference_frame="C",
         instrument_parameters="planck_deltabandpass",
     )
-    output_map = simulator.execute(write_outputs=False)[simulator.channels[0]]
+    output_map = simulator.execute(write_outputs=False)["100"]
 
     freq = 100.89 * u.GHz
     expected_map = cmb.get_emission(freq) + so_pysm_models.get_so_models(

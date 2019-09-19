@@ -291,6 +291,6 @@ class MapSim:
                             overwrite=True,
                         )
                     else:
-                        output[ch] = output_map.filled()
+                        output[ch.tag] = output_map.filled()
         if not write_outputs:
             return output
