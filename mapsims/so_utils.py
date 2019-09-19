@@ -178,7 +178,7 @@ def parse_instrument_parameters(instrument_parameters, channels="all"):
                     band=f[ch].attrs["band"],
                     beam=f[ch].attrs["fwhm_arcmin"] * u.arcmin,
                     center_frequency=f[ch].attrs["center_frequency_GHz"] * u.GHz,
-                    telescope=instrument_parameters.name.split(".")[0],
+                    telescope=instrument_parameters.name.split(".")[0].split("_")[0],
                     bandpass=(
                         f[ch].get(
                             "bandpass_frequency_GHz",
