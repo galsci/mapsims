@@ -1,6 +1,11 @@
+try:
+    import h5py
+except ImportError:
+    h5py = None
 from collections import namedtuple
 import numpy as np
 import astropy.units as u
+from pathlib import Path
 
 import sotodlib.hardware
 
@@ -12,6 +17,51 @@ hw = sotodlib.hardware.config.get_example()
 
 
 class Channel:
+    @u.quantity_input
+    def __init__(
+        self,
+        tag,
+        telescope,
+        band,
+        beam: u.arcmin,
+        center_frequency: u.GHz,
+        bandpass=None,
+    ):
+        """Base class of a channel
+
+        Each channel will be used to produce an output map
+
+        Parameters
+        ----------
+
+        tag : str
+            channel identifier
+        telescope : str
+            telescope name
+        band : str
+            identifier of the frequency band, useful for multiple channels
+            with different beams but same frequency response
+        beam : u.arcmin
+            full-width-half-max of the beam, assumed gaussian
+        center_frequency : u.GHz
+            center frequency of the channel, it is also necessary when a bandpass
+            is provided
+        bandpass : (np.array, np.array)
+            dimensionless frequency response of the channel, the weighting will
+            be performed in power units, MJ/sr
+        """
+        self.tag = tag
+        self.telescope = telescope
+        self.band = band
+        self.beam = beam
+        self.center_frequency = center_frequency
+        self.bandpass = bandpass
+
+    def __repr__(self):
+        return "Channel " + self.tag
+
+
+class SOChannel(Channel):
     def __init__(self, telescope, band):
         """Single Simons Observatory frequency channel
 
@@ -27,17 +77,18 @@ class Channel:
         """
         self.telescope = telescope
         try:
-            self.frequency = int(band)
-            self.band = "{:03d}".format(self.frequency)
+            self.center_frequency = int(band) * u.GHz
+            self.band = "{:03d}".format(int(self.center_frequency.value))
         except ValueError:
-            self.frequency = frequencies[bands.index(band)]
+            self.center_frequency = frequencies[bands.index(band)] * u.GHz
             self.band = band
 
     @property
     def tag(self):
         return "_".join([self.telescope, self.band])
 
-    def get_beam(self):
+    @property
+    def beam(self):
         """Returns the beam in arcminutes for a band
 
         Returns
@@ -50,11 +101,12 @@ class Channel:
         band = (
             self.band
             if self.band in bands
-            else bands[frequencies.index(self.frequency)]
+            else bands[frequencies.index(int(self.center_frequency.value))]
         )
         return hw.data["telescopes"][telescope_tag]["fwhm"][band] * u.arcmin
 
-    def get_bandpass(self):
+    @property
+    def bandpass(self):
         """Returns tophat bandpass
 
         10 points between minimun and maximum with equal weights
@@ -96,14 +148,45 @@ def parse_channels(channels):
     """
 
     if channels in ["LA", "SA"]:
-        return [Channel(channels, band) for band in bands]
+        return [SOChannel(channels, band) for band in bands]
     elif channels in ["all", "SO"]:
         return [
-            Channel(telescope, band) for telescope in ["LA", "SA"] for band in bands
+            SOChannel(telescope, band) for telescope in ["LA", "SA"] for band in bands
         ]
     else:
         if "," in channels:
             channels = channels.split(",")
         if isinstance(channels, str):
             channels = [channels]
-        return [Channel(*ch.split("_")) for ch in channels]
+        return [SOChannel(*ch.split("_")) for ch in channels]
+
+
+def parse_instrument_parameters(instrument_parameters, channels="all"):
+    instrument_parameters = Path(instrument_parameters)
+    if h5py is None:
+        raise ImportError("h5py is needed to parse instrument parameter files")
+    channel_objects_list = []
+    with h5py.File(instrument_parameters) as f:
+        if channels == "all":
+            channels = f.keys()
+        if isinstance(channels, str):
+            channels = [channels]
+        for ch in channels:
+            channel_objects_list.append(
+                Channel(
+                    tag=ch,
+                    band=f[ch].attrs["band"],
+                    beam=f[ch].attrs["fwhm_arcmin"] * u.arcmin,
+                    center_frequency=f[ch].attrs["center_frequency_GHz"] * u.GHz,
+                    telescope=instrument_parameters.name.split(".")[0],
+                    bandpass=(
+                        f[ch].get(
+                            "bandpass_frequency_GHz",
+                            default=f[ch].attrs["center_frequency_GHz"],
+                        )
+                        * u.GHz,
+                        f[ch].get("bandpass_weight"),
+                    ),
+                )
+            )
+    return channel_objects_list

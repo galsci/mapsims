@@ -4,7 +4,7 @@
 # should keep this content at the top.
 # ----------------------------------------------------------------------------
 from ._astropy_init import *
-from .so_utils import Channel
+from .so_utils import Channel, SOChannel
 from .noise import SONoiseSimulator
 from .cmb import SOPrecomputedCMB, SOStandalonePrecomputedCMB
 from .runner import MapSim, from_config

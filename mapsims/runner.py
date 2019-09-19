@@ -1,6 +1,7 @@
 import os.path
 import importlib
 import numpy as np
+from astropy.utils import data
 
 import pysm
 from pysm import units as u
@@ -86,7 +87,6 @@ def from_config(config_file, override=None):
         nside=int(config["nside"]),
         num=config["num"],
         unit=config["unit"],
-        tophat_bandpasses=config.get("tophat_bandpasses", False),
         tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
         output_filename_template=config.get(
@@ -96,6 +96,7 @@ def from_config(config_file, override=None):
         pysm_custom_components=components["pysm_components"],
         pysm_output_reference_frame=pysm_output_reference_frame,
         other_components=components["other_components"],
+        instrument_parameters=config.get("instrument_parameters", None),
     )
     return map_sim
 
@@ -114,7 +115,7 @@ class MapSim:
         pysm_output_reference_frame="C",
         pysm_custom_components=None,
         other_components=None,
-        tophat_bandpasses=False,
+        instrument_parameters=None,
     ):
         """Run map based simulations
 
@@ -155,10 +156,23 @@ class MapSim:
         other_components : dict
             Dictionary of component name, component class pairs, the output of these are **not** rotated,
             they should already be in the same reference frame specified in pysm_output_reference_frame.
+        instrument_parameters : HDF5 file path or str
+            Instrument parameters in HDF5 format, each channel tag is a group, each group has attributes
+            band, center_frequency_GHz, fwhm_arcmin, bandpass_frequency_GHz, bandpass_weight
+
 
         """
 
-        self.channels = so_utils.parse_channels(channels)
+        if instrument_parameters is None:
+            self.channels = so_utils.parse_channels(channels)
+        else:
+            if not instrument_parameters.endswith("h5"):
+                instrument_parameters = data.get_pkg_data_filename(
+                    "data/{}.h5".format(instrument_parameters)
+                )
+            self.channels = so_utils.parse_instrument_parameters(
+                instrument_parameters, channels
+            )
 
         self.bands = np.unique([ch.band for ch in self.channels])
         self.nside = nside
@@ -228,10 +242,8 @@ class MapSim:
                 if ch.band == band:
                     if self.run_pysm:
                         if band_map is None:
-                            band_map = self.pysm_sky.get_emission(
-                                *ch.get_bandpass()
-                            ).value
-                        beam_width_arcmin = ch.get_beam()
+                            band_map = self.pysm_sky.get_emission(*ch.bandpass).value
+                        beam_width_arcmin = ch.beam
                         # smoothing and coordinate rotation with 1 spherical harmonics transform
                         output_map = hp.ma(
                             pysm.apply_smoothing_and_coord_transform(
@@ -256,8 +268,11 @@ class MapSim:
                             np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
                         )
 
-                    for comp in self.other_components.values():
-                        output_map += hp.ma(comp.simulate(ch, output_units=self.unit))
+                    if self.other_components is not None:
+                        for comp in self.other_components.values():
+                            output_map += hp.ma(
+                                comp.simulate(ch, output_units=self.unit)
+                            )
 
                     if write_outputs:
                         hp.write_map(
@@ -277,6 +292,6 @@ class MapSim:
                             overwrite=True,
                         )
                     else:
-                        output[ch] = output_map.filled()
+                        output[ch.tag] = output_map.filled()
         if not write_outputs:
             return output

@@ -1,0 +1,60 @@
+import numpy as np
+from mpi4py import MPI
+from astropy.tests.helper import assert_quantity_allclose
+import healpy as hp
+
+import pysm
+import pysm.units as u
+from astropy.utils import data
+
+import mapsims
+import so_pysm_models
+
+NSIDE = 16
+
+
+def test_from_classes_custominstrument():
+
+    cmb = mapsims.SOPrecomputedCMB(
+        iteration_num=0,
+        nside=NSIDE,
+        lensed=False,
+        aberrated=False,
+        has_polarization=True,
+        cmb_set=0,
+        cmb_dir="mapsims/tests/data",
+        input_units="uK_CMB",
+    )
+
+    # CIB is only at NSIDE 4096, too much memory for testing
+    # cib = so_pysm_models.WebSkyCIB(
+    #    websky_version="0.3", nside=NSIDE, interpolation_kind="linear"
+    # )
+
+    simulator = mapsims.MapSim(
+        channels="100",
+        nside=NSIDE,
+        unit="uK_CMB",
+        pysm_components_string="SO_d0",
+        pysm_custom_components={"cmb": cmb},
+        pysm_output_reference_frame="C",
+        instrument_parameters="planck_deltabandpass",
+    )
+    output_map = simulator.execute(write_outputs=False)["100"]
+
+    freq = 100.89 * u.GHz
+    expected_map = cmb.get_emission(freq) + so_pysm_models.get_so_models(
+        "SO_d0", nside=NSIDE
+    ).get_emission(freq)
+    fwhm = 9.682 * u.arcmin
+
+    map_dist = pysm.MapDistribution(
+        nside=NSIDE, smoothing_lmax=3 * NSIDE - 1, mpi_comm=MPI.COMM_WORLD
+    )
+    expected_map = pysm.mpi.mpi_smoothing(
+        expected_map.to_value(u.uK_CMB, equivalencies=u.cmb_equivalencies(freq)),
+        fwhm,
+        map_dist,
+    )
+
+    assert_quantity_allclose(output_map, expected_map, rtol=1e-3)

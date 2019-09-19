@@ -46,7 +46,7 @@ def test_standalone_cmb():
     save_name = get_pkg_data_filename("data/test_map.fits")
     cmb_dir = os.path.dirname(save_name)
     nside = 32
-    ch = so_utils.Channel("SA", 145)
+    ch = so_utils.SOChannel("SA", 145)
     # Make an IQU sim
     imap = cmb.SOStandalonePrecomputedCMB(
         iteration_num=0,
@@ -55,8 +55,7 @@ def test_standalone_cmb():
         lensed=False,
         aberrated=False,
         input_units="uK_RJ",
-        input_reference_frequency=ch.frequency
-        * u.GHz,  # do not apply any frequency scaling
-    ).get_emission(ch.frequency * u.GHz, fwhm=1e-5 * u.arcmin)
+        input_reference_frequency=ch.center_frequency,
+    ).get_emission(ch.center_frequency, fwhm=1e-5 * u.arcmin)
     imap_test = hp.read_map(save_name, field=(0, 1, 2)) << u.uK_RJ
     assert_quantity_allclose(imap, imap_test)
