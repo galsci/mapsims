@@ -96,6 +96,7 @@ def from_config(config_file, override=None):
         pysm_custom_components=components["pysm_components"],
         pysm_output_reference_frame=pysm_output_reference_frame,
         other_components=components["other_components"],
+        instrument_parameters=config.get("instrument_parameters", None),
     )
     return map_sim
 

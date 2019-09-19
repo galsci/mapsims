@@ -16,6 +16,16 @@ constructor.
 * The ``pysm_components`` subsection allows to choose any pre-existing PySM model and later add any custom class, for example one from ``so_pysm_models``.
 * The ``other_components`` section instead includes models that generate a map to be summed after PySM has been executed, for example the noise simulation.
 
+``channels`` supports both simulating the Simons Observatory channels at single frequencies or top-hat bandpasses.
+If you specify channels named by the telescope and the frequency in GHz ``"SA_27"``, the simulations are performed at a single frequency. Instead if you specify one of the bandpasses, for example ``"LA_MFF1"``, the simulations are executed with top-hat bandpasses (10 equally spaced points within the band integrated with the Trapezoidal rule).
+If you specify shortcuts for groups of channels, i.e. ``"all"``, ``"LA"`` or ``"SA"``, top-hat bandpasses are selected.
+
+Simulate other instruments
+==========================
+
+A custom instrument can be defined by providing instrument parameters via a HDF5 file in a specified format, see :py:class:`MapSim` for details on the format.
+Planck channels at single frequencies are embedded in the package, pass ``instrument_parameters="planck_deltabandpass"`` to select it. See also ``planck_deltabandpass.h5`` in the ``mapsims/data`` folder as an example of the format.
+
 mapsims_run
 ===========
 
