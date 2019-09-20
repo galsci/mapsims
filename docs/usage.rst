@@ -5,8 +5,8 @@ Usage
 Configuration file
 ==================
 
-First you need to create a configuration file, see ``example_config.toml`` included in the package
-or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/example_config.toml>`_.
+First you need to create a configuration file, see ``data/example_config.toml`` included in the package
+or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/data/example_config.toml>`_.
 
 It first defines some global configuration options like output :math:`N_{side}`, the unit and the
 channels, then has 2 subsections. They both define subsections with a ``class`` attribute that

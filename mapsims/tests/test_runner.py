@@ -14,7 +14,7 @@ NSIDE = 16
 def test_from_config():
 
     simulator = mapsims.from_config(
-        data.get_pkg_data_filename("example_config.toml", package="mapsims")
+        data.get_pkg_data_filename("data/example_config.toml", package="mapsims")
     )
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0].tag]
 
