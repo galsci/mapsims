@@ -2,7 +2,7 @@ try:
     import h5py
 except ImportError:
     h5py = None
-from collections import namedtuple
+from astropy.utils import data
 import numpy as np
 import astropy.units as u
 from pathlib import Path
@@ -162,6 +162,10 @@ def parse_channels(channels):
 
 
 def parse_instrument_parameters(instrument_parameters, channels="all"):
+    if not isinstance(instrument_parameters, Path) and not instrument_parameters.endswith("h5"):
+        instrument_parameters = data.get_pkg_data_filename(
+            "data/{}.h5".format(instrument_parameters)
+        )
     instrument_parameters = Path(instrument_parameters)
     if h5py is None:
         raise ImportError("h5py is needed to parse instrument parameter files")

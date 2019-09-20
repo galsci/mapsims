@@ -1,7 +1,6 @@
 import os.path
 import importlib
 import numpy as np
-from astropy.utils import data
 
 import pysm
 from pysm import units as u
@@ -166,10 +165,6 @@ class MapSim:
         if instrument_parameters is None:
             self.channels = so_utils.parse_channels(channels)
         else:
-            if not instrument_parameters.endswith("h5"):
-                instrument_parameters = data.get_pkg_data_filename(
-                    "data/{}.h5".format(instrument_parameters)
-                )
             self.channels = so_utils.parse_instrument_parameters(
                 instrument_parameters, channels
             )
