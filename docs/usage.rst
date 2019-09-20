@@ -26,6 +26,24 @@ Simulate other instruments
 A custom instrument can be defined by providing instrument parameters via a HDF5 file in a specified format, see :py:class:`MapSim` for details on the format.
 Planck channels at single frequencies are embedded in the package, pass ``instrument_parameters="planck_deltabandpass"`` to select it. See also ``planck_deltabandpass.h5`` in the ``mapsims/data`` folder as an example of the format.
 
+Example of accessing the file::
+
+    In [1]: import h5py
+
+    In [2]: f = h5py.File("planck_deltabandpass.h5")
+
+    In [3]: f.keys()
+    Out[3]: <KeysViewHDF5 ['100', '143', '217', '30', '353', '44', '545', '70', '857']>
+
+    In [4]: f["143"].attrs
+    Out[4]: <Attributes of HDF5 object at 46913457708992>
+
+    In [5]: list(f["143"].attrs)
+    Out[5]: ['band', 'center_frequency_GHz', 'fwhm_arcmin']
+
+    In [6]: f["143"].attrs["center_frequency_GHz"]
+    Out[6]: 142.876
+
 mapsims_run
 ===========
 
