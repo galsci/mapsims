@@ -66,7 +66,7 @@ def test_from_classes():
         pysm_output_reference_frame="C",
         other_components={"noise": noise},
     )
-    output_map = simulator.execute(write_outputs=False)["SA_027"]
+    output_map = simulator.execute(write_outputs=False)["SA_27"]
 
     expected_map = hp.read_map(
         data.get_pkg_data_filename("data/example_run.fits.gz"), (0, 1, 2)

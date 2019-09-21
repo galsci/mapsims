@@ -78,7 +78,7 @@ class SOChannel(Channel):
         self.telescope = telescope
         try:
             self.center_frequency = int(band) * u.GHz
-            self.band = "{:03d}".format(int(self.center_frequency.value))
+            self.band = "{}".format(int(self.center_frequency.value))
         except ValueError:
             self.center_frequency = frequencies[bands.index(band)] * u.GHz
             self.band = band
