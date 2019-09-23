@@ -162,7 +162,9 @@ def parse_channels(channels):
 
 
 def parse_instrument_parameters(instrument_parameters, channels="all"):
-    if not isinstance(instrument_parameters, Path) and not instrument_parameters.endswith("h5"):
+    if not isinstance(
+        instrument_parameters, Path
+    ) and not instrument_parameters.endswith("h5"):
         instrument_parameters = data.get_pkg_data_filename(
             "data/{}.h5".format(instrument_parameters)
         )
@@ -170,7 +172,7 @@ def parse_instrument_parameters(instrument_parameters, channels="all"):
     if h5py is None:
         raise ImportError("h5py is needed to parse instrument parameter files")
     channel_objects_list = []
-    with h5py.File(instrument_parameters) as f:
+    with h5py.File(instrument_parameters, "r") as f:
         if channels == "all":
             channels = f.keys()
         if isinstance(channels, str):
