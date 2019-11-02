@@ -18,14 +18,15 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
         cmb_dir=None,
         input_units="uK_RJ",
         input_reference_frequency=None,
+        precompute_output_map=False,
         map_dist=None,
     ):
         """
         Return a CMB map from stored alm's.  This can be in HEALPix format
         (if nside is specified) or rectangular pixel format (if wcs and shape are
         specified).  The lensed alm's are pre-stored.
-        If rectangular, it returns a stack of enmaps of shape (nfreqs, ncomp, ny, nx). 
-        If HEALPix, it will return a numpy array of shape (nfreqs, ncomp, npix) 
+        If rectangular, it returns a stack of enmaps of shape (nfreqs, ncomp, ny, nx).
+        If HEALPix, it will return a numpy array of shape (nfreqs, ncomp, npix)
 
         Parameters
         ----------
@@ -36,7 +37,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
         input_reference_frequency_GHz : float
             If input units are K_RJ or Jysr, the reference frequency
         nside : int
-            nside of healpix map to project alms to. If None, uses 
+            nside of healpix map to project alms to. If None, uses
             rectangular pixel geometry specified through shape and wcs.
         shape : tuple of ints
             shape of ndmap array (see pixell.enmap)
@@ -75,6 +76,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             input_reference_frequency=input_reference_frequency,
             has_polarization=has_polarization,
             map_dist=map_dist,
+            precompute_output_map=precompute_output_map,
         )
 
 
