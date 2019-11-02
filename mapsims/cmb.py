@@ -16,7 +16,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
         has_polarization=True,
         cmb_set=0,  # We allow for more than one CMB map per lensing map
         cmb_dir=None,
-        input_units="uK_RJ",
+        input_units="uK_CMB",
         input_reference_frequency=None,
         precompute_output_map=False,
         map_dist=None,
@@ -92,7 +92,7 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         has_polarization=True,
         cmb_set=0,  # We allow for more than one CMB map per lensing map
         cmb_dir=None,
-        input_units="uK_RJ",
+        input_units="uK_CMB",
         input_reference_frequency=None,
         map_dist=None,
     ):
