@@ -61,6 +61,7 @@ def from_config(config_file, override=None):
         config.update(override)
 
     pysm_components_string = None
+    pysm_output_reference_frame = None
 
     components = {}
     for component_type in ["pysm_components", "other_components"]:
