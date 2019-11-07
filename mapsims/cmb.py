@@ -65,9 +65,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             returns (nfreqs,ncomp,Ny,Nx) rectangular pixel ndmap.
         """
 
-        filename = _get_cmb_map_string(
-            cmb_dir, num, cmb_set, lensed, aberrated
-        )
+        filename = _get_cmb_map_string(cmb_dir, num, cmb_set, lensed, aberrated)
 
         super().__init__(
             filename,
@@ -105,9 +103,7 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         can be obtained by calling `get_phi_alm()`.
         """
 
-        filename = _get_cmb_map_string(
-            cmb_dir, num, cmb_set, lensed, aberrated
-        )
+        filename = _get_cmb_map_string(cmb_dir, num, cmb_set, lensed, aberrated)
 
         self.iteration_num = num
         self.cmb_dir = cmb_dir
@@ -138,9 +134,7 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
             Units as defined by `pysm.convert_units`, e.g. uK_CMB or K_RJ
         """
         return self.get_emission(
-            nu=ch.center_frequency,
-            fwhm=ch.beam,
-            output_units=output_units,
+            freqs=ch.center_frequency, fwhm=ch.beam, output_units=output_units
         )
 
 
