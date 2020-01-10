@@ -218,7 +218,7 @@ class SONoiseSimulator:
                     self.ell < self.no_power_below_ell
                 ] = 0
 
-    def simulate(self, ch, output_units="uK_CMB", seed=None):
+    def simulate(self, ch, output_units="uK_CMB", seed=None, nsplits=1):
         """Create a random realization of the noise power spectrum
 
         Parameters
@@ -233,7 +233,7 @@ class SONoiseSimulator:
         output_map : ndarray
             Numpy array with the HEALPix map realization of noise
         """
-
+        assert nsplits>= 1
         if seed is not None:
             np.random.seed(seed)
         else:
@@ -246,37 +246,42 @@ class SONoiseSimulator:
                     self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
                 )
         zeros = np.zeros_like(self.noise_ell_T[ch.telescope][ch.center_frequency.value])
-        ps = [
+        ps = np.asarray([
             self.noise_ell_T[ch.telescope][ch.center_frequency.value],
             self.noise_ell_P[ch.telescope][ch.center_frequency.value],
             self.noise_ell_P[ch.telescope][ch.center_frequency.value],
             zeros,
             zeros,
             zeros,
-        ]
+        ])*nsplits
         if self.healpix:
-            output_map = hp.ma(
-                np.array(
-                    hp.synfast(ps, nside=self.nside, pol=True, new=True, verbose=False,)
+            npix = hp.nside2npix(self.nside)
+            output_map = np.zeros((nsplits,3,npix))
+            for i in range(nsplits):
+                output_map[i] = hp.ma(
+                    np.array(
+                        hp.synfast(ps, nside=self.nside, pol=True, new=True, verbose=False,)
+                    )
                 )
-            )
         else:
             from pixell import curvedsky, powspec
-
             ps = powspec.sym_expand(np.asarray(ps), scheme="diag")
-            output_map = curvedsky.rand_map((3,) + self.shape, self.wcs, ps)
+            output_map = np.zeros((nsplits,3)+self.shape)
+            for i in range(nsplits):
+                output_map[i] = curvedsky.rand_map((3,) + self.shape, self.wcs, ps)
 
-        good = self.hitmap[ch.telescope] != 0
+        hmap = self.hitmap[ch.telescope]
+        good = hmap != 0
         # Normalize on the Effective sky fraction, see discussion in:
         # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-        output_map[:, good] /= np.sqrt(
-            self.hitmap[ch.telescope][good]
-            / self.hitmap[ch.telescope].mean()
+        output_map[:,:, good] /= np.sqrt(
+            hmap[good]
+            / hmap.mean()
             * self.sky_fraction[ch.telescope]
         )
-        output_map[:, np.logical_not(good)] = hp.UNSEEN if self.healpix else 0
+        output_map[:,:, np.logical_not(good)] = hp.UNSEEN if self.healpix else 0
         unit_conv = (1 * u.uK_CMB).to_value(
             u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.center_frequency)
         )
         output_map *= unit_conv
-        return output_map
+        return output_map[0] if nsplits==1 else output_map
