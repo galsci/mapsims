@@ -40,9 +40,10 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             nside of healpix map to project alms to. If None, uses
             rectangular pixel geometry specified through shape and wcs.
         shape : tuple of ints
-            shape of ndmap array (see pixell.enmap)
-        wcs : str
-            World Coordinate System for geometry of map (see pixell.enmap)
+            shape of ndmap array (see pixell.enmap). Must also specify wcs.
+        wcs : astropy.wcs.wcs.WCS insance
+            World Coordinate System for geometry of map (see pixell.enmap). Must 
+            also specify shape.
         lensed : bool
             Whether to load lensed or unlensed sims
         aberrated : bool
