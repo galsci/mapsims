@@ -9,6 +9,7 @@ import pysm.units as u
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
 from . import so_utils
 from . import Channel
+from . import utils as mutils
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
@@ -35,6 +36,7 @@ class SONoiseSimulator:
         LA_number_UHF=2,
         SA_years_LF=1,
         SA_one_over_f_mode="pessimistic",
+        hitmap_version="v0.1",
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -116,6 +118,10 @@ class SONoiseSimulator:
         self.SA_years_LF = SA_years_LF
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
 
+        self.remote_data = mutils.RemoteData(
+            healpix=self.healpix, version=hitmap_version
+        )
+
         # Load hitmap and compute sky fraction
 
         self.hitmap = {}
@@ -139,9 +145,8 @@ class SONoiseSimulator:
         if os.path.exists(scanning_strategy.format(telescope=telescope)):
             hitmap_filename = scanning_strategy
         else:
-            hitmap_filename = data.get_pkg_data_filename(
-                f"data/total_hits_{telescope}_{scanning_strategy}{car_suffix}.fits.gz"
-            )
+            rname = f"total_hits_{telescope}_{scanning_strategy}{car_suffix}.fits.gz"
+            hitmap_filename = self.remote_data.get(rname)
 
         if self.healpix:
             hitmap = hp.ud_grade(
@@ -233,7 +238,7 @@ class SONoiseSimulator:
         output_map : ndarray
             Numpy array with the HEALPix map realization of noise
         """
-        assert nsplits>= 1
+        assert nsplits >= 1
         if seed is not None:
             np.random.seed(seed)
         else:
@@ -246,27 +251,35 @@ class SONoiseSimulator:
                     self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
                 )
         zeros = np.zeros_like(self.noise_ell_T[ch.telescope][ch.center_frequency.value])
-        ps = np.asarray([
-            self.noise_ell_T[ch.telescope][ch.center_frequency.value],
-            self.noise_ell_P[ch.telescope][ch.center_frequency.value],
-            self.noise_ell_P[ch.telescope][ch.center_frequency.value],
-            zeros,
-            zeros,
-            zeros,
-        ])*nsplits
+        ps = (
+            np.asarray(
+                [
+                    self.noise_ell_T[ch.telescope][ch.center_frequency.value],
+                    self.noise_ell_P[ch.telescope][ch.center_frequency.value],
+                    self.noise_ell_P[ch.telescope][ch.center_frequency.value],
+                    zeros,
+                    zeros,
+                    zeros,
+                ]
+            )
+            * nsplits
+        )
         if self.healpix:
             npix = hp.nside2npix(self.nside)
-            output_map = np.zeros((nsplits,3,npix))
+            output_map = np.zeros((nsplits, 3, npix))
             for i in range(nsplits):
                 output_map[i] = hp.ma(
                     np.array(
-                        hp.synfast(ps, nside=self.nside, pol=True, new=True, verbose=False,)
+                        hp.synfast(
+                            ps, nside=self.nside, pol=True, new=True, verbose=False,
+                        )
                     )
                 )
         else:
             from pixell import curvedsky, powspec
+
             ps = powspec.sym_expand(np.asarray(ps), scheme="diag")
-            output_map = np.zeros((nsplits,3)+self.shape)
+            output_map = np.zeros((nsplits, 3) + self.shape)
             for i in range(nsplits):
                 output_map[i] = curvedsky.rand_map((3,) + self.shape, self.wcs, ps)
 
@@ -274,14 +287,12 @@ class SONoiseSimulator:
         good = hmap != 0
         # Normalize on the Effective sky fraction, see discussion in:
         # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-        output_map[:,:, good] /= np.sqrt(
-            hmap[good]
-            / hmap.mean()
-            * self.sky_fraction[ch.telescope]
+        output_map[:, :, good] /= np.sqrt(
+            hmap[good] / hmap.mean() * self.sky_fraction[ch.telescope]
         )
-        output_map[:,:, np.logical_not(good)] = hp.UNSEEN if self.healpix else 0
+        output_map[:, :, np.logical_not(good)] = hp.UNSEEN if self.healpix else 0
         unit_conv = (1 * u.uK_CMB).to_value(
             u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.center_frequency)
         )
         output_map *= unit_conv
-        return output_map[0] if nsplits==1 else output_map
+        return output_map[0] if nsplits == 1 else output_map
