@@ -163,3 +163,6 @@ distribute-*.tar.gz
 
 # Mac OSX
 .DS_Store
+
+*.png
+*.pdf
