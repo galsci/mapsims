@@ -14,6 +14,7 @@ from . import utils as mutils
 sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
 telescope_seed_offset = {"LA": 0, "SA": 1000}
+default_mask_value = {"healpix": hp.UNSEEN, "car": np.nan}
 
 
 class SONoiseSimulator:
@@ -223,7 +224,9 @@ class SONoiseSimulator:
                     self.ell < self.no_power_below_ell
                 ] = 0
 
-    def simulate(self, ch, output_units="uK_CMB", seed=None, nsplits=1):
+    def simulate(
+        self, ch, output_units="uK_CMB", seed=None, nsplits=1, mask_value=None
+    ):
         """Create a random realization of the noise power spectrum
 
         Parameters
@@ -290,7 +293,13 @@ class SONoiseSimulator:
         output_map[:, :, good] /= np.sqrt(
             hmap[good] / hmap.mean() * self.sky_fraction[ch.telescope]
         )
-        output_map[:, :, np.logical_not(good)] = hp.UNSEEN if self.healpix else 0
+        if mask_value is None:
+            mask_value = (
+                default_mask_value["healpix"]
+                if self.healpix
+                else default_mask_value["car"]
+            )
+        output_map[:, :, np.logical_not(good)] = mask_value
         unit_conv = (1 * u.uK_CMB).to_value(
             u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.center_frequency)
         )

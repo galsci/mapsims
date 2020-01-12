@@ -82,7 +82,6 @@ def get_geometry(res_arcmin, bounds_deg):
     return enmap.band_geometry(
         np.deg2rad(bounds_deg), res=np.deg2rad(res_arcmin / 60.0), proj="car"
     )
-    return enmap.fullsky_geometry(res=np.deg2rad(res_arcmin / 60.0), proj="car")
 
 
 # This needs to be obtained from pwg-scripts or something similar
