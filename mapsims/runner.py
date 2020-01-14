@@ -9,7 +9,14 @@ import toml
 import healpy as hp
 
 from so_pysm_models import get_so_models
-from mpi4py import MPI
+
+try:
+    from mpi4py import MPI
+
+    COMM_WORLD = MPI.COMM_WORLD
+except ImportError:
+    COMM_WORLD = None
+
 
 from . import so_utils
 from . import Channel
@@ -254,7 +261,7 @@ class MapSim:
                                 map_dist=pysm.MapDistribution(
                                     nside=self.nside,
                                     smoothing_lmax=3 * self.nside - 1,
-                                    mpi_comm=MPI.COMM_WORLD,
+                                    mpi_comm=COMM_WORLD,
                                 ),
                             )
                         )
