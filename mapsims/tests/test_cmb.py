@@ -24,6 +24,7 @@ def test_load_sim():
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
+        input_units="uK_RJ",
         input_reference_frequency=148 * u.GHz,
     ).get_emission(148 * u.GHz)
     imap_test = hp.read_map(save_name, field=(0, 1, 2)) << u.uK_RJ
@@ -37,6 +38,7 @@ def test_load_sim():
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
+        input_units="uK_RJ",
         input_reference_frequency=148 * u.GHz,
     ).get_emission(148 * u.GHz)
 

@@ -8,14 +8,13 @@ dependencies:
     - python>=3.6
     - astropy
     - mpi4py
-    - Cython
     - toml
     - numba
-    - matplotlib
     - numpy
     - sphinx-astropy
     - h5py
     - healpy
+    - pip
     - pip:
         - quaternionarray
         - https://github.com/healpy/pysm/archive/master.zip
