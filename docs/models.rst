@@ -3,7 +3,7 @@ Summary of Models
 
 This page contains high-level description of the models available within the ``mapsims`` package,
 this models are specific to the Simons Observatory, more general PySM models are instead
-available in the ``so_pysm_models`` package, see `the documentation about those models <https://so-pysm-models.readthedocs.io/en/latest/so_pysm_models/models.html>`_.
+available in the ``so_pysm_models`` package, see `the documentation about those models <https://so-pysm-models.readthedocs.io/en/latest/models.html>`_.
 
 20180822 noise power spectra and hitmaps
 ========================================
