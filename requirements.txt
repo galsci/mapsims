@@ -1,0 +1,6 @@
+pysm3
+astropy>=3.2.1
+numpy
+toml
+h5py
+so_pysm_models
