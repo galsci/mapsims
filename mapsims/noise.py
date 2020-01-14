@@ -105,7 +105,6 @@ class SONoiseSimulator:
             self.healpix = True
             self.nside = nside
             self.ell_max = ell_max if ell_max is not None else 3 * nside
-            car_suffix = ""
 
         self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
         self.apply_beam_correction = apply_beam_correction
@@ -142,6 +141,8 @@ class SONoiseSimulator:
                 key=lambda x: abs(x - self._pixheight),
             )
             car_suffix = f"_CAR_{npixheight:.2f}_arcmin"
+        else:
+            car_suffix = ""
 
         if os.path.exists(scanning_strategy.format(telescope=telescope)):
             hitmap_filename = scanning_strategy
