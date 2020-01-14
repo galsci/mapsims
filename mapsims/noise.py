@@ -57,7 +57,7 @@ class SONoiseSimulator:
         shape : tuple of ints
             shape of ndmap array (see pixell.enmap). Must also specify wcs.
         wcs : astropy.wcs.wcs.WCS instance
-            World Coordinate System for geometry of map (see pixell.enmap). Must 
+            World Coordinate System for geometry of map (see pixell.enmap). Must
             also specify shape.
         ell_max : int
             Maximum ell for the angular power spectrum, if not provided set to 3 * nside

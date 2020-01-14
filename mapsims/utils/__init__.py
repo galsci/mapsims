@@ -40,7 +40,7 @@ class RemoteData:
         of the PREDEFINED_DATA_FOLDERS defined above, if it fails, it
         retrieves the files and caches them remotely using facilities
         provided by `astropy.utils.data`.
-        
+
         This class is copied and modified from so_pysm_models.
 
         Parameters
