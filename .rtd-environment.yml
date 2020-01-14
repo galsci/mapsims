@@ -5,14 +5,12 @@ channels:
     - conda-forge
 
 dependencies:
-    - python>=3.6
+    - python==3.6
     - astropy
-    - mpi4py
     - toml
     - numba
     - numpy
     - sphinx-astropy
-    - h5py
     - healpy
     - pip
     - pip:
