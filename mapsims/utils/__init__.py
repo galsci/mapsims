@@ -10,21 +10,21 @@ import warnings
 
 def _DATAURL(healpix, version):
     if healpix:
-        return f"https://portal.nersc.gov/project/sobs/users/msyriac/so_mapsims_data/{version}/healpix/"
+        return f"https://portal.nersc.gov/project/sobs/so_mapsims_data/{version}/healpix/"
         
     else:
-        return f"https://portal.nersc.gov/project/sobs/users/msyriac/so_mapsims_data/{version}/car/"
+        return f"https://portal.nersc.gov/project/sobs/so_mapsims_data/{version}/car/"
 
 
 def _PREDEFINED_DATA_FOLDERS(healpix, version):
     if healpix:
         return [
-            f"/global/cfs/cdirs/sobs/www/users/msyriac/so_mapsims_data/{version}/healpix",  # NERSC
+            f"/global/cfs/cdirs/sobs/www/so_mapsims_data/{version}/healpix",  # NERSC
             f"/scratch/r/rbond/msyriac/data/sobs/so_mapsims_data/{version}/healpix",  # SCINET/NIAGARA
         ]
     else:
         return [
-            f"/global/cfs/cdirs/sobs/www/users/msyriac/so_mapsims_data/{version}/car",  # NERSC
+            f"/global/cfs/cdirs/sobs/www/so_mapsims_data/{version}/car",  # NERSC
             f"/scratch/r/rbond/msyriac/data/sobs/so_mapsims_data/{version}/car",  # SCINET/NIAGARA
         ]
 
