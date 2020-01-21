@@ -51,6 +51,9 @@ class SONoiseSimulator:
         Parameters
         ----------
 
+        telescopes : list of strings
+            List of telescope identifiers, typically `LA` or `SA` for the large aperture
+            and small aperture, respectively.
         nside : int
             nside of HEALPix map. If None, uses
             rectangular pixel geometry specified through shape and wcs.
@@ -60,7 +63,9 @@ class SONoiseSimulator:
             World Coordinate System for geometry of map (see pixell.enmap). Must
             also specify shape.
         ell_max : int
-            Maximum ell for the angular power spectrum, if not provided set to 3 * nside
+            Maximum ell for the angular power spectrum, if not provided set to 3 * nside when using healpix
+            or 10000 * (1.0 / pixel_height_arcmin) when using CAR, corresponding roughly to the Nyquist
+            frequency.
         seed : int
             Numpy random seed, each band is going to get a different seed as seed + band + (1000 for SA)
         return_uK_CMB : bool
@@ -73,7 +78,7 @@ class SONoiseSimulator:
             If True, reduce the hitcount by a factor of 0.85 to account for not-uniformity in the scanning
         scanning_strategy : str
             Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
-            path to a custom hitmap, it will be normalized, absolute hitcount does not matter
+            path to a custom hitmap; it will be normalized, so absolute hitcount does not matter
         no_power_below_ell : int
             The input spectra have significant power at low ell, we can zero that power specifying an integer
             :math:`\ell` value here. The power spectra at :math:`\ell < \ell_0` are set to zero.
@@ -87,6 +92,8 @@ class SONoiseSimulator:
             Number of years for the Low Frequency detectors to be deployed on the Small Aperture telescopes
         SA_one_over_f_mode : {"pessimistic", "optimistic", "none"}
             Correlated noise performance of the detectors on the Small Aperture telescopes
+        hitmap_version : string
+            Version string for hitmaps stored remotely.
         """
 
         if nside is None:
@@ -134,6 +141,21 @@ class SONoiseSimulator:
             self.update_telescope(telescope, scanning_strategy)
 
     def update_telescope(self, telescope, scanning_strategy):
+        """Update a telescope configuration by loading the corresponding
+        hitmaps. Each loaded `telescope` is kept in memory, but
+        new choice of `scanning_strategy` erases the previous one.
+
+        Parameters
+        ----------
+
+        telescope : string
+            Telescope identifier, typically `LA` or `SA` for the large aperture
+            and small aperture, respectively.
+        scanning_strategy : str
+            Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
+            path to a custom hitmap; it will be normalized, so absolute hitcount does not matter
+
+        """
 
         if not (self.healpix):
             npixheight = min(
@@ -235,6 +257,14 @@ class SONoiseSimulator:
 
         ch : mapsims.Channel
             Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
+        nsplits : integer, optional
+            Number of splits to generate. The splits will have independent noise
+            realizations, with noise power scaled by a factor of nsplits. By default,
+            only one split (the coadd) is generated.
+        mask_value : float, optional
+            The value to set in masked (unobserved) regions. By default, it uses
+            the value in default_mask_value, which for healpix is healpy.UNSEEN
+            and for CAR is numpy.nan.
 
         Returns
         -------
