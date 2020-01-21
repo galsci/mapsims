@@ -10,11 +10,10 @@ import warnings
 
 def _DATAURL(healpix, version):
     if healpix:
-        return (
-            f"https://portal.nersc.gov/project/sobs/users/msyriac/so_mapsims_data/{version}/healpix/",
-        )
+        return f"https://portal.nersc.gov/project/sobs/users/msyriac/so_mapsims_data/{version}/healpix/"
+        
     else:
-        return (f"https://portal.nersc.gov/project/sobs/users/msyriac/so_mapsims_data/{version}/car/",)
+        return f"https://portal.nersc.gov/project/sobs/users/msyriac/so_mapsims_data/{version}/car/"
 
 
 def _PREDEFINED_DATA_FOLDERS(healpix, version):
