@@ -12,6 +12,7 @@ num = 0
     [ other_components.noise ]
 
     class = "mapsims.SONoiseSimulator"
+    telescopes = ['LA','SA']
     return_uK_CMB = true
     sensitivity_mode = "baseline"
     apply_beam_correction = true
