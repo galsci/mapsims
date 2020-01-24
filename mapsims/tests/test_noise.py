@@ -30,7 +30,10 @@ def test_noise_simulator(telescope):
         LA_number_LF=1,
         LA_number_MF=4,
         LA_number_UHF=2,
-        SA_years_LF=365 * 5 / 365.25,
+        SA_years=365 * 5 / 365.25,
+        SA_number_LF=0.2,
+        SA_number_MF=1.8,
+        SA_number_UHF=1,
         SA_one_over_f_mode="optimistic",
         seed=seed,
     )
