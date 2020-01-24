@@ -21,7 +21,10 @@ num = 0
     LA_number_LF = 1
     LA_number_MF = 4
     LA_number_UHF = 2
-    SA_years_LF = 1
+    SA_years = 4.99657768652
+    SA_number_LF = 0.2
+    SA_number_MF = 1.8
+    SA_number_UHF = 1
     SA_one_over_f_mode = "pessimistic"
     seed = 8974
 
