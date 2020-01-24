@@ -38,6 +38,7 @@ class SONoiseSimulator:
         LA_number_LF=1,
         LA_number_MF=4,
         LA_number_UHF=2,
+        LA_noise_model="SOLatV3point1",
         SA_years=5,
         SA_number_LF=1,
         SA_number_MF=4,
@@ -98,6 +99,9 @@ class SONoiseSimulator:
             Number of Medium Frequency tubes in LAT
         LA_number_UHF : int
             Number of Ultra High Frequency tubes in LAT
+        LA_noise_model : str
+            Noise model among the ones available in `so_noise_model`, "SOLatV3point1" is default, "SOLatV3" is
+            the model released in 2018 which had a bug in the atmosphere contribution
         SA_years : int
             Total number of years for the Small Aperture telescopes survey
         SA_number_*: survey-averaged number of each SAT tube in operation.
@@ -141,6 +145,7 @@ class SONoiseSimulator:
         self.LA_number_LF = LA_number_LF
         self.LA_number_MF = LA_number_MF
         self.LA_number_UHF = LA_number_UHF
+        self.LA_noise_model = LA_noise_model
         self.SA_years = SA_years
         self.SA_number_LF = SA_number_LF
         self.SA_number_MF = SA_number_MF
@@ -237,7 +242,7 @@ class SONoiseSimulator:
             if noise_ell_T is None:
                 noise_ell_T = noise_ell_P / 2
         elif telescope == "LA":
-            survey = so_models.SOLatV3(
+            survey = getattr(so_models, self.LA_noise_model)(
                 sensitivity_mode=self.sensitivity_mode,
                 survey_efficiency=self.survey_efficiency,
                 survey_years=self.LA_years,

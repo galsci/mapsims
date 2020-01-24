@@ -30,6 +30,7 @@ def test_noise_simulator(telescope):
         LA_number_LF=1,
         LA_number_MF=4,
         LA_number_UHF=2,
+        LA_noise_model="SOLatV3",
         SA_years=365 * 5 / 365.25,
         SA_number_LF=0.2,
         SA_number_MF=1.8,
