@@ -196,38 +196,25 @@ class SONoiseSimulator:
         self.sky_fraction[telescope] = (hitmap != 0).sum() / hitmap.size
 
         if telescope == "SA":
-             survey = so_models.SOSatV3point1(
+            survey = so_models.SOSatV3point1(
                 sensitivity_mode=self.sensitivity_mode,
-                survey_efficiency=1,
+                survey_efficiency=0.2 * 0.85,
                 survey_years=self.SA_years_LF,
-                N_tubes=None,  # FIXME expose to configuration
+                N_tubes=[0.2, 1.8, 1],  # FIXME expose to configuration
                 el=None,  # FIXME expose to configuration
                 one_over_f_mode=self.SA_one_over_f_mode,
-             )
-             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
+            )
+            ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 self.sky_fraction[telescope],
                 self.ell_max,
                 delta_ell=1,
                 full_covar=False,
                 deconv_beam=self.apply_beam_correction,
-             )
-            # For SA, so_noise simulates only Polarization,
-            # Assume that T is half
-             if noise_ell_T is None:
-                noise_ell_T = noise_ell_P / 2
-            ell, noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
-                self.sensitivity_mode,
-                self.SA_one_over_f_mode,
-                self.SA_years_LF,
-                self.sky_fraction[telescope],
-                self.ell_max,
-                delta_ell=1,
-                apply_beam_correction=self.apply_beam_correction,
-                apply_kludge_correction=self.apply_kludge_correction,
             )
             # For SA, so_noise simulates only Polarization,
             # Assume that T is half
-            noise_ell_T = noise_ell_P / 2
+            if noise_ell_T is None:
+                noise_ell_T = noise_ell_P / 2
         elif telescope == "LA":
             ell, noise_ell_T, noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
                 self.sensitivity_mode,
@@ -325,7 +312,7 @@ class SONoiseSimulator:
                 output_map[i] = hp.ma(
                     np.array(
                         hp.synfast(
-                            ps, nside=self.nside, pol=True, new=True, verbose=False,
+                            ps, nside=self.nside, pol=True, new=True, verbose=False
                         )
                     )
                 )

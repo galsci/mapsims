@@ -19,7 +19,7 @@ def test_noise_simulator(telescope):
         seed -= 1000
 
     simulator = mapsims.SONoiseSimulator(
-        telescopes=['LA','SA'],
+        telescopes=["LA", "SA"],
         nside=NSIDE,
         ell_max=500,
         return_uK_CMB=True,
@@ -30,7 +30,7 @@ def test_noise_simulator(telescope):
         LA_number_LF=1,
         LA_number_MF=4,
         LA_number_UHF=2,
-        SA_years_LF=1,
+        SA_years_LF=365 * 5 / 365.25,
         SA_one_over_f_mode="optimistic",
         seed=seed,
     )
