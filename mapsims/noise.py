@@ -237,17 +237,21 @@ class SONoiseSimulator:
             if noise_ell_T is None:
                 noise_ell_T = noise_ell_P / 2
         elif telescope == "LA":
-            ell, noise_ell_T, noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
-                self.sensitivity_mode,
+            survey = so_models.SOLatV3(
+                sensitivity_mode=self.sensitivity_mode,
+                survey_efficiency=self.survey_efficiency,
+                survey_years=self.LA_years,
+                N_tubes=[self.LA_number_LF, self.LA_number_MF, self.LA_number_UHF],
+                el=None,  # SAT does not support noise elevation function
+            )
+            ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 self.sky_fraction[telescope],
                 self.ell_max,
                 delta_ell=1,
-                N_LF=self.LA_number_LF,
-                N_MF=self.LA_number_MF,
-                N_UHF=self.LA_number_UHF,
-                apply_beam_correction=self.apply_beam_correction,
-                apply_kludge_correction=self.apply_kludge_correction,
+                full_covar=False,
+                deconv_beam=self.apply_beam_correction,
             )
+
         self.ell = np.arange(ell[-1] + 1)
 
         available_frequencies = np.unique(so_utils.frequencies)
