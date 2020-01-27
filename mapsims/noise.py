@@ -39,6 +39,7 @@ class SONoiseSimulator:
         LA_number_MF=4,
         LA_number_UHF=2,
         LA_noise_model="SOLatV3point1",
+        elevation=50,
         SA_years=5,
         SA_number_LF=1,
         SA_number_MF=4,
@@ -102,6 +103,10 @@ class SONoiseSimulator:
         LA_noise_model : str
             Noise model among the ones available in `so_noise_model`, "SOLatV3point1" is default, "SOLatV3" is
             the model released in 2018 which had a bug in the atmosphere contribution
+        elevation : float
+            Elevation of the scans in degrees, the V3.1.1 noise model includes elevation
+            dependence for the LAT. This should reproduced original V3 results at the
+            reference elevation of 50 degrees.
         SA_years : int
             Total number of years for the Small Aperture telescopes survey
         SA_number_*: survey-averaged number of each SAT tube in operation.
@@ -146,6 +151,7 @@ class SONoiseSimulator:
         self.LA_number_MF = LA_number_MF
         self.LA_number_UHF = LA_number_UHF
         self.LA_noise_model = LA_noise_model
+        self.elevation = elevation
         self.SA_years = SA_years
         self.SA_number_LF = SA_number_LF
         self.SA_number_MF = SA_number_MF
@@ -247,7 +253,7 @@ class SONoiseSimulator:
                 survey_efficiency=self.survey_efficiency,
                 survey_years=self.LA_years,
                 N_tubes=[self.LA_number_LF, self.LA_number_MF, self.LA_number_UHF],
-                el=None,  # SAT does not support noise elevation function
+                el=self.elevation,
             )
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 self.sky_fraction[telescope],
