@@ -11,6 +11,7 @@ Requirements
 * ``h5py`` to read custom instrument parameter files
 * ``healpy``
 * ``so_pysm_models``
+* ``so_noise_models``
 * ``toml``
 
 Installation
@@ -36,4 +37,3 @@ Run unit tests::
 Build documentation::
 
     python setup.py build_docs
-
