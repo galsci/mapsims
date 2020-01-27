@@ -259,8 +259,9 @@ class SONoiseSimulator:
             Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
         nsplits : integer, optional
             Number of splits to generate. The splits will have independent noise
-            realizations, with noise power scaled by a factor of nsplits. By default,
-            only one split (the coadd) is generated.
+            realizations, with noise power scaled by a factor of nsplits, i.e. atmospheric 
+            noise is assumed to average down with observing time the same way
+            the white noise does. By default, only one split (the coadd) is generated.
         mask_value : float, optional
             The value to set in masked (unobserved) regions. By default, it uses
             the value in default_mask_value, which for healpix is healpy.UNSEEN
