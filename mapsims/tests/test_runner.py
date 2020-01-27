@@ -27,6 +27,7 @@ def test_from_config():
 def test_from_classes():
 
     noise = mapsims.SONoiseSimulator(
+        telescopes=['LA','SA'],
         nside=NSIDE,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
