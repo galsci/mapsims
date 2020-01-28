@@ -16,7 +16,7 @@ NSIDE = 16
 def test_from_classes_custominstrument():
 
     cmb = mapsims.SOPrecomputedCMB(
-        iteration_num=0,
+        num=0,
         nside=NSIDE,
         lensed=False,
         aberrated=False,

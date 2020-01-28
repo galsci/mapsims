@@ -7,7 +7,7 @@ import pysm.units as u
 class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
     def __init__(
         self,
-        iteration_num,
+        num,
         nside=None,  # set this if healpix is desired
         shape=None,  # set shape and wcs if CAR maps are desired
         wcs=None,
@@ -30,7 +30,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
 
         Parameters
         ----------
-        iteration_num : int
+        num : int
             integer specifying which sim iteration to use
         input_units : string
             Input unit strings as defined by pysm.convert_units, e.g. K_CMB, uK_RJ, MJysr
@@ -66,9 +66,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
             returns (nfreqs,ncomp,Ny,Nx) rectangular pixel ndmap.
         """
 
-        filename = _get_cmb_map_string(
-            cmb_dir, iteration_num, cmb_set, lensed, aberrated
-        )
+        filename = _get_cmb_map_string(cmb_dir, num, cmb_set, lensed, aberrated)
 
         super().__init__(
             filename,
@@ -84,7 +82,7 @@ class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
 class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
     def __init__(
         self,
-        iteration_num,
+        num,
         nside=None,  # set this if healpix is desired
         shape=None,  # set shape and wcs if CAR maps are desired
         wcs=None,
@@ -106,11 +104,9 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         can be obtained by calling `get_phi_alm()`.
         """
 
-        filename = _get_cmb_map_string(
-            cmb_dir, iteration_num, cmb_set, lensed, aberrated
-        )
+        filename = _get_cmb_map_string(cmb_dir, num, cmb_set, lensed, aberrated)
 
-        self.iteration_num = iteration_num
+        self.iteration_num = num
         self.cmb_dir = cmb_dir
 
         super().__init__(
@@ -139,9 +135,7 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
             Units as defined by `pysm.convert_units`, e.g. uK_CMB or K_RJ
         """
         return self.get_emission(
-            nu=ch.band << u.GHz,
-            fwhm=so_utils.get_beam(ch.telescope, ch.band) * u.arcmin,
-            output_units=output_units,
+            freqs=ch.center_frequency, fwhm=ch.beam, output_units=output_units
         )
 
 

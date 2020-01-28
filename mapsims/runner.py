@@ -68,6 +68,7 @@ def from_config(config_file, override=None):
         config.update(override)
 
     pysm_components_string = None
+    pysm_output_reference_frame = None
 
     components = {}
     for component_type in ["pysm_components", "other_components"]:
@@ -84,6 +85,11 @@ def from_config(config_file, override=None):
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
+                if "num" in comp_config and "num" in config:
+                    # If a component has an argument "num" and we provide a configuration
+                    # "num" to MapSims, we override it.
+                    # This is used for example by `SOStandalonePrecomputedCMB`
+                    comp_config["num"] = config["num"]
                 components[component_type][comp_name] = comp_class(
                     nside=config["nside"], **comp_config
                 )

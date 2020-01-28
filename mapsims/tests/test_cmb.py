@@ -19,20 +19,21 @@ def test_load_sim():
     nside = 32
     # Make an IQU sim
     imap = cmb.SOPrecomputedCMB(
-        iteration_num=0,
+        num=0,
         nside=nside,
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
         input_units="uK_RJ",
         input_reference_frequency=148 * u.GHz,
+        input_units="uK_RJ",
     ).get_emission(148 * u.GHz)
     imap_test = hp.read_map(save_name, field=(0, 1, 2)) << u.uK_RJ
     assert_quantity_allclose(imap, imap_test)
     assert imap.shape[0] == 3
     # Make an I only sim
     imap = cmb.SOPrecomputedCMB(
-        iteration_num=0,
+        num=0,
         nside=nside,
         has_polarization=False,
         cmb_dir=cmb_dir,
@@ -40,6 +41,7 @@ def test_load_sim():
         aberrated=False,
         input_units="uK_RJ",
         input_reference_frequency=148 * u.GHz,
+        input_units="uK_RJ",
     ).get_emission(148 * u.GHz)
 
 
@@ -51,7 +53,7 @@ def test_standalone_cmb():
     ch = so_utils.SOChannel("SA", 145)
     # Make an IQU sim
     imap = cmb.SOStandalonePrecomputedCMB(
-        iteration_num=0,
+        num=0,
         nside=nside,
         cmb_dir=cmb_dir,
         lensed=False,
