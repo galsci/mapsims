@@ -39,7 +39,7 @@ num = 0
 
     [ pysm_components.cmb ]
     class  =  "mapsims.SOPrecomputedCMB"
-    iteration_num = 0
+    num = 0
     lensed = false
     # At NERSC use:
     # lensed = true
