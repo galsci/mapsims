@@ -24,7 +24,6 @@ def test_load_sim():
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
-        input_units="uK_RJ",
         input_reference_frequency=148 * u.GHz,
         input_units="uK_RJ",
     ).get_emission(148 * u.GHz)
@@ -41,7 +40,6 @@ def test_load_sim():
         aberrated=False,
         input_units="uK_RJ",
         input_reference_frequency=148 * u.GHz,
-        input_units="uK_RJ",
     ).get_emission(148 * u.GHz)
 
 
