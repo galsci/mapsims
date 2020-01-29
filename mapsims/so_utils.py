@@ -9,8 +9,6 @@ from pathlib import Path
 
 import sotodlib.hardware
 
-from . import SO_Noise_Calculator_Public_20180822 as so_noise
-
 bands = ("LF1", "LF2", "MFF1", "MFF2", "MFS1", "MFS2", "UHF1", "UHF2")
 frequencies = (27, 39, 93, 145, 93, 145, 225, 280)
 hw = sotodlib.hardware.config.get_example()

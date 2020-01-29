@@ -6,7 +6,6 @@ import warnings
 
 import pysm.units as u
 
-from . import SO_Noise_Calculator_Public_20180822 as so_noise
 from so_models_v3 import SO_Noise_Calculator_Public_v3_1_1 as so_models
 from . import so_utils
 from . import Channel
