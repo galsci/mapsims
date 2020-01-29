@@ -7,6 +7,7 @@ import warnings
 import pysm.units as u
 
 from . import SO_Noise_Calculator_Public_20180822 as so_noise
+from so_models_v3 import SO_Noise_Calculator_Public_v3_1_1 as so_models
 from . import so_utils
 from . import Channel
 from . import utils as mutils
@@ -32,10 +33,17 @@ class SONoiseSimulator:
         apply_kludge_correction=True,
         scanning_strategy="classical",
         no_power_below_ell=None,
+        survey_efficiency=0.2,
+        LA_years=5,
         LA_number_LF=1,
         LA_number_MF=4,
         LA_number_UHF=2,
-        SA_years_LF=1,
+        LA_noise_model="SOLatV3point1",
+        elevation=50,
+        SA_years=5,
+        SA_number_LF=1,
+        SA_number_MF=4,
+        SA_number_UHF=2,
         SA_one_over_f_mode="pessimistic",
         hitmap_version="v0.1",
     ):
@@ -82,14 +90,30 @@ class SONoiseSimulator:
         no_power_below_ell : int
             The input spectra have significant power at low ell, we can zero that power specifying an integer
             :math:`\ell` value here. The power spectra at :math:`\ell < \ell_0` are set to zero.
+        survey_efficiency : float
+            Fraction of calendar time that may be used to compute map depth.
+        LA_years : int
+            Total number of years for the Large Aperture telescopes survey
         LA_number_LF : int
             Number of Low Frequency tubes in LAT
         LA_number_MF : int
             Number of Medium Frequency tubes in LAT
         LA_number_UHF : int
             Number of Ultra High Frequency tubes in LAT
-        SA_years_LF : int
-            Number of years for the Low Frequency detectors to be deployed on the Small Aperture telescopes
+        LA_noise_model : str
+            Noise model among the ones available in `so_noise_model`, "SOLatV3point1" is default, "SOLatV3" is
+            the model released in 2018 which had a bug in the atmosphere contribution
+        elevation : float
+            Elevation of the scans in degrees, the V3.1.1 noise model includes elevation
+            dependence for the LAT. This should reproduced original V3 results at the
+            reference elevation of 50 degrees.
+        SA_years : int
+            Total number of years for the Small Aperture telescopes survey
+        SA_number_*: survey-averaged number of each SAT tube in operation.
+            For example, the default is 1 LF, 4 MF, and 2 UHF]
+            populating a total of 7 tubes.  Fractional tubes are acceptable
+            (imagine a tube were swapped out part way through the
+            survey).
         SA_one_over_f_mode : {"pessimistic", "optimistic", "none"}
             Correlated noise performance of the detectors on the Small Aperture telescopes
         hitmap_version : string
@@ -116,13 +140,22 @@ class SONoiseSimulator:
         self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
         self.apply_beam_correction = apply_beam_correction
         self.apply_kludge_correction = apply_kludge_correction
+        self.survey_efficiency = survey_efficiency
+        if self.apply_kludge_correction:
+            self.survey_efficiency *= 0.85
         self.seed = seed
         self.return_uK_CMB = return_uK_CMB
         self.no_power_below_ell = no_power_below_ell
+        self.LA_years = LA_years
         self.LA_number_LF = LA_number_LF
         self.LA_number_MF = LA_number_MF
         self.LA_number_UHF = LA_number_UHF
-        self.SA_years_LF = SA_years_LF
+        self.LA_noise_model = LA_noise_model
+        self.elevation = elevation
+        self.SA_years = SA_years
+        self.SA_number_LF = SA_number_LF
+        self.SA_number_MF = SA_number_MF
+        self.SA_number_UHF = SA_number_UHF
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
 
         self.remote_data = mutils.RemoteData(
@@ -195,31 +228,41 @@ class SONoiseSimulator:
         self.sky_fraction[telescope] = (hitmap != 0).sum() / hitmap.size
 
         if telescope == "SA":
-            ell, noise_ell_P, _ = so_noise.Simons_Observatory_V3_SA_noise(
-                self.sensitivity_mode,
-                self.SA_one_over_f_mode,
-                self.SA_years_LF,
+            survey = so_models.SOSatV3point1(
+                sensitivity_mode=self.sensitivity_mode,
+                survey_efficiency=self.survey_efficiency,
+                survey_years=self.SA_years,
+                N_tubes=[self.SA_number_LF, self.SA_number_MF, self.SA_number_UHF],
+                el=None,  # SAT does not support noise elevation function
+                one_over_f_mode=self.SA_one_over_f_mode,
+            )
+            ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 self.sky_fraction[telescope],
                 self.ell_max,
                 delta_ell=1,
-                apply_beam_correction=self.apply_beam_correction,
-                apply_kludge_correction=self.apply_kludge_correction,
+                full_covar=False,
+                deconv_beam=self.apply_beam_correction,
             )
             # For SA, so_noise simulates only Polarization,
             # Assume that T is half
-            noise_ell_T = noise_ell_P / 2
+            if noise_ell_T is None:
+                noise_ell_T = noise_ell_P / 2
         elif telescope == "LA":
-            ell, noise_ell_T, noise_ell_P, _ = so_noise.Simons_Observatory_V3_LA_noise(
-                self.sensitivity_mode,
+            survey = getattr(so_models, self.LA_noise_model)(
+                sensitivity_mode=self.sensitivity_mode,
+                survey_efficiency=self.survey_efficiency,
+                survey_years=self.LA_years,
+                N_tubes=[self.LA_number_LF, self.LA_number_MF, self.LA_number_UHF],
+                el=self.elevation,
+            )
+            ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 self.sky_fraction[telescope],
                 self.ell_max,
                 delta_ell=1,
-                N_LF=self.LA_number_LF,
-                N_MF=self.LA_number_MF,
-                N_UHF=self.LA_number_UHF,
-                apply_beam_correction=self.apply_beam_correction,
-                apply_kludge_correction=self.apply_kludge_correction,
+                full_covar=False,
+                deconv_beam=self.apply_beam_correction,
             )
+
         self.ell = np.arange(ell[-1] + 1)
 
         available_frequencies = np.unique(so_utils.frequencies)
@@ -306,7 +349,7 @@ class SONoiseSimulator:
                 output_map[i] = hp.ma(
                     np.array(
                         hp.synfast(
-                            ps, nside=self.nside, pol=True, new=True, verbose=False,
+                            ps, nside=self.nside, pol=True, new=True, verbose=False
                         )
                     )
                 )
