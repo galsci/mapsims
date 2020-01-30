@@ -9,6 +9,19 @@ from pathlib import Path
 
 import sotodlib.hardware
 
+tubes = {
+    "LT0": ["UHF1", "UHF2"],
+    "LT1": ["UHF1", "UHF2"],
+    "LT2": ["MFF1", "MFF2"],
+    "LT3": ["MFF1", "MFF2"],
+    "LT4": ["MFS1", "MFS2"],
+    "LT5": ["MFS1", "MFS2"],
+    "LT6": ["LF1", "LF2"],
+    "ST0": ["UHF1", "UHF2"],
+    "ST1": ["MFF1", "MFF2"],
+    "ST2": ["MFS1", "MFS2"],
+    "ST3": ["LF1", "LF2"],
+}
 bands = ("LF1", "LF2", "MFF1", "MFF2", "MFS1", "MFS2", "UHF1", "UHF2")
 frequencies = (27, 39, 93, 145, 93, 145, 225, 280)
 hw = sotodlib.hardware.config.get_example()
