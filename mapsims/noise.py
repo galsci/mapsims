@@ -172,7 +172,9 @@ class SONoiseSimulator:
         self.noise_ell_P = {"SA": {}, "LA": {}}
         self.ch = []
         for telescope in telescopes:
-            self.load_noise_spectra(telescope)
+            self.noise_ell_T[telescope], self.noise_ell_P[
+                telescope
+            ] = self.load_noise_spectra(telescope)
 
     def load_noise_spectra(self, telescope):
         """Update a telescope configuration by loading the corresponding
@@ -228,31 +230,26 @@ class SONoiseSimulator:
             )
 
         self.ell = np.arange(ell[-1] + 1)
+        output_noise_ell_T = {}
+        output_noise_ell_P = {}
 
         available_frequencies = np.unique(so_utils.frequencies)
         for frequency in so_utils.frequencies:
             band_index = available_frequencies.searchsorted(frequency)
 
             # so_noise returns power spectrum starting with ell=2, start instead at 0
-            # repeat the value at ell=2 for lower multipoles
-            self.noise_ell_T[telescope][frequency] = np.zeros(
-                len(self.ell), dtype=np.double
+            # set zero at ell<2
+            output_noise_ell_T[frequency] = np.insert(
+                noise_ell_T[band_index], 0, [0, 0]
             )
-            self.noise_ell_P[telescope][frequency] = self.noise_ell_T[telescope][
-                frequency
-            ].copy()
-            self.noise_ell_T[telescope][frequency][2:] = noise_ell_T[band_index]
-            self.noise_ell_T[telescope][frequency][:2] = 0
-            self.noise_ell_P[telescope][frequency][2:] = noise_ell_P[band_index]
-            self.noise_ell_P[telescope][frequency][:2] = 0
+            output_noise_ell_P[frequency] = np.insert(
+                noise_ell_P[band_index], 0, [0, 0]
+            )
 
             if self.no_power_below_ell is not None:
-                self.noise_ell_T[telescope][frequency][
-                    self.ell < self.no_power_below_ell
-                ] = 0
-                self.noise_ell_P[telescope][frequency][
-                    self.ell < self.no_power_below_ell
-                ] = 0
+                output_noise_ell_T[frequency][self.ell < self.no_power_below_ell] = 0
+                output_noise_ell_P[frequency][self.ell < self.no_power_below_ell] = 0
+        return output_noise_ell_T, output_noise_ell_P
 
     def load_hitmap(self, ch=None, tube=None):
 
