@@ -254,27 +254,27 @@ class SONoiseSimulator:
                     self.ell < self.no_power_below_ell
                 ] = 0
 
-    def load_hitmap(self, ch=None, telescope=None):
-
-        if telescope is None:
-            telescope = ch.telescope
+    def load_hitmap(self, ch=None, tube=None):
 
         if not (self.healpix):
             npixheight = min(
-                {"LA": [0.5, 2.0], "SA": [4.0, 12.0]}[telescope],
+                {"LA": [0.5, 2.0], "SA": [4.0, 12.0]}[ch.telescope],
                 key=lambda x: abs(x - self._pixheight),
             )
             car_suffix = f"_CAR_{npixheight:.2f}_arcmin"
         else:
             car_suffix = ""
 
-        if os.path.exists(self.scanning_strategy.format(telescope=telescope)):
+        if os.path.exists(self.scanning_strategy.format(telescope=ch.telescope)):
             hitmap_filename = scanning_strategy
         else:
             if self.hitmap_version == "v0.1":
-                rname = f"total_hits_{telescope}_{self.scanning_strategy}{car_suffix}.fits.gz"
+                rname = f"total_hits_{ch.telescope}_{self.scanning_strategy}{car_suffix}.fits.gz"
             elif self.hitmap_version == "v0.2":
-                rname = f"ST0_UHF1_01_of_20.nominal_telescope_all_time_all_hmap.fits.gz"
+                assert (
+                    tube is not None
+                ), "version v0.2 requires to specify a tube, see mapsims.so_utils.tubes for available tubes"
+                rname = f"{tube}_{ch.band}_01_of_20.nominal_telescope_all_time_all_hmap.fits.gz"
             else:
                 warning.warn("Unknown hitmap version")
             hitmap_filename = self.remote_data.get(rname)
@@ -355,7 +355,7 @@ class SONoiseSimulator:
                     self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
                 )
 
-        hitmap, sky_fraction = self.load_hitmap(ch)
+        hitmap, sky_fraction = self.load_hitmap(ch, tube)
 
         zeros = np.zeros_like(
             self.noise_ell_T[ch.telescope][int(ch.center_frequency.value)]
