@@ -156,7 +156,9 @@ class SONoiseSimulator:
         self.SA_number_MF = SA_number_MF
         self.SA_number_UHF = SA_number_UHF
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
+        self.scanning_strategy = scanning_strategy
 
+        self.hitmap_version = hitmap_version
         self.remote_data = mutils.RemoteData(
             healpix=self.healpix, version=hitmap_version
         )
@@ -170,9 +172,9 @@ class SONoiseSimulator:
         self.noise_ell_P = {"SA": {}, "LA": {}}
         self.ch = []
         for telescope in telescopes:
-            self.update_telescope(telescope, scanning_strategy)
+            self.load_noise_spectra(telescope)
 
-    def update_telescope(self, telescope, scanning_strategy):
+    def load_noise_spectra(self, telescope):
         """Update a telescope configuration by loading the corresponding
         hitmaps. Each loaded `telescope` is kept in memory, but
         new choice of `scanning_strategy` erases the previous one.
@@ -189,43 +191,6 @@ class SONoiseSimulator:
 
         """
 
-        if not (self.healpix):
-            npixheight = min(
-                {"LA": [0.5, 2.0], "SA": [4.0, 12.0]}[telescope],
-                key=lambda x: abs(x - self._pixheight),
-            )
-            car_suffix = f"_CAR_{npixheight:.2f}_arcmin"
-        else:
-            car_suffix = ""
-
-        if os.path.exists(scanning_strategy.format(telescope=telescope)):
-            hitmap_filename = scanning_strategy
-        else:
-            rname = f"total_hits_{telescope}_{scanning_strategy}{car_suffix}.fits.gz"
-            hitmap_filename = self.remote_data.get(rname)
-
-        if self.healpix:
-            hitmap = hp.ud_grade(
-                hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
-            )
-        else:
-            from pixell import enmap, wcsutils
-
-            hitmap = enmap.read_map(hitmap_filename)
-            if wcsutils.is_compatible(hitmap.wcs, self.wcs):
-                hitmap = enmap.extract(hitmap, self.shape, self.wcs)
-            else:
-                warnings.warn(
-                    "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
-                )
-                hitmap = enmap.project(hitmap, self.shape, self.wcs)
-
-        hitmap /= hitmap.max()
-        # Discard pixels with very few hits that cause border effects
-        # hitmap[hitmap < 1e-3] = 0
-        self.hitmap[telescope] = hitmap
-        self.sky_fraction[telescope] = (hitmap != 0).sum() / hitmap.size
-
         if telescope == "SA":
             survey = so_models.SOSatV3point1(
                 sensitivity_mode=self.sensitivity_mode,
@@ -236,7 +201,7 @@ class SONoiseSimulator:
                 one_over_f_mode=self.SA_one_over_f_mode,
             )
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
-                self.sky_fraction[telescope],
+                1.0,  # We load hitmaps later, so we compute and apply sky fraction later
                 self.ell_max,
                 delta_ell=1,
                 full_covar=False,
@@ -255,7 +220,7 @@ class SONoiseSimulator:
                 el=self.elevation,
             )
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
-                self.sky_fraction[telescope],
+                1.0,  # We load hitmaps later, so we compute and apply sky fraction later
                 self.ell_max,
                 delta_ell=1,
                 full_covar=False,
@@ -289,8 +254,61 @@ class SONoiseSimulator:
                     self.ell < self.no_power_below_ell
                 ] = 0
 
+    def load_hitmap(self, ch=None, telescope=None):
+
+        if telescope is None:
+            telescope = ch.telescope
+
+        if not (self.healpix):
+            npixheight = min(
+                {"LA": [0.5, 2.0], "SA": [4.0, 12.0]}[telescope],
+                key=lambda x: abs(x - self._pixheight),
+            )
+            car_suffix = f"_CAR_{npixheight:.2f}_arcmin"
+        else:
+            car_suffix = ""
+
+        if os.path.exists(self.scanning_strategy.format(telescope=telescope)):
+            hitmap_filename = scanning_strategy
+        else:
+            if self.hitmap_version == "v0.1":
+                rname = f"total_hits_{telescope}_{self.scanning_strategy}{car_suffix}.fits.gz"
+            elif self.hitmap_version == "v0.2":
+                rname = f"ST0_UHF1_01_of_20.nominal_telescope_all_time_all_hmap.fits.gz"
+            else:
+                warning.warn("Unknown hitmap version")
+            hitmap_filename = self.remote_data.get(rname)
+
+        if self.healpix:
+            hitmap = hp.ud_grade(
+                hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
+            )
+        else:
+            from pixell import enmap, wcsutils
+
+            hitmap = enmap.read_map(hitmap_filename)
+            if wcsutils.is_compatible(hitmap.wcs, self.wcs):
+                hitmap = enmap.extract(hitmap, self.shape, self.wcs)
+            else:
+                warnings.warn(
+                    "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
+                )
+                hitmap = enmap.project(hitmap, self.shape, self.wcs)
+
+        hitmap /= hitmap.max()
+        # Discard pixels with very few hits that cause border effects
+        # hitmap[hitmap < 1e-3] = 0
+        sky_fraction = (hitmap != 0).sum() / hitmap.size
+        return hitmap, sky_fraction
+
     def simulate(
-        self, ch, output_units="uK_CMB", seed=None, nsplits=1, mask_value=None
+        self,
+        ch=None,
+        tube=None,
+        output_units="uK_CMB",
+        seed=None,
+        nsplits=1,
+        mask_value=None,
     ):
         """Create a random realization of the noise power spectrum
 
@@ -299,6 +317,15 @@ class SONoiseSimulator:
 
         ch : mapsims.Channel
             Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
+            Optional, we can specify a tube and simulate both channels
+        tube : str
+            Specify a specific tube, required for hitmaps v0.2, for available
+            tubes and their channels, see so_utils.tubes.
+        output_units : str
+            Output unit supported by PySM.units, e.g. uK_CMB or K_RJ
+        seed : integer, optional
+            Specify a seed, if not specified, we use self.seed and then offset it
+            differently for each channel.
         nsplits : integer, optional
             Number of splits to generate. The splits will have independent noise
             realizations, with noise power scaled by a factor of nsplits, i.e. atmospheric 
@@ -327,19 +354,25 @@ class SONoiseSimulator:
                 np.random.seed(
                     self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
                 )
-        zeros = np.zeros_like(self.noise_ell_T[ch.telescope][ch.center_frequency.value])
+
+        hitmap, sky_fraction = self.load_hitmap(ch)
+
+        zeros = np.zeros_like(
+            self.noise_ell_T[ch.telescope][int(ch.center_frequency.value)]
+        )
         ps = (
             np.asarray(
                 [
-                    self.noise_ell_T[ch.telescope][ch.center_frequency.value],
-                    self.noise_ell_P[ch.telescope][ch.center_frequency.value],
-                    self.noise_ell_P[ch.telescope][ch.center_frequency.value],
+                    self.noise_ell_T[ch.telescope][int(ch.center_frequency.value)],
+                    self.noise_ell_P[ch.telescope][int(ch.center_frequency.value)],
+                    self.noise_ell_P[ch.telescope][int(ch.center_frequency.value)],
                     zeros,
                     zeros,
                     zeros,
                 ]
             )
             * nsplits
+            * sky_fraction
         )
         if self.healpix:
             npix = hp.nside2npix(self.nside)
@@ -360,13 +393,10 @@ class SONoiseSimulator:
             for i in range(nsplits):
                 output_map[i] = curvedsky.rand_map((3,) + self.shape, self.wcs, ps)
 
-        hmap = self.hitmap[ch.telescope]
-        good = hmap != 0
+        good = hitmap != 0
         # Normalize on the Effective sky fraction, see discussion in:
         # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-        output_map[:, :, good] /= np.sqrt(
-            hmap[good] / hmap.mean() * self.sky_fraction[ch.telescope]
-        )
+        output_map[:, :, good] /= np.sqrt(hitmap[good] / hitmap.mean() * sky_fraction)
         if mask_value is None:
             mask_value = (
                 default_mask_value["healpix"]
