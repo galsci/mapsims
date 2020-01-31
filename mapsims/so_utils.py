@@ -24,6 +24,7 @@ tubes = {
 }
 bands = ("LF1", "LF2", "MFF1", "MFF2", "MFS1", "MFS2", "UHF1", "UHF2")
 frequencies = (27, 39, 93, 145, 93, 145, 225, 280)
+frequencies_with_correlations = (27, 93, 225)
 hw = sotodlib.hardware.config.get_example()
 
 
