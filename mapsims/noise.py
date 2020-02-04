@@ -218,13 +218,16 @@ class SONoiseSimulator:
                 warnings.warn(
                     "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
                 )
-                hitmap = enmap.project(hitmap, self.shape, self.wcs)
+                hitmap = enmap.project(hitmap, self.shape, self.wcs,order=0)
 
         hitmap /= hitmap.max()
         # Discard pixels with very few hits that cause border effects
         # hitmap[hitmap < 1e-3] = 0
         self.hitmap[telescope] = hitmap
-        self.sky_fraction[telescope] = (hitmap != 0).sum() / hitmap.size
+        if self.healpix:
+            self.sky_fraction[telescope] = (hitmap != 0).sum() / hitmap.size
+        else:
+            self.sky_fraction[telescope] = enmap.pixsizemap(self.shape,self.wcs)[hitmap!=0].sum() / 4. / np.pi
 
         if telescope == "SA":
             survey = so_models.SOSatV3point1(
