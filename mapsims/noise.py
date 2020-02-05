@@ -399,17 +399,6 @@ class SONoiseSimulator:
                 if self.healpix
                 else default_mask_value["car"]
             )
-        if seed is not None:
-            np.random.seed(seed)
-        else:
-            if self.seed is not None:
-                try:
-                    frequency_offset = int(ch.band)
-                except ValueError:
-                    frequency_offset = so_utils.bands.index(ch.band) * 100
-                np.random.seed(
-                    self.seed + frequency_offset + telescope_seed_offset[ch.telescope]
-                )
 
         if self.full_covariance:
             chs = [
@@ -417,6 +406,20 @@ class SONoiseSimulator:
             ]
         else:
             chs = [ch]
+
+        if seed is not None:
+            np.random.seed(seed)
+        else:
+            if self.seed is not None:
+                try:
+                    frequency_offset = int(chs[0].band)
+                except ValueError:
+                    frequency_offset = so_utils.bands.index(chs[0].band) * 100
+                np.random.seed(
+                    self.seed
+                    + frequency_offset
+                    + telescope_seed_offset[chs[0].telescope]
+                )
 
         if self.scanning_strategy is False:
             ones = np.ones(hp.nside2npix(self.nside))
