@@ -88,8 +88,9 @@ class SONoiseSimulator:
             Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
             path to a custom hitmap; it will be normalized, so absolute hitcount does not matter.
             If None, or "homogenous" or "isotropic", then no hitmap scaling is applied and 
-            a homogenous noise field is generated. In this case, the sky fraction fsky must be
-            specified.
+            a homogenous noise field is generated on the full sky. In this case, the sky fraction fsky must be
+            specified, which will be used to populate the full sky with homogenous noise with noise power
+            equal to what SO would obtain if it observed only a partial sky of fraction fsky.
         no_power_below_ell : int
             The input spectra have significant power at low ell, we can zero that power specifying an integer
             :math:`\ell` value here. The power spectra at :math:`\ell < \ell_0` are set to zero.
@@ -123,7 +124,7 @@ class SONoiseSimulator:
             Version string for hitmaps stored remotely.
         fsky : float,optional
             The sky fraction to use in the noise model if the scanning strategy is not provided,
-            or an isotropic/homogeonous scan is requested.
+            or an isotropic/homogeonous scan is requested. 
         """
 
         if nside is None:
@@ -195,7 +196,8 @@ class SONoiseSimulator:
             path to a custom hitmap; it will be normalized, so absolute hitcount does not matter.
             If None, or "homogenous" or "isotropic", then no hitmap scaling is applied and 
             a homogenous noise field is generated. In this case, the sky fraction fsky must be
-            specified.
+            specified, which will be used to populate the full sky with homogenous noise with noise power
+            equal to what SO would obtain if it observed only a partial sky of fraction fsky.
         fsky : float,optional
             The sky fraction to use in the noise model if the scanning strategy is not provided,
             or an isotropic/homogeonous scan is requested.
@@ -205,12 +207,8 @@ class SONoiseSimulator:
         if (scanning_strategy is None) or scanning_strategy in ['isotropic','homogenous']:
             assert telescope in fsky.keys(), "If no scanning strategy is provided, a dictionary of sky fractions must be provided."
             assert fsky is not None
-            if self.healpix:
-                hitmap = np.ones(hp.nside2npix(self.nside))  
-            else:
-                from pixell import enmap
-                hitmap = enmap.ones(self.shape,self.wcs)
             self.sky_fraction[telescope] = fsky[telescope]
+            hitmap = None
         else:
             assert fsky is None
             if not (self.healpix):
@@ -390,19 +388,20 @@ class SONoiseSimulator:
                 output_map[i] = curvedsky.rand_map((3,) + self.shape, self.wcs, ps)
 
         hmap = self.hitmap[ch.telescope]
-        good = hmap != 0
-        # Normalize on the Effective sky fraction, see discussion in:
-        # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-        output_map[:, :, good] /= np.sqrt(
-            hmap[good] / hmap.mean() * self.sky_fraction[ch.telescope]
-        )
-        if mask_value is None:
-            mask_value = (
-                default_mask_value["healpix"]
-                if self.healpix
-                else default_mask_value["car"]
+        if hmap is not None:
+            good = hmap != 0
+            # Normalize on the Effective sky fraction, see discussion in:
+            # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
+            output_map[:, :, good] /= np.sqrt(
+                hmap[good] / hmap.mean() * self.sky_fraction[ch.telescope]
             )
-        output_map[:, :, np.logical_not(good)] = mask_value
+            if mask_value is None:
+                mask_value = (
+                    default_mask_value["healpix"]
+                    if self.healpix
+                    else default_mask_value["car"]
+                )
+            output_map[:, :, np.logical_not(good)] = mask_value
         unit_conv = (1 * u.uK_CMB).to_value(
             u.Unit(output_units), equivalencies=u.cmb_equivalencies(ch.center_frequency)
         )
