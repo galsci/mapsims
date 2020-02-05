@@ -45,6 +45,7 @@ class SONoiseSimulator:
         SA_number_UHF=2,
         SA_one_over_f_mode="pessimistic",
         hitmap_version="v0.1",
+        fsky=None
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -85,7 +86,10 @@ class SONoiseSimulator:
             If True, reduce the hitcount by a factor of 0.85 to account for not-uniformity in the scanning
         scanning_strategy : str
             Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
-            path to a custom hitmap; it will be normalized, so absolute hitcount does not matter
+            path to a custom hitmap; it will be normalized, so absolute hitcount does not matter.
+            If None, or "homogenous" or "isotropic", then no hitmap scaling is applied and 
+            a homogenous noise field is generated. In this case, the sky fraction fsky must be
+            specified.
         no_power_below_ell : int
             The input spectra have significant power at low ell, we can zero that power specifying an integer
             :math:`\ell` value here. The power spectra at :math:`\ell < \ell_0` are set to zero.
@@ -117,6 +121,9 @@ class SONoiseSimulator:
             Correlated noise performance of the detectors on the Small Aperture telescopes
         hitmap_version : string
             Version string for hitmaps stored remotely.
+        fsky : float,optional
+            The sky fraction to use in the noise model if the scanning strategy is not provided,
+            or an isotropic/homogeonous scan is requested.
         """
 
         if nside is None:
@@ -170,9 +177,9 @@ class SONoiseSimulator:
         self.noise_ell_P = {"SA": {}, "LA": {}}
         self.ch = []
         for telescope in telescopes:
-            self.update_telescope(telescope, scanning_strategy)
+            self.update_telescope(telescope, scanning_strategy, fsky)
 
-    def update_telescope(self, telescope, scanning_strategy):
+    def update_telescope(self, telescope, scanning_strategy=None, fsky=None):
         """Update a telescope configuration by loading the corresponding
         hitmaps. Each loaded `telescope` is kept in memory, but
         new choice of `scanning_strategy` erases the previous one.
@@ -185,49 +192,68 @@ class SONoiseSimulator:
             and small aperture, respectively.
         scanning_strategy : str
             Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
-            path to a custom hitmap; it will be normalized, so absolute hitcount does not matter
+            path to a custom hitmap; it will be normalized, so absolute hitcount does not matter.
+            If None, or "homogenous" or "isotropic", then no hitmap scaling is applied and 
+            a homogenous noise field is generated. In this case, the sky fraction fsky must be
+            specified.
+        fsky : float,optional
+            The sky fraction to use in the noise model if the scanning strategy is not provided,
+            or an isotropic/homogeonous scan is requested.
 
         """
 
-        if not (self.healpix):
-            npixheight = min(
-                {"LA": [0.5, 2.0], "SA": [4.0, 12.0]}[telescope],
-                key=lambda x: abs(x - self._pixheight),
-            )
-            car_suffix = f"_CAR_{npixheight:.2f}_arcmin"
-        else:
-            car_suffix = ""
-
-        if os.path.exists(scanning_strategy.format(telescope=telescope)):
-            hitmap_filename = scanning_strategy
-        else:
-            rname = f"total_hits_{telescope}_{scanning_strategy}{car_suffix}.fits.gz"
-            hitmap_filename = self.remote_data.get(rname)
-
-        if self.healpix:
-            hitmap = hp.ud_grade(
-                hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
-            )
-        else:
-            from pixell import enmap, wcsutils
-
-            hitmap = enmap.read_map(hitmap_filename)
-            if wcsutils.is_compatible(hitmap.wcs, self.wcs):
-                hitmap = enmap.extract(hitmap, self.shape, self.wcs)
+        if (scanning_strategy is None) or scanning_strategy in ['isotropic','homogenous']:
+            assert telescope in fsky.keys(), "If no scanning strategy is provided, a dictionary of sky fractions must be provided."
+            assert fsky is not None
+            if self.healpix:
+                hitmap = np.ones(hp.nside2npix(self.nside))  
             else:
-                warnings.warn(
-                    "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
-                )
-                hitmap = enmap.project(hitmap, self.shape, self.wcs,order=0)
-
-        hitmap /= hitmap.max()
-        # Discard pixels with very few hits that cause border effects
-        # hitmap[hitmap < 1e-3] = 0
-        self.hitmap[telescope] = hitmap
-        if self.healpix:
-            self.sky_fraction[telescope] = (hitmap != 0).sum() / hitmap.size
+                from pixell import enmap
+                hitmap = enmap.ones(self.shape,self.wcs)
+            self.sky_fraction[telescope] = fsky[telescope]
         else:
-            self.sky_fraction[telescope] = enmap.pixsizemap(self.shape,self.wcs)[hitmap!=0].sum() / 4. / np.pi
+            assert fsky is None
+            if not (self.healpix):
+                npixheight = min(
+                    {"LA": [0.5, 2.0], "SA": [4.0, 12.0]}[telescope],
+                    key=lambda x: abs(x - self._pixheight),
+                )
+                car_suffix = f"_CAR_{npixheight:.2f}_arcmin"
+            else:
+                car_suffix = ""
+
+            if os.path.exists(scanning_strategy.format(telescope=telescope)):
+                hitmap_filename = scanning_strategy
+            else:
+                rname = f"total_hits_{telescope}_{scanning_strategy}{car_suffix}.fits.gz"
+                hitmap_filename = self.remote_data.get(rname)
+
+            if self.healpix:
+                hitmap = hp.ud_grade(
+                    hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
+                )
+            else:
+                from pixell import enmap, wcsutils
+
+                hitmap = enmap.read_map(hitmap_filename)
+                if wcsutils.is_compatible(hitmap.wcs, self.wcs):
+                    hitmap = enmap.extract(hitmap, self.shape, self.wcs)
+                else:
+                    warnings.warn(
+                        "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
+                    )
+                    hitmap = enmap.project(hitmap, self.shape, self.wcs,order=0)
+
+            hitmap /= hitmap.max()
+            
+            # Discard pixels with very few hits that cause border effects
+            # hitmap[hitmap < 1e-3] = 0
+            if self.healpix:
+                self.sky_fraction[telescope] = (hitmap != 0).sum() / hitmap.size
+            else:
+                self.sky_fraction[telescope] = enmap.pixsizemap(self.shape,self.wcs)[hitmap!=0].sum() / 4. / np.pi
+
+        self.hitmap[telescope] = hitmap
 
         if telescope == "SA":
             survey = so_models.SOSatV3point1(
