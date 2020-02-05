@@ -45,7 +45,7 @@ class SONoiseSimulator:
         SA_number_UHF=2,
         SA_one_over_f_mode="pessimistic",
         hitmap_version="v0.1",
-        fsky=None
+        fsky=None,
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -204,8 +204,13 @@ class SONoiseSimulator:
 
         """
 
-        if (scanning_strategy is None) or scanning_strategy in ['isotropic','homogenous']:
-            assert telescope in fsky.keys(), "If no scanning strategy is provided, a dictionary of sky fractions must be provided."
+        if (scanning_strategy is None) or scanning_strategy in [
+            "isotropic",
+            "homogenous",
+        ]:
+            assert (
+                telescope in fsky.keys()
+            ), "If no scanning strategy is provided, a dictionary of sky fractions must be provided."
             assert fsky is not None
             self.sky_fraction[telescope] = fsky[telescope]
             hitmap = None
@@ -223,7 +228,9 @@ class SONoiseSimulator:
             if os.path.exists(scanning_strategy.format(telescope=telescope)):
                 hitmap_filename = scanning_strategy
             else:
-                rname = f"total_hits_{telescope}_{scanning_strategy}{car_suffix}.fits.gz"
+                rname = (
+                    f"total_hits_{telescope}_{scanning_strategy}{car_suffix}.fits.gz"
+                )
                 hitmap_filename = self.remote_data.get(rname)
 
             if self.healpix:
@@ -240,16 +247,20 @@ class SONoiseSimulator:
                     warnings.warn(
                         "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
                     )
-                    hitmap = enmap.project(hitmap, self.shape, self.wcs,order=0)
+                    hitmap = enmap.project(hitmap, self.shape, self.wcs, order=0)
 
             hitmap /= hitmap.max()
-            
+
             # Discard pixels with very few hits that cause border effects
             # hitmap[hitmap < 1e-3] = 0
             if self.healpix:
                 self.sky_fraction[telescope] = (hitmap != 0).sum() / hitmap.size
             else:
-                self.sky_fraction[telescope] = enmap.pixsizemap(self.shape,self.wcs)[hitmap!=0].sum() / 4. / np.pi
+                self.sky_fraction[telescope] = (
+                    enmap.pixsizemap(self.shape, self.wcs)[hitmap != 0].sum()
+                    / 4.0
+                    / np.pi
+                )
 
         self.hitmap[telescope] = hitmap
 
