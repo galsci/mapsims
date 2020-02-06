@@ -25,7 +25,9 @@ from . import Channel
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
-default_output_filename_template = "simonsobs_{telescope}_{band}_nside{nside}.fits"
+default_output_filename_template = (
+    "simonsobs_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
+)
 
 
 def function_accepts_argument(func, arg):
@@ -131,6 +133,7 @@ def from_config(config_file, override=None):
         channels=config["channels"],
         nside=int(config["nside"]),
         num=config["num"],
+        nsplits=config["nsplits"],
         unit=config["unit"],
         tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
@@ -152,6 +155,7 @@ class MapSim:
         channels,
         nside,
         num=0,
+        nsplits=1,
         unit="uK_CMB",
         output_folder="output",
         tag="mapsim",
@@ -191,6 +195,8 @@ class MapSim:
             Relative or absolute path to output folder, string template with {nside} and {tag} fields
         num : int
             Realization number, generally used as seed, default is 0, automatically padded to 4 digits
+        nsplits : int
+            Number of noise splits, see the documentation of :py:class:`SONoiseSimulator`
         tag : str
             String to describe the current simulation, for example its content, which is used into
             string interpolation for `output_folder` and `output_filename_template`
@@ -226,6 +232,7 @@ class MapSim:
         self.nside = nside
         self.unit = unit
         self.num = num
+        self.nsplits = nsplits
         self.pysm_components_string = pysm_components_string
         self.pysm_custom_components = pysm_custom_components
         self.run_pysm = not (
@@ -317,27 +324,38 @@ class MapSim:
 
             if self.other_components is not None:
                 for comp in self.other_components.values():
-                    output_map += hp.ma(
-                        comp.simulate(ch[0], tube=self.tube, output_units=self.unit)
-                    )
+                    kwargs = dict(tube=self.tube, output_units=self.unit)
+                    if function_accepts_argument(comp.simulate, "nsplits"):
+                        kwargs["nsplits"] = self.nsplits
+                        output_map = output_map.reshape((len(ch), 1, 3, -1))
+                    component_map = hp.ma(comp.simulate(ch[0], **kwargs))
+                    output_map = output_map + component_map
 
             for each, channel_map in zip(ch, output_map):
                 if write_outputs:
-                    filename = self.output_filename_template.format(
-                        telescope=each.telescope if self.tube is None else self.tube,
-                        band=each.band,
-                        nside=self.nside,
-                        tag=self.tag,
-                        num=self.num,
-                    )
-                    warnings.warn("Writing output map " + filename)
-                    hp.write_map(
-                        os.path.join(self.output_folder, filename),
-                        channel_map,
-                        coord=self.pysm_output_reference_frame,
-                        column_units=self.unit,
-                        overwrite=True,
-                    )
+                    if self.nsplits == 1:
+                        channel_map = channel_map.reshape((1,) + channel_map.shape)
+
+                    for split, each_split_channel_map in enumerate(channel_map):
+                        filename = self.output_filename_template.format(
+                            telescope=each.telescope
+                            if self.tube is None
+                            else self.tube,
+                            band=each.band,
+                            nside=self.nside,
+                            tag=self.tag,
+                            num=self.num,
+                            nsplits=self.nsplits,
+                            split=split,
+                        )
+                        warnings.warn("Writing output map " + filename)
+                        hp.write_map(
+                            os.path.join(self.output_folder, filename),
+                            each_split_channel_map,
+                            coord=self.pysm_output_reference_frame,
+                            column_units=self.unit,
+                            overwrite=True,
+                        )
                 else:
                     output[each.tag] = channel_map.filled()
         if not write_outputs:
