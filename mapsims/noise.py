@@ -426,6 +426,9 @@ class SONoiseSimulator:
                     self.seed
                     + frequency_offset
                     + telescope_seed_offset[chs[0].telescope]
+                    + (
+                        nsplits - 1
+                    )  # avoid any risk of same seed between full and the first split
                 )
 
         if self.scanning_strategy is False:
