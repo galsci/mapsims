@@ -27,6 +27,28 @@ PYSM_COMPONENTS = {
 default_output_filename_template = "simonsobs_{telescope}_{band}_nside{nside}.fits"
 
 
+def function_accepts_argument(func, arg):
+    """Check if a function or class accepts argument arg
+
+    Parameters
+    ----------
+
+    func : Python function or Class
+        Input Python function or Class to check
+    arg : str
+        keyword or positional argument to check
+
+    Returns
+    -------
+
+    accepts_argument : bool
+        True if function/class constructor accepts argument
+    """
+    if not hasattr(func, "__code__"):
+        func = func.__init__
+    return arg in func.__code__.co_varnames
+
+
 def command_line_script(args=None):
 
     import argparse
@@ -85,7 +107,7 @@ def from_config(config_file, override=None):
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
-                if "num" in comp_config and "num" in config:
+                if function_accepts_argument(comp_class, "num") and "num" in config:
                     # If a component has an argument "num" and we provide a configuration
                     # "num" to MapSims, we override it.
                     # This is used for example by `SOStandalonePrecomputedCMB`
