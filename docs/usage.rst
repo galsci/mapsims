@@ -9,17 +9,33 @@ First you need to create a configuration file, see ``data/example_config_v0.2.to
 or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/data/example_config_v0.2.toml>`_.
 
 It first defines some global configuration options like output :math:`N_{side}`, the desired output unit and the
-channels, then has 2 subsections. They both define subsections with a ``class`` attribute that
+channels, and a tag to define the output filenames, then has 2 subsections. They both define subsections with a ``class`` attribute that
 specifies which object should be instantiated; all other arguments are passed into the class
 constructor.
 
-* The ``pysm_components`` subsection allows to choose any pre-existing PySM model and later add any custom class, for example one from ``so_pysm_models``.
+* The ``pysm_components`` subsection allows to choose any pre-existing PySM model (using ``pysm_components_string`` and ``pysm_output_reference_frame``) and later add any custom class, for example one from ``so_pysm_models``.
 * The ``other_components`` section instead includes models that generate a map to be summed after PySM has been executed, for example the noise simulation.
+
+All the arguments to the different components are defined by each class, the most general components are defined in ``so_pysm_models``, see `the documentation<https://so-pysm-models.readthedocs.io/en/latest/models.html>`_, for example :py:class:`so_pysm_models.WebSkyCIB`, the models specific to Simons Observatory are instead defined directly in ``mapsims``, for example :py:class:`SONoiseSimulator`.
+Another option is to look through the available simulations in the `Map-based simulations repository<https://github.com/simonsobs/map_based_simulations`_ and inspect the ``toml`` configuration files that were used for previous simulations.
 
 ``channels`` supports both simulating the Simons Observatory channels at single frequencies or top-hat bandpasses.
 If you specify channels named by the telescope and the frequency in GHz ``"SA_27"``, the simulations are performed at a single frequency. Instead if you specify one of the bandpasses, for example ``"LA_MFF1"``, the simulations are executed with top-hat bandpasses (10 equally spaced points within the band integrated with the Trapezoidal rule).
 If you specify shortcuts for groups of channels, i.e. ``"all"``, ``"LA"`` or ``"SA"``, top-hat bandpasses are selected.
 We also support simulating a dichroic tube which includes also the full covariance due to the atmosphere, in this case you can set channels to a tube tag, e.g. ``"ST3"`` for the Small Aperture telescope tube 3 which includes the ``LF1`` and ``LF2`` bands.
+
+The simulation seed
+-------------------
+
+All the components which are not deterministic accept a configuration option ``num`` that sets the seeds for the random number generator in order to being able to reproduce the exact same simulation later on, for example :py:class:`SONoiseSimulator`. Or they
+pre-load a specific realization of simulations that were previously executed, for example :py:class:`SOPrecomputedCMB`..
+The components also automatically apply a shift on the seed based on the channel that you are simulating so that the seeds for the channels are always different.
+
+``mapsims`` configuration files have a **global simulation number** ``num`` defined
+in the top level of the configuration file (or the constructor of :py:class:`MapSim`).
+This number is automatically also passed to all the different components so that it uniquely identifies
+a specific simulation.
+You are allowed to override this by also setting the ``num`` parameter separately in the component classes.
 
 Simulate other instruments
 ==========================
@@ -49,9 +65,13 @@ mapsims_run
 ===========
 
 ``mapsims_run`` is a script included in the package, it can be used to execute pipelines described
-in a configuration file in the terminal::
+in a configuration file in the terminal and write the output to FITS files::
 
     mapsims_run example_config_v0.2.toml
+
+It also supports overriding from the command line a subset of the parameters, here the full list::
+
+    mapsims_run --nside 32 --channels ST1 --num 4 example_config_v0.2.toml
 
 MapSims object
 ==============
