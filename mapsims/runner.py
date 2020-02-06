@@ -242,64 +242,56 @@ class MapSim:
         if not write_outputs:
             output = {}
 
-        for band in self.bands:
-
-            band_map = None
-
-            for ch in self.channels:
-                if ch.band == band:
-                    if self.run_pysm:
-                        if band_map is None:
-                            band_map = self.pysm_sky.get_emission(*ch.bandpass).value
-                        beam_width_arcmin = ch.beam
-                        # smoothing and coordinate rotation with 1 spherical harmonics transform
-                        output_map = hp.ma(
-                            pysm.apply_smoothing_and_coord_transform(
-                                band_map,
-                                fwhm=beam_width_arcmin,
-                                lmax=3 * self.nside - 1,
-                                rot=hp.Rotator(
-                                    coord=(
-                                        input_reference_frame,
-                                        self.pysm_output_reference_frame,
-                                    )
-                                ),
-                                map_dist=pysm.MapDistribution(
-                                    nside=self.nside,
-                                    smoothing_lmax=3 * self.nside - 1,
-                                    mpi_comm=COMM_WORLD,
-                                ),
+        for ch in self.channels:
+            if self.run_pysm:
+                bandpass_integrated_map = self.pysm_sky.get_emission(*ch.bandpass).value
+                beam_width_arcmin = ch.beam
+                # smoothing and coordinate rotation with 1 spherical harmonics transform
+                output_map = hp.ma(
+                    pysm.apply_smoothing_and_coord_transform(
+                        bandpass_integrated_map,
+                        fwhm=beam_width_arcmin,
+                        lmax=3 * self.nside - 1,
+                        rot=hp.Rotator(
+                            coord=(
+                                input_reference_frame,
+                                self.pysm_output_reference_frame,
                             )
-                        )
-                    else:
-                        output_map = hp.ma(
-                            np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
-                        )
+                        ),
+                        map_dist=pysm.MapDistribution(
+                            nside=self.nside,
+                            smoothing_lmax=3 * self.nside - 1,
+                            mpi_comm=COMM_WORLD,
+                        ),
+                    )
+                )
+            else:
+                output_map = hp.ma(
+                    np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
+                )
 
-                    if self.other_components is not None:
-                        for comp in self.other_components.values():
-                            output_map += hp.ma(
-                                comp.simulate(ch, output_units=self.unit)
-                            )
+            if self.other_components is not None:
+                for comp in self.other_components.values():
+                    output_map += hp.ma(comp.simulate(ch, output_units=self.unit))
 
-                    if write_outputs:
-                        hp.write_map(
-                            os.path.join(
-                                self.output_folder,
-                                self.output_filename_template.format(
-                                    telescope=ch.telescope.lower(),
-                                    band=ch.band,
-                                    nside=self.nside,
-                                    tag=self.tag,
-                                    num=self.num,
-                                ),
-                            ),
-                            output_map,
-                            coord=self.pysm_output_reference_frame,
-                            column_units=self.unit,
-                            overwrite=True,
-                        )
-                    else:
-                        output[ch.tag] = output_map.filled()
+            if write_outputs:
+                hp.write_map(
+                    os.path.join(
+                        self.output_folder,
+                        self.output_filename_template.format(
+                            telescope=ch.telescope.lower(),
+                            band=ch.band,
+                            nside=self.nside,
+                            tag=self.tag,
+                            num=self.num,
+                        ),
+                    ),
+                    output_map,
+                    coord=self.pysm_output_reference_frame,
+                    column_units=self.unit,
+                    overwrite=True,
+                )
+            else:
+                output[ch.tag] = output_map.filled()
         if not write_outputs:
             return output
