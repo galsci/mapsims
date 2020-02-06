@@ -142,7 +142,7 @@ install:
 
 script:
    - $MAIN_CMD $SETUP_CMD
-   - pip show nbval && bash run_notebook_tests.sh
+   - pip show nbval && python setup.py install && bash run_notebook_tests.sh
 
 after_success:
     # If coveralls.io is set up for this package, uncomment the line below.
