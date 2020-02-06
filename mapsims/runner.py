@@ -17,6 +17,7 @@ try:
 except ImportError:
     COMM_WORLD = None
 
+import warnings
 
 from . import so_utils
 from . import Channel
@@ -57,22 +58,27 @@ def command_line_script(args=None):
         description="Execute map based simulations for Simons Observatory"
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
-    parser.add_argument("--nside", type=int, required=True, help="NSIDE")
+    parser.add_argument("--nside", type=int, required=False, help="NSIDE")
     parser.add_argument(
         "--num",
         type=int,
         required=False,
         help="Simulation number, generally used as seed",
-        default=0,
     )
     parser.add_argument(
-        "--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all"
+        "--channels",
+        type=str,
+        help="Channels e.g. all, SA, LA, LA_27, ST2",
+        required=False,
     )
     res = parser.parse_args(args)
-    simulator = from_config(
-        res.config,
-        override={"nside": res.nside, "channels": res.channels, "num": res.num},
-    )
+    override = {
+        key: getattr(res, key)
+        for key in ["nside", "channels", "num"]
+        if getattr(res, key) is not None
+    }
+
+    simulator = from_config(res.config, override=override)
     simulator.execute(write_outputs=True)
 
 
@@ -317,19 +323,16 @@ class MapSim:
 
             for each, channel_map in zip(ch, output_map):
                 if write_outputs:
+                    filename = self.output_filename_template.format(
+                        telescope=each.telescope if self.tube is None else self.tube,
+                        band=each.band,
+                        nside=self.nside,
+                        tag=self.tag,
+                        num=self.num,
+                    )
+                    warnings.warn("Writing output map " + filename)
                     hp.write_map(
-                        os.path.join(
-                            self.output_folder,
-                            self.output_filename_template.format(
-                                telescope=each.telescope
-                                if self.tube is None
-                                else self.tube,
-                                band=each.band,
-                                nside=self.nside,
-                                tag=self.tag,
-                                num=self.num,
-                            ),
-                        ),
+                        os.path.join(self.output_folder, filename),
                         channel_map,
                         coord=self.pysm_output_reference_frame,
                         column_units=self.unit,

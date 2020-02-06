@@ -7,6 +7,26 @@ so_pysm_models_version = "2.0.dev"
 tag = "test_sim"
 num = 0
 
+[ pysm_components ]
+
+    # Remove this if no default PySM components are needed
+    pysm_components_string = "SO_d0"
+    pysm_output_reference_frame = "C"
+
+    [ pysm_components.cmb ]
+    class  =  "mapsims.SOPrecomputedCMB"
+    num = 0 # if not provided, it will be set to global num configuration
+    lensed = false
+    # At NERSC use:
+    # lensed = true
+    aberrated = false
+    has_polarization = true
+    cmb_set = 0
+    cmb_dir = "mapsims/tests/data"
+    # At NERSC use:
+    # cmb_dir = "/global/project/projectdirs/sobs/v4_sims/mbs/cmb"
+    input_units = "uK_CMB"
+
 [ other_components ]
 
     [ other_components.noise ]
@@ -34,23 +54,3 @@ num = 0
     SA_number_UHF = 2                                                                                     
     SA_one_over_f_mode = "pessimistic"                                                                    
     hitmap_version = "v0.2" 
-
-[ pysm_components ]
-
-    # Remove this if no default PySM components are needed
-    pysm_components_string = "SO_d0"
-    pysm_output_reference_frame = "C"
-
-    [ pysm_components.cmb ]
-    class  =  "mapsims.SOPrecomputedCMB"
-    num = 0 # if not provided, it will be set to global num configuration
-    lensed = false
-    # At NERSC use:
-    # lensed = true
-    aberrated = false
-    has_polarization = true
-    cmb_set = 0
-    cmb_dir = "mapsims/tests/data"
-    # At NERSC use:
-    # cmb_dir = "/global/project/projectdirs/sobs/v4_sims/mbs/cmb"
-    input_units = "uK_CMB"

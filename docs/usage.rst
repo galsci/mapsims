@@ -5,10 +5,10 @@ Usage
 Configuration file
 ==================
 
-First you need to create a configuration file, see ``data/example_config.toml`` included in the package
-or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/data/example_config.toml>`_.
+First you need to create a configuration file, see ``data/example_config_v0.2.toml`` included in the package
+or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/data/example_config_v0.2.toml>`_.
 
-It first defines some global configuration options like output :math:`N_{side}`, the unit and the
+It first defines some global configuration options like output :math:`N_{side}`, the desired output unit and the
 channels, then has 2 subsections. They both define subsections with a ``class`` attribute that
 specifies which object should be instantiated; all other arguments are passed into the class
 constructor.
@@ -19,6 +19,7 @@ constructor.
 ``channels`` supports both simulating the Simons Observatory channels at single frequencies or top-hat bandpasses.
 If you specify channels named by the telescope and the frequency in GHz ``"SA_27"``, the simulations are performed at a single frequency. Instead if you specify one of the bandpasses, for example ``"LA_MFF1"``, the simulations are executed with top-hat bandpasses (10 equally spaced points within the band integrated with the Trapezoidal rule).
 If you specify shortcuts for groups of channels, i.e. ``"all"``, ``"LA"`` or ``"SA"``, top-hat bandpasses are selected.
+We also support simulating a dichroic tube which includes also the full covariance due to the atmosphere, in this case you can set channels to a tube tag, e.g. ``"ST3"`` for the Small Aperture telescope tube 3 which includes the ``LF1`` and ``LF2`` bands.
 
 Simulate other instruments
 ==========================
@@ -50,7 +51,7 @@ mapsims_run
 ``mapsims_run`` is a script included in the package, it can be used to execute pipelines described
 in a configuration file in the terminal::
 
-    mapsims_run example_config.toml
+    mapsims_run example_config_v0.2.toml
 
 MapSims object
 ==============
@@ -58,12 +59,12 @@ MapSims object
 Create the simulator object with::
 
     import mapsims
-    simulator = mapsims.from_config("example_config.toml")
+    simulator = mapsims.from_config("example_config_v0.2.toml")
 
 This returns a :py:class:`.MapSims` object, then you can
 produce the output map with::
 
-    output_map = simulator.execute()
+    output_maps = simulator.execute()
 
 Python classes
 ==============
