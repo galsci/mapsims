@@ -82,7 +82,7 @@ Create the simulator object with::
     simulator = mapsims.from_config("example_config_v0.2.toml")
 
 This returns a :py:class:`.MapSims` object, then you can
-produce the output map with::
+produce the output maps with::
 
     output_maps = simulator.execute()
 
@@ -92,54 +92,56 @@ Python classes
 Using instead the Python classes, we first need to create the custom component objects, as
 an example we will use all defaults options::
 
-    NSIDE = 16
-    cmb = mapsims.SOPrecomputedCMB(
-        num=0,
-        nside=NSIDE,
-        lensed=False,
-        aberrated=False,
-        has_polarization=True,
-        cmb_set=0,
-        cmb_dir="mapsims/tests/data",
-        input_units="uK_CMB",
-    )
+    >>> import mapsims
+    >>> NSIDE = 16
+    >>> cmb = mapsims.SOPrecomputedCMB(
+    ...     num=0,
+    ...     nside=NSIDE,
+    ...     lensed=False,
+    ...     aberrated=False,
+    ...     has_polarization=True,
+    ...     cmb_set=0,
+    ...     cmb_dir="mapsims/tests/data",
+    ...     input_units="uK_CMB",
+    ... )
 
 
 Then we can create a :py:class:`.SONoiseSimulator`, the most important parameter is the scanning strategy,
 it can be either "classical" or "opportunistic"::
 
-    noise = mapsims.SONoiseSimulator(
-        nside=NSIDE,
-        return_uK_CMB=True,
-        sensitivity_mode="baseline",
-        apply_beam_correction=True,
-        apply_kludge_correction=True,
-        scanning_strategy="classical",
-        LA_number_LF=1,
-        LA_number_MF=4,
-        LA_number_UHF=2,
-        SA_years_LF=1,
-        SA_one_over_f_mode="pessimistic",
-    )
+    >>> noise = mapsims.SONoiseSimulator(
+    ...     nside=NSIDE,
+    ...     return_uK_CMB=True,
+    ...     sensitivity_mode="baseline",
+    ...     apply_beam_correction=True,
+    ...     apply_kludge_correction=True,
+    ...     scanning_strategy="classical",
+    ...     LA_number_LF=1,
+    ...     LA_number_MF=4,
+    ...     LA_number_UHF=2,
+    ...     SA_one_over_f_mode="pessimistic",
+    ... )
 
 Finally we can create the :py:class:`.MapSim` simulator object and pass the PySM custom component and the noise
 simulator as dictionaries, we can also specify any default model from PySM as a comma separated string,
 e.g. "d7,a1,s2"::
 
-    simulator = mapsims.MapSim(
-        channels="all",
-        nside=NSIDE,
-        unit="uK_CMB",
-        pysm_output_reference_frame="G",
-        pysm_components_string="a1",
-        pysm_custom_components={"cmb": cmb},
-        other_components={"noise": noise},
-    )
+    >>> simulator = mapsims.MapSim(
+    ...     channels="LA_27",
+    ...     nside=NSIDE,
+    ...     unit="uK_CMB",
+    ...     pysm_output_reference_frame="G",
+    ...     pysm_components_string="a1",
+    ...     pysm_custom_components={"cmb": cmb},
+    ...     other_components={"noise": noise},
+    ... )
 
 and compute the output map using the ``execute`` method::
 
-    output_map = simulator.execute()
+    >>> output_map = simulator.execute()
+    Sigma ...
 
 write instead directly output FITS maps to disk with::
 
-    simulator.execute(write_outputs=True)
+    >>> simulator.execute(write_outputs=True)
+    Sigma ...
