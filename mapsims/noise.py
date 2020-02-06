@@ -87,7 +87,8 @@ class SONoiseSimulator:
             If True, reduce the hitcount by a factor of 0.85 to account for not-uniformity in the scanning
         scanning_strategy : str
             Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
-            path to a custom hitmap; it will be normalized, so absolute hitcount does not matter
+            path to a custom hitmap (will be the same for all the channels simulated);
+            it will be normalized, so absolute hitcount does not matter
             not used with hitmaps v0.2
             set to False to generate full-sky maps
         no_power_below_ell : int
@@ -295,8 +296,11 @@ class SONoiseSimulator:
         else:
             car_suffix = ""
 
-        if os.path.exists(self.scanning_strategy):
-            hitmap_filename = scanning_strategy
+        # for some reason `os.path.exists(False)` returns True
+        # so need also to check that scanning_strategy is not False
+        if self.scanning_strategy and os.path.exists(self.scanning_strategy):
+            # use the same hitmap for all channels
+            hitmap_filenames = [self.scanning_strategy] * len(chs)
         else:
             if self.hitmap_version == "v0.1":
                 rnames = [
