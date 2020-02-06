@@ -74,7 +74,7 @@ class Channel:
 
 
 class SOChannel(Channel):
-    def __init__(self, telescope, band):
+    def __init__(self, telescope, band, tube=None):
         """Single Simons Observatory frequency channel
 
         Simple way of referencing a frequency band, this will be replaced
@@ -94,10 +94,11 @@ class SOChannel(Channel):
         except ValueError:
             self.center_frequency = frequencies[bands.index(band)] * u.GHz
             self.band = band
+        self.tube = tube
 
     @property
     def tag(self):
-        return "_".join([self.telescope, self.band])
+        return "_".join([self.telescope if self.tube is None else self.tube, self.band])
 
     @property
     def beam(self):
@@ -164,6 +165,11 @@ def parse_channels(channels):
     elif channels in ["all", "SO"]:
         return [
             SOChannel(telescope, band) for telescope in ["LA", "SA"] for band in bands
+        ]
+    elif isinstance(channels, str) and channels in tubes.keys():
+        telescope = channels[0] + "A"
+        return [
+            tuple(SOChannel(telescope, band, tube=channels) for band in tubes[channels])
         ]
     else:
         if "," in channels:

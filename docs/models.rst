@@ -22,7 +22,7 @@ As an example::
     >>> import healpy as hp
     >>> noise_sim = noise.SONoiseSimulator(nside=128)
     >>> ch = SOChannel(telescope="LA", band=27)
-    >>> hp.mollview(noise_sim.load_hitmaps(ch)[0], title="Relative hitmap")
+    >>> hp.mollview(noise_sim.load_hitmaps([ch])[0], title="Relative hitmap")
     >>> noise_map = noise_sim.simulate(ch)
     >>> hp.mollview(noise_map[1], min=-100, max=100, unit="uK_CMB", title="Q noise map LA 27")
 

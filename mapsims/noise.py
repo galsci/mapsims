@@ -25,7 +25,7 @@ class SONoiseSimulator:
         shape=None,
         wcs=None,
         ell_max=None,
-        seed=None,
+        num=None,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
         apply_beam_correction=True,
@@ -75,7 +75,7 @@ class SONoiseSimulator:
             Maximum ell for the angular power spectrum, if not provided set to 3 * nside when using healpix
             or 10000 * (1.0 / pixel_height_arcmin) when using CAR, corresponding roughly to the Nyquist
             frequency.
-        seed : int
+        num : int
             Numpy random seed, each band is going to get a different seed as seed + band + (1000 for SA)
         return_uK_CMB : bool
             True, output is in microK_CMB, False output is in microK_RJ
@@ -153,7 +153,7 @@ class SONoiseSimulator:
         if self.apply_kludge_correction:
             self.survey_efficiency *= 0.85
         self.full_covariance = full_covariance
-        self.seed = seed
+        self.seed = num
         self.return_uK_CMB = return_uK_CMB
         self.no_power_below_ell = no_power_below_ell
         self.LA_years = LA_years

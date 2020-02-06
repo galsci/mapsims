@@ -27,7 +27,7 @@ num = 0
     SA_number_MF = 1.8
     SA_number_UHF = 1
     SA_one_over_f_mode = "pessimistic"
-    seed = 8974
+    num = 8974
 
 [ pysm_components ]
 

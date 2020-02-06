@@ -16,6 +16,7 @@ def test_from_config():
     simulator = mapsims.from_config(
         data.get_pkg_data_filename("data/example_config.toml", package="mapsims")
     )
+    simulator.other_components["noise"].seed = 8974
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0].tag]
 
     expected_map = hp.read_map(
@@ -43,7 +44,7 @@ def test_from_classes():
         SA_number_MF=1.8,
         SA_number_UHF=1,
         SA_one_over_f_mode="pessimistic",
-        seed=8974,
+        num=8974,
     )
 
     cmb = mapsims.SOPrecomputedCMB(

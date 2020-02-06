@@ -24,7 +24,7 @@ from . import Channel
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
-default_output_filename_template = "simonsobs_{telescope}{band}_nside{nside}.fits"
+default_output_filename_template = "simonsobs_{telescope}_{band}_nside{nside}.fits"
 
 
 def command_line_script(args=None):
@@ -141,10 +141,15 @@ class MapSim:
         Parameters
         ----------
 
-        channels : string
+        channels : str
             all/SO for all channels, LA for all Large Aperture channels, SA for Small,
             otherwise a single channel label, e.g. LA_27 or a list of channel labels,
             or "027" for "LA_27" and "SA_27"
+            to simulate a tube, leave channels None and set tube instead
+        tube : str
+            tube to simulate, it is necessary for noise simulations with hitmaps v0.2
+            currently only 1 tube at a time is supported
+            see mapsims.so_utils.tubes for the available tubes
         nside : int
             output HEALPix Nside
         unit : str
@@ -175,14 +180,16 @@ class MapSim:
 
         """
 
+        self.tube = None
         if instrument_parameters is None:
             self.channels = so_utils.parse_channels(channels)
+            if isinstance(self.channels[0], tuple):
+                self.tube = self.channels[0][0].tube
         else:
             self.channels = so_utils.parse_instrument_parameters(
                 instrument_parameters, channels
             )
 
-        self.bands = np.unique([ch.band for ch in self.channels])
         self.nside = nside
         self.unit = unit
         self.num = num
@@ -242,56 +249,66 @@ class MapSim:
         if not write_outputs:
             output = {}
 
+        # ch can be single channel or tuple of 2 channels (tube dichroic)
         for ch in self.channels:
+            if not isinstance(ch, tuple):
+                ch = [ch]
+            output_map = hp.ma(
+                np.zeros((len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64)
+            )
             if self.run_pysm:
-                bandpass_integrated_map = self.pysm_sky.get_emission(*ch.bandpass).value
-                beam_width_arcmin = ch.beam
-                # smoothing and coordinate rotation with 1 spherical harmonics transform
-                output_map = hp.ma(
-                    pysm.apply_smoothing_and_coord_transform(
-                        bandpass_integrated_map,
-                        fwhm=beam_width_arcmin,
-                        lmax=3 * self.nside - 1,
-                        rot=hp.Rotator(
-                            coord=(
-                                input_reference_frame,
-                                self.pysm_output_reference_frame,
-                            )
-                        ),
-                        map_dist=pysm.MapDistribution(
-                            nside=self.nside,
-                            smoothing_lmax=3 * self.nside - 1,
-                            mpi_comm=COMM_WORLD,
-                        ),
+                for each, channel_map in zip(ch, output_map):
+                    bandpass_integrated_map = self.pysm_sky.get_emission(
+                        *each.bandpass
+                    ).value
+                    beam_width_arcmin = each.beam
+                    # smoothing and coordinate rotation with 1 spherical harmonics transform
+                    channel_map += hp.ma(
+                        pysm.apply_smoothing_and_coord_transform(
+                            bandpass_integrated_map,
+                            fwhm=beam_width_arcmin,
+                            lmax=3 * self.nside - 1,
+                            rot=hp.Rotator(
+                                coord=(
+                                    input_reference_frame,
+                                    self.pysm_output_reference_frame,
+                                )
+                            ),
+                            map_dist=pysm.MapDistribution(
+                                nside=self.nside,
+                                smoothing_lmax=3 * self.nside - 1,
+                                mpi_comm=COMM_WORLD,
+                            ),
+                        )
                     )
-                )
-            else:
-                output_map = hp.ma(
-                    np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
-                )
 
             if self.other_components is not None:
                 for comp in self.other_components.values():
-                    output_map += hp.ma(comp.simulate(ch, output_units=self.unit))
+                    output_map += hp.ma(
+                        comp.simulate(ch[0], tube=self.tube, output_units=self.unit)
+                    )
 
-            if write_outputs:
-                hp.write_map(
-                    os.path.join(
-                        self.output_folder,
-                        self.output_filename_template.format(
-                            telescope=ch.telescope.lower(),
-                            band=ch.band,
-                            nside=self.nside,
-                            tag=self.tag,
-                            num=self.num,
+            for each, channel_map in zip(ch, output_map):
+                if write_outputs:
+                    hp.write_map(
+                        os.path.join(
+                            self.output_folder,
+                            self.output_filename_template.format(
+                                telescope=each.telescope
+                                if self.tube is None
+                                else self.tube,
+                                band=each.band,
+                                nside=self.nside,
+                                tag=self.tag,
+                                num=self.num,
+                            ),
                         ),
-                    ),
-                    output_map,
-                    coord=self.pysm_output_reference_frame,
-                    column_units=self.unit,
-                    overwrite=True,
-                )
-            else:
-                output[ch.tag] = output_map.filled()
+                        channel_map,
+                        coord=self.pysm_output_reference_frame,
+                        column_units=self.unit,
+                        overwrite=True,
+                    )
+                else:
+                    output[each.tag] = channel_map.filled()
         if not write_outputs:
             return output
