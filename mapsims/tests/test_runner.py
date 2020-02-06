@@ -16,7 +16,6 @@ def test_from_config():
     simulator = mapsims.from_config(
         data.get_pkg_data_filename("data/example_config.toml", package="mapsims")
     )
-    simulator.other_components["noise"].seed = 8974
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0].tag]
 
     expected_map = hp.read_map(

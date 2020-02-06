@@ -107,9 +107,14 @@ def from_config(config_file, override=None):
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
-                if function_accepts_argument(comp_class, "num") and "num" in config:
+                if (
+                    function_accepts_argument(comp_class, "num")
+                    and "num" in config
+                    and "num" not in comp_config
+                ):
                     # If a component has an argument "num" and we provide a configuration
-                    # "num" to MapSims, we override it.
+                    # "num" to MapSims, we pass it to all the class.
+                    # it can be overridden by the actual component config
                     # This is used for example by `SOStandalonePrecomputedCMB`
                     comp_config["num"] = config["num"]
                 components[component_type][comp_name] = comp_class(

@@ -14,7 +14,7 @@ num = 0
     class = "mapsims.SONoiseSimulator"
     telescopes = ['SA']
     return_uK_CMB = true
-    num = 0
+    num = 0 # if not provided, it will be set to global num configuration
     sensitivity_mode = "baseline"
     apply_beam_correction = false
     apply_kludge_correction = true
@@ -43,7 +43,7 @@ num = 0
 
     [ pysm_components.cmb ]
     class  =  "mapsims.SOPrecomputedCMB"
-    num = 0
+    num = 0 # if not provided, it will be set to global num configuration
     lensed = false
     # At NERSC use:
     # lensed = true
