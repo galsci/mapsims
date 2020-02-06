@@ -1,1 +1,1 @@
-py.test -v -p no:python --nbval-lax mapsims/tests
+py.test -v -p no:python --current-env --nbval-lax mapsims/tests
