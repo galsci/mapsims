@@ -560,3 +560,5 @@ class SONoiseSimulator:
                 return output_map[:, 0, :, :]
             else:
                 return output_map[0]
+
+        return output_map
