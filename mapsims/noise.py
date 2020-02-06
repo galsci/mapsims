@@ -409,6 +409,9 @@ class SONoiseSimulator:
                 so_utils.SOChannel(tube[0] + "A", band) for band in so_utils.tubes[tube]
             ]
         else:
+            assert (
+                ch is not None
+            ), "Need to specify a channel if not using full covariance"
             chs = [ch]
 
         if seed is not None:
