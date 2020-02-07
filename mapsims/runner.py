@@ -7,6 +7,8 @@ from pysm import units as u
 import toml
 
 import healpy as hp
+from astropy.utils import data
+from astropy.table import Table
 
 from so_pysm_models import get_so_models
 
@@ -28,6 +30,19 @@ PYSM_COMPONENTS = {
 default_output_filename_template = (
     "simonsobs_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
 )
+
+
+def get_default_so_resolution(ch, field="NSIDE"):
+    "Load the default Simons Observatory resolution"
+
+    default_resolution = Table.read(
+        data.get_pkg_data_filename("data/so_default_resolution.csv")
+    )
+    default_resolution.add_index("channel")
+    first_ch = ch if not isinstance(ch, tuple) else ch[0]
+    return default_resolution.loc[
+        first_ch.telescope + "_" + str(int(first_ch.center_frequency.value))
+    ][field]
 
 
 def function_accepts_argument(func, arg):
@@ -100,6 +115,11 @@ def from_config(config_file, override=None):
     pysm_components_string = None
     pysm_output_reference_frame = None
 
+    nside = config.get("nside", None)
+    if nside is None:
+        channels = so_utils.parse_channels(config["channels"])
+        nside = get_default_so_resolution(channels[0])
+
     components = {}
     for component_type in ["pysm_components", "other_components"]:
         components[component_type] = {}
@@ -126,12 +146,12 @@ def from_config(config_file, override=None):
                     # This is used for example by `SOStandalonePrecomputedCMB`
                     comp_config["num"] = config["num"]
                 components[component_type][comp_name] = comp_class(
-                    nside=config["nside"], **comp_config
+                    nside=nside, **comp_config
                 )
 
     map_sim = MapSim(
         channels=config["channels"],
-        nside=int(config["nside"]),
+        nside=nside,
         num=config["num"],
         nsplits=config.get("nsplits", 1),
         unit=config["unit"],
@@ -153,7 +173,7 @@ class MapSim:
     def __init__(
         self,
         channels,
-        nside,
+        nside=None,
         num=0,
         nsplits=1,
         unit="uK_CMB",
@@ -188,7 +208,9 @@ class MapSim:
             currently only 1 tube at a time is supported
             see mapsims.so_utils.tubes for the available tubes
         nside : int
-            output HEALPix Nside
+            output HEALPix Nside, if None, automatically pick the default resolution of the
+            first channel,
+            see https://github.com/simonsobs/mapsims/tree/master/mapsims/data/so_default_resolution.csv
         unit : str
             Unit of output maps
         output_folder : str
@@ -229,7 +251,11 @@ class MapSim:
                 instrument_parameters, channels
             )
 
-        self.nside = nside
+        if nside is None:
+            self.nside = get_default_so_resolution(self.channels[0])
+        else:
+            self.nside = nside
+
         self.unit = unit
         self.num = num
         self.nsplits = nsplits
