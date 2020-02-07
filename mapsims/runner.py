@@ -322,20 +322,18 @@ class MapSim:
                         )
                     )
 
+            output_map = output_map.reshape((len(ch), 1, 3, -1))
+
             if self.other_components is not None:
                 for comp in self.other_components.values():
                     kwargs = dict(tube=self.tube, output_units=self.unit)
                     if function_accepts_argument(comp.simulate, "nsplits"):
                         kwargs["nsplits"] = self.nsplits
-                        output_map = output_map.reshape((len(ch), 1, 3, -1))
                     component_map = hp.ma(comp.simulate(ch[0], **kwargs))
                     output_map = output_map + component_map
 
             for each, channel_map in zip(ch, output_map):
                 if write_outputs:
-                    if self.nsplits == 1:
-                        channel_map = channel_map.reshape((1,) + channel_map.shape)
-
                     for split, each_split_channel_map in enumerate(channel_map):
                         filename = self.output_filename_template.format(
                             telescope=each.telescope
@@ -357,6 +355,8 @@ class MapSim:
                             overwrite=True,
                         )
                 else:
+                    if self.nsplits == 1:
+                        channel_map = channel_map[0]
                     output[each.tag] = channel_map.filled()
         if not write_outputs:
             return output
