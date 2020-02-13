@@ -83,6 +83,12 @@ def command_line_script(args=None):
         help="Simulation number, generally used as seed",
     )
     parser.add_argument(
+        "--nsplits",
+        type=int,
+        required=False,
+        help="Number of noise splits",
+    )
+    parser.add_argument(
         "--channels",
         type=str,
         help="Channels e.g. all, SA, LA, LA_27, ST2",
@@ -91,7 +97,7 @@ def command_line_script(args=None):
     res = parser.parse_args(args)
     override = {
         key: getattr(res, key)
-        for key in ["nside", "channels", "num"]
+        for key in ["nside", "channels", "num", "nsplits"]
         if getattr(res, key) is not None
     }
 
