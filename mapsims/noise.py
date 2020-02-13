@@ -382,7 +382,7 @@ class SONoiseSimulator:
             differently for each channel.
         nsplits : integer, optional
             Number of splits to generate. The splits will have independent noise
-            realizations, with noise power scaled by a factor of nsplits, i.e. atmospheric 
+            realizations, with noise power scaled by a factor of nsplits, i.e. atmospheric
             noise is assumed to average down with observing time the same way
             the white noise does. By default, only one split (the coadd) is generated.
         mask_value : float, optional
@@ -484,15 +484,13 @@ class SONoiseSimulator:
                 output_map = np.zeros((2, nsplits, 3, npix))
                 for i in range(nsplits):
                     for i_pol in range(3):
-                        output_map[0][i][i_pol], output_map[1][i][i_pol] = hp.ma(
-                            np.array(
-                                hp.synfast(
-                                    ps_T if i_pol == 0 else ps_P,
-                                    nside=self.nside,
-                                    pol=False,
-                                    new=True,
-                                    verbose=False,
-                                )
+                        output_map[0][i][i_pol], output_map[1][i][i_pol] = np.array(
+                            hp.synfast(
+                                ps_T if i_pol == 0 else ps_P,
+                                nside=self.nside,
+                                pol=False,
+                                new=True,
+                                verbose=False,
                             )
                         )
             else:
@@ -523,11 +521,9 @@ class SONoiseSimulator:
                 npix = hp.nside2npix(self.nside)
                 output_map = np.zeros((1, nsplits, 3, npix))
                 for i in range(nsplits):
-                    output_map[i] = hp.ma(
-                        np.array(
-                            hp.synfast(
-                                ps, nside=self.nside, pol=True, new=True, verbose=False
-                            )
+                    output_map[i] = np.array(
+                        hp.synfast(
+                            ps, nside=self.nside, pol=True, new=True, verbose=False
                         )
                     )
             else:

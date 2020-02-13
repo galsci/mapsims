@@ -319,9 +319,7 @@ class MapSim:
         for ch in self.channels:
             if not isinstance(ch, tuple):
                 ch = [ch]
-            output_map = hp.ma(
-                np.zeros((len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64)
-            )
+            output_map = np.zeros((len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64)
             if self.run_pysm:
                 for each, channel_map in zip(ch, output_map):
                     bandpass_integrated_map = self.pysm_sky.get_emission(
@@ -355,7 +353,10 @@ class MapSim:
                     kwargs = dict(tube=self.tube, output_units=self.unit)
                     if function_accepts_argument(comp.simulate, "nsplits"):
                         kwargs["nsplits"] = self.nsplits
-                    component_map = hp.ma(comp.simulate(ch[0], **kwargs))
+                    component_map = comp.simulate(ch[0], **kwargs)
+                    if self.nsplits == 1:
+                        component_map = component_map.reshape((len(ch), 1, 3, -1))
+                    component_map[hp.mask_bad(component_map)] = np.nan
                     output_map = output_map + component_map
 
             for each, channel_map in zip(ch, output_map):
@@ -370,8 +371,9 @@ class MapSim:
                             tag=self.tag,
                             num=self.num,
                             nsplits=self.nsplits,
-                            split=split,
+                            split=split+1,
                         )
+                        each_split_channel_map[np.isnan(each_split_channel_map)] = hp.UNSEEN
                         warnings.warn("Writing output map " + filename)
                         hp.write_map(
                             os.path.join(self.output_folder, filename),
