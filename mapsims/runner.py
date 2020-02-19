@@ -391,6 +391,7 @@ class MapSim:
                 else:
                     if self.nsplits == 1:
                         channel_map = channel_map[0]
-                    output[each.tag] = channel_map.filled()
+                    channel_map[np.isnan(channel_map)] = hp.UNSEEN
+                    output[each.tag] = channel_map
         if not write_outputs:
             return output
