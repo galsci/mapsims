@@ -6,13 +6,15 @@ Requirements and installation
 Requirements
 ============
 
-* PySM 3 from https://github.com/healpy/pysm
+* PySM 3 from https://github.com/healpy/pysm (install with `conda install -c conda-forge pysm3`)
 * ``numba``
-* ``h5py`` to read custom instrument parameter files
+* ``h5py`` to read instruments parameters other than SO
 * ``healpy``
 * ``so_pysm_models``
 * ``so_noise_models``
 * ``toml``
+* ``pytest`` to run unit tests
+* ``nbval`` to run Notebook unit tests
 
 Installation
 ============
@@ -33,6 +35,10 @@ Development install::
 Run unit tests::
 
     python setup.py test -V
+
+Run Jupyter notebook tests (requires ``nbval``)::
+
+    bash run_notebook_tests.sh
 
 Build documentation::
 

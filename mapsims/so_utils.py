@@ -9,8 +9,22 @@ from pathlib import Path
 
 import sotodlib.hardware
 
+tubes = {
+    "LT0": ["UHF1", "UHF2"],
+    "LT1": ["UHF1", "UHF2"],
+    "LT2": ["MFF1", "MFF2"],
+    "LT3": ["MFF1", "MFF2"],
+    "LT4": ["MFS1", "MFS2"],
+    "LT5": ["MFS1", "MFS2"],
+    "LT6": ["LF1", "LF2"],
+    "ST0": ["UHF1", "UHF2"],
+    "ST1": ["MFF1", "MFF2"],
+    "ST2": ["MFS1", "MFS2"],
+    "ST3": ["LF1", "LF2"],
+}
 bands = ("LF1", "LF2", "MFF1", "MFF2", "MFS1", "MFS2", "UHF1", "UHF2")
 frequencies = (27, 39, 93, 145, 93, 145, 225, 280)
+frequencies_with_correlations = (27, 93, 225)
 hw = sotodlib.hardware.config.get_example()
 
 
@@ -60,7 +74,7 @@ class Channel:
 
 
 class SOChannel(Channel):
-    def __init__(self, telescope, band):
+    def __init__(self, telescope, band, tube=None):
         """Single Simons Observatory frequency channel
 
         Simple way of referencing a frequency band, this will be replaced
@@ -80,10 +94,11 @@ class SOChannel(Channel):
         except ValueError:
             self.center_frequency = frequencies[bands.index(band)] * u.GHz
             self.band = band
+        self.tube = tube
 
     @property
     def tag(self):
-        return "_".join([self.telescope, self.band])
+        return "_".join([self.telescope if self.tube is None else self.tube, self.band])
 
     @property
     def beam(self):
@@ -150,6 +165,11 @@ def parse_channels(channels):
     elif channels in ["all", "SO"]:
         return [
             SOChannel(telescope, band) for telescope in ["LA", "SA"] for band in bands
+        ]
+    elif isinstance(channels, str) and channels in tubes.keys():
+        telescope = channels[0] + "A"
+        return [
+            tuple(SOChannel(telescope, band, tube=channels) for band in tubes[channels])
         ]
     else:
         if "," in channels:

@@ -36,7 +36,7 @@ def test_noise_simulator(telescope):
         SA_number_MF=1.8,
         SA_number_UHF=1,
         SA_one_over_f_mode="optimistic",
-        seed=seed,
+        num=seed,
     )
 
     output_map = simulator.simulate(mapsims.SOChannel(telescope, "MFF1")) * u.uK_CMB

@@ -7,6 +7,8 @@ from pysm import units as u
 import toml
 
 import healpy as hp
+from astropy.utils import data
+from astropy.table import Table
 
 from so_pysm_models import get_so_models
 
@@ -17,6 +19,7 @@ try:
 except ImportError:
     COMM_WORLD = None
 
+import warnings
 
 from . import so_utils
 from . import Channel
@@ -24,7 +27,44 @@ from . import Channel
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
-default_output_filename_template = "simonsobs_{telescope}{band}_nside{nside}.fits"
+default_output_filename_template = (
+    "simonsobs_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
+)
+
+
+def get_default_so_resolution(ch, field="NSIDE"):
+    "Load the default Simons Observatory resolution"
+
+    default_resolution = Table.read(
+        data.get_pkg_data_filename("data/so_default_resolution.csv")
+    )
+    default_resolution.add_index("channel")
+    first_ch = ch if not isinstance(ch, tuple) else ch[0]
+    return default_resolution.loc[
+        first_ch.telescope + "_" + str(int(first_ch.center_frequency.value))
+    ][field]
+
+
+def function_accepts_argument(func, arg):
+    """Check if a function or class accepts argument arg
+
+    Parameters
+    ----------
+
+    func : Python function or Class
+        Input Python function or Class to check
+    arg : str
+        keyword or positional argument to check
+
+    Returns
+    -------
+
+    accepts_argument : bool
+        True if function/class constructor accepts argument
+    """
+    if not hasattr(func, "__code__"):
+        func = func.__init__
+    return arg in func.__code__.co_varnames
 
 
 def command_line_script(args=None):
@@ -35,22 +75,33 @@ def command_line_script(args=None):
         description="Execute map based simulations for Simons Observatory"
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
-    parser.add_argument("--nside", type=int, required=True, help="NSIDE")
+    parser.add_argument("--nside", type=int, required=False, help="NSIDE")
     parser.add_argument(
         "--num",
         type=int,
         required=False,
         help="Simulation number, generally used as seed",
-        default=0,
     )
     parser.add_argument(
-        "--channels", type=str, help="Channels e.g. all, SA, LA, LA_27", default="all"
+        "--nsplits",
+        type=int,
+        required=False,
+        help="Number of noise splits",
+    )
+    parser.add_argument(
+        "--channels",
+        type=str,
+        help="Channels e.g. all, SA, LA, LA_27, ST2",
+        required=False,
     )
     res = parser.parse_args(args)
-    simulator = from_config(
-        res.config,
-        override={"nside": res.nside, "channels": res.channels, "num": res.num},
-    )
+    override = {
+        key: getattr(res, key)
+        for key in ["nside", "channels", "num", "nsplits"]
+        if getattr(res, key) is not None
+    }
+
+    simulator = from_config(res.config, override=override)
     simulator.execute(write_outputs=True)
 
 
@@ -70,6 +121,11 @@ def from_config(config_file, override=None):
     pysm_components_string = None
     pysm_output_reference_frame = None
 
+    nside = config.get("nside", None)
+    if nside is None:
+        channels = so_utils.parse_channels(config["channels"])
+        nside = get_default_so_resolution(channels[0])
+
     components = {}
     for component_type in ["pysm_components", "other_components"]:
         components[component_type] = {}
@@ -85,19 +141,25 @@ def from_config(config_file, override=None):
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
-                if "num" in comp_config and "num" in config:
+                if (
+                    function_accepts_argument(comp_class, "num")
+                    and "num" in config
+                    and "num" not in comp_config
+                ):
                     # If a component has an argument "num" and we provide a configuration
-                    # "num" to MapSims, we override it.
+                    # "num" to MapSims, we pass it to all the class.
+                    # it can be overridden by the actual component config
                     # This is used for example by `SOStandalonePrecomputedCMB`
                     comp_config["num"] = config["num"]
                 components[component_type][comp_name] = comp_class(
-                    nside=config["nside"], **comp_config
+                    nside=nside, **comp_config
                 )
 
     map_sim = MapSim(
         channels=config["channels"],
-        nside=int(config["nside"]),
+        nside=nside,
         num=config["num"],
+        nsplits=config.get("nsplits", 1),
         unit=config["unit"],
         tag=config["tag"],
         output_folder=config.get("output_folder", "output"),
@@ -117,8 +179,9 @@ class MapSim:
     def __init__(
         self,
         channels,
-        nside,
+        nside=None,
         num=0,
+        nsplits=1,
         unit="uK_CMB",
         output_folder="output",
         tag="mapsim",
@@ -141,18 +204,27 @@ class MapSim:
         Parameters
         ----------
 
-        channels : string
+        channels : str
             all/SO for all channels, LA for all Large Aperture channels, SA for Small,
             otherwise a single channel label, e.g. LA_27 or a list of channel labels,
             or "027" for "LA_27" and "SA_27"
+            to simulate a tube, leave channels None and set tube instead
+        tube : str
+            tube to simulate, it is necessary for noise simulations with hitmaps v0.2
+            currently only 1 tube at a time is supported
+            see mapsims.so_utils.tubes for the available tubes
         nside : int
-            output HEALPix Nside
+            output HEALPix Nside, if None, automatically pick the default resolution of the
+            first channel,
+            see https://github.com/simonsobs/mapsims/tree/master/mapsims/data/so_default_resolution.csv
         unit : str
             Unit of output maps
         output_folder : str
             Relative or absolute path to output folder, string template with {nside} and {tag} fields
         num : int
             Realization number, generally used as seed, default is 0, automatically padded to 4 digits
+        nsplits : int
+            Number of noise splits, see the documentation of :py:class:`SONoiseSimulator`
         tag : str
             String to describe the current simulation, for example its content, which is used into
             string interpolation for `output_folder` and `output_filename_template`
@@ -175,17 +247,24 @@ class MapSim:
 
         """
 
+        self.tube = None
         if instrument_parameters is None:
             self.channels = so_utils.parse_channels(channels)
+            if isinstance(self.channels[0], tuple):
+                self.tube = self.channels[0][0].tube
         else:
             self.channels = so_utils.parse_instrument_parameters(
                 instrument_parameters, channels
             )
 
-        self.bands = np.unique([ch.band for ch in self.channels])
-        self.nside = nside
+        if nside is None:
+            self.nside = get_default_so_resolution(self.channels[0])
+        else:
+            self.nside = nside
+
         self.unit = unit
         self.num = num
+        self.nsplits = nsplits
         self.pysm_components_string = pysm_components_string
         self.pysm_custom_components = pysm_custom_components
         self.run_pysm = not (
@@ -242,64 +321,77 @@ class MapSim:
         if not write_outputs:
             output = {}
 
-        for band in self.bands:
-
-            band_map = None
-
-            for ch in self.channels:
-                if ch.band == band:
-                    if self.run_pysm:
-                        if band_map is None:
-                            band_map = self.pysm_sky.get_emission(*ch.bandpass).value
-                        beam_width_arcmin = ch.beam
-                        # smoothing and coordinate rotation with 1 spherical harmonics transform
-                        output_map = hp.ma(
-                            pysm.apply_smoothing_and_coord_transform(
-                                band_map,
-                                fwhm=beam_width_arcmin,
-                                lmax=3 * self.nside - 1,
-                                rot=hp.Rotator(
-                                    coord=(
-                                        input_reference_frame,
-                                        self.pysm_output_reference_frame,
-                                    )
-                                ),
-                                map_dist=pysm.MapDistribution(
-                                    nside=self.nside,
-                                    smoothing_lmax=3 * self.nside - 1,
-                                    mpi_comm=COMM_WORLD,
-                                ),
-                            )
-                        )
-                    else:
-                        output_map = hp.ma(
-                            np.zeros((3, hp.nside2npix(self.nside)), dtype=np.float64)
-                        )
-
-                    if self.other_components is not None:
-                        for comp in self.other_components.values():
-                            output_map += hp.ma(
-                                comp.simulate(ch, output_units=self.unit)
-                            )
-
-                    if write_outputs:
-                        hp.write_map(
-                            os.path.join(
-                                self.output_folder,
-                                self.output_filename_template.format(
-                                    telescope=ch.telescope.lower(),
-                                    band=ch.band,
-                                    nside=self.nside,
-                                    tag=self.tag,
-                                    num=self.num,
-                                ),
+        # ch can be single channel or tuple of 2 channels (tube dichroic)
+        for ch in self.channels:
+            if not isinstance(ch, tuple):
+                ch = [ch]
+            output_map = np.zeros((len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64)
+            if self.run_pysm:
+                for each, channel_map in zip(ch, output_map):
+                    bandpass_integrated_map = self.pysm_sky.get_emission(
+                        *each.bandpass
+                    ).value
+                    beam_width_arcmin = each.beam
+                    # smoothing and coordinate rotation with 1 spherical harmonics transform
+                    channel_map += hp.ma(
+                        pysm.apply_smoothing_and_coord_transform(
+                            bandpass_integrated_map,
+                            fwhm=beam_width_arcmin,
+                            lmax=3 * self.nside - 1,
+                            rot=hp.Rotator(
+                                coord=(
+                                    input_reference_frame,
+                                    self.pysm_output_reference_frame,
+                                )
                             ),
-                            output_map,
+                            map_dist=pysm.MapDistribution(
+                                nside=self.nside,
+                                smoothing_lmax=3 * self.nside - 1,
+                                mpi_comm=COMM_WORLD,
+                            ),
+                        )
+                    )
+
+            output_map = output_map.reshape((len(ch), 1, 3, -1))
+
+            if self.other_components is not None:
+                for comp in self.other_components.values():
+                    kwargs = dict(tube=self.tube, output_units=self.unit)
+                    if function_accepts_argument(comp.simulate, "nsplits"):
+                        kwargs["nsplits"] = self.nsplits
+                    component_map = comp.simulate(ch[0], **kwargs)
+                    if self.nsplits == 1:
+                        component_map = component_map.reshape((len(ch), 1, 3, -1))
+                    component_map[hp.mask_bad(component_map)] = np.nan
+                    output_map = output_map + component_map
+
+            for each, channel_map in zip(ch, output_map):
+                if write_outputs:
+                    for split, each_split_channel_map in enumerate(channel_map):
+                        filename = self.output_filename_template.format(
+                            telescope=each.telescope
+                            if self.tube is None
+                            else self.tube,
+                            band=each.band,
+                            nside=self.nside,
+                            tag=self.tag,
+                            num=self.num,
+                            nsplits=self.nsplits,
+                            split=split+1,
+                        )
+                        each_split_channel_map[np.isnan(each_split_channel_map)] = hp.UNSEEN
+                        warnings.warn("Writing output map " + filename)
+                        hp.write_map(
+                            os.path.join(self.output_folder, filename),
+                            each_split_channel_map,
                             coord=self.pysm_output_reference_frame,
                             column_units=self.unit,
                             overwrite=True,
                         )
-                    else:
-                        output[ch.tag] = output_map.filled()
+                else:
+                    if self.nsplits == 1:
+                        channel_map = channel_map[0]
+                    channel_map[np.isnan(channel_map)] = hp.UNSEEN
+                    output[each.tag] = channel_map
         if not write_outputs:
             return output

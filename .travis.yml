@@ -39,7 +39,7 @@ env:
         
         # List runtime dependencies for the package that are available as conda
         # packages here.
-        - CONDA_DEPENDENCIES='cython toml healpy numba mpi4py libsharp=*=*openmpi* h5py'
+        - CONDA_DEPENDENCIES='cython toml healpy numba mpi4py libsharp=*=*openmpi* h5py jupyter_client nbformat ipykernel nbval'
         - CONDA_DEPENDENCIES_DOC='cython toml healpy sphinx-astropy libsharp=*=*openmpi* numba mpi4py h5py'
         
         # List other runtime dependencies for the package that are available as
@@ -80,12 +80,6 @@ matrix:
         # Do a coverage test.
         - os: linux
           env: SETUP_CMD='test --coverage'
-
-        # Check for sphinx doc build warnings - we do this first because it
-        # may run for a long time
-        - os: linux
-          env: SETUP_CMD='build_docs -w'
-               CONDA_DEPENDENCIES=$CONDA_DEPENDENCIES_DOC
 
         # Now try Astropy dev with the latest Python and LTS with Python 2.7 and 3.x.
         - os: linux
@@ -142,6 +136,7 @@ install:
 
 script:
    - $MAIN_CMD $SETUP_CMD
+   - python setup.py install && bash run_notebook_tests.sh
 
 after_success:
     # If coveralls.io is set up for this package, uncomment the line below.
