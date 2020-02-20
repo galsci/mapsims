@@ -6,7 +6,7 @@ Requirements and installation
 Requirements
 ============
 
-* PySM 3 from https://github.com/healpy/pysm
+* PySM 3 from https://github.com/healpy/pysm (install with `conda install -c conda-forge pysm3`)
 * ``numba``
 * ``h5py`` to read instruments parameters other than SO
 * ``healpy``
