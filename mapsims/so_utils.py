@@ -191,18 +191,28 @@ def parse_instrument_parameters(instrument_parameters, channels="all"):
         raise ImportError("h5py is needed to parse instrument parameter files")
     channel_objects_list = []
     with h5py.File(instrument_parameters, "r") as f:
+        telescope = None
         if channels == "all":
+            channels = f.keys()
+        if isinstance(channels, str) and channels.endswith("T"):
+            telescope = channels
             channels = f.keys()
         if isinstance(channels, str):
             channels = [channels]
         for ch in channels:
+            if telescope is not None:
+                if telescope != f[ch].attrs["telescope"]:
+                    continue
             channel_objects_list.append(
                 Channel(
                     tag=ch,
                     band=f[ch].attrs["band"],
                     beam=f[ch].attrs["fwhm_arcmin"] * u.arcmin,
                     center_frequency=f[ch].attrs["center_frequency_GHz"] * u.GHz,
-                    telescope=instrument_parameters.name.split(".")[0].split("_")[0],
+                    telescope=f[ch].attrs.get(
+                        "telescope",
+                        instrument_parameters.name.split(".")[0].split("_")[0],
+                    ),
                     bandpass=(
                         f[ch].get(
                             "bandpass_frequency_GHz",
