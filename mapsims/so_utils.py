@@ -214,12 +214,12 @@ def parse_instrument_parameters(instrument_parameters, channels="all"):
                         instrument_parameters.name.split(".")[0].split("_")[0],
                     ),
                     bandpass=(
-                        f[ch].get(
+                        np.array(f[ch].get(
                             "bandpass_frequency_GHz",
                             default=f[ch].attrs["center_frequency_GHz"],
-                        )
+                        ))
                         * u.GHz,
-                        f[ch].get("bandpass_weight"),
+                        np.array(f[ch].get("bandpass_weight")),
                     ),
                 )
             )
