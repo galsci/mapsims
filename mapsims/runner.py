@@ -343,7 +343,9 @@ class MapSim:
                                     self.pysm_output_reference_frame,
                                 )
                             ),
-                            map_dist=pysm.MapDistribution(
+                            map_dist=None
+                            if COMM_WORLD is None
+                            else pysm.MapDistribution(
                                 nside=self.nside,
                                 smoothing_lmax=3 * self.nside - 1,
                                 mpi_comm=COMM_WORLD,
