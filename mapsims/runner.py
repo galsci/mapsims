@@ -83,10 +83,7 @@ def command_line_script(args=None):
         help="Simulation number, generally used as seed",
     )
     parser.add_argument(
-        "--nsplits",
-        type=int,
-        required=False,
-        help="Number of noise splits",
+        "--nsplits", type=int, required=False, help="Number of noise splits"
     )
     parser.add_argument(
         "--channels",
@@ -325,7 +322,9 @@ class MapSim:
         for ch in self.channels:
             if not isinstance(ch, tuple):
                 ch = [ch]
-            output_map = np.zeros((len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64)
+            output_map = np.zeros(
+                (len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64
+            )
             if self.run_pysm:
                 for each, channel_map in zip(ch, output_map):
                     bandpass_integrated_map = self.pysm_sky.get_emission(
@@ -377,9 +376,11 @@ class MapSim:
                             tag=self.tag,
                             num=self.num,
                             nsplits=self.nsplits,
-                            split=split+1,
+                            split=split + 1,
                         )
-                        each_split_channel_map[np.isnan(each_split_channel_map)] = hp.UNSEEN
+                        each_split_channel_map[
+                            np.isnan(each_split_channel_map)
+                        ] = hp.UNSEEN
                         warnings.warn("Writing output map " + filename)
                         hp.write_map(
                             os.path.join(self.output_folder, filename),
