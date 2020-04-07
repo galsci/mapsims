@@ -176,7 +176,6 @@ class SONoiseSimulator:
 
         self.noise_ell_T = {"SA": {}, "LA": {}}
         self.noise_ell_P = {"SA": {}, "LA": {}}
-        self.ch = []
         for telescope in telescopes:
             self.update_telescope(telescope, scanning_strategy, fsky)
 
@@ -326,6 +325,21 @@ class SONoiseSimulator:
                 self.noise_ell_P[telescope][frequency][
                     self.ell < self.no_power_below_ell
                 ] = 0
+
+    def get_beam_fwhm(self, ch):
+        """Get beam FWHM in arcminutes corresponding to the channel identifier ch.
+        This is useful if non-beam-deconvolved sims are requested and you want to 
+        know what beam to apply to your signal simulation.
+
+        Parameters
+        ----------
+
+        ch : mapsims.Channel
+            Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
+
+        """
+
+        
 
     def simulate(
         self, ch, output_units="uK_CMB", seed=None, nsplits=1, mask_value=None

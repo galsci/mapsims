@@ -34,6 +34,7 @@ def get_pixsize_rect(shape, wcs):
 
 
 def ivar_hp_to_cyl(hmap, shape, wcs):
+    # This is modified from code from Sigurd Naess
     comm = mpi.COMM_WORLD
     rstep = 100
     dtype = np.float32
