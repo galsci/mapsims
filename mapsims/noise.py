@@ -16,6 +16,26 @@ one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
 telescope_seed_offset = {"LA": 0, "SA": 1000}
 default_mask_value = {"healpix": hp.UNSEEN, "car": np.nan}
 
+def car_psizemap(shape,wcs):
+    """
+    Return map of pixel areas in radians for a cylindrical map.
+    Contrast with enmap.pixsizemap which is not specific to cylindrical
+    maps but is not accurate near the poles at the time of this writing.
+    """
+    from pixell import enmap,utils
+    dra, ddec = wcs.wcs.cdelt*utils.degree
+    dec = enmap.posmap([shape[-2],1],wcs)[0,:,0]
+    area = np.abs(dra*(np.sin(np.minimum(np.pi/2.,dec+ddec/2))-np.sin(np.maximum(-np.pi/2.,dec-ddec/2))))
+    Nx = shape[-1]
+    return enmap.ndmap(area[...,None].repeat(Nx,axis=-1),wcs)
+    
+def car_white_noise(shape,wcs,noise_muK_arcmin):
+    """
+    Generate a non-band-limited white noise map.
+    """
+    pmap = car_psizemap(shape,wcs)*((180.*60./np.pi)**2.)
+    return (noise_muK_arcmin/np.sqrt(pmap))*np.random.standard_normal(shape)
+
 
 class SONoiseSimulator:
     def __init__(
@@ -203,6 +223,7 @@ class SONoiseSimulator:
 
         """
 
+        self.surveys = {}
         if (scanning_strategy is None) or scanning_strategy in [
             "isotropic",
             "homogenous",
@@ -291,6 +312,7 @@ class SONoiseSimulator:
                 N_tubes=[self.LA_number_LF, self.LA_number_MF, self.LA_number_UHF],
                 el=self.elevation,
             )
+
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 self.sky_fraction[telescope],
                 self.ell_max,
@@ -300,6 +322,7 @@ class SONoiseSimulator:
             )
 
         self.ell = np.arange(ell[-1] + 1)
+        self.surveys[telescope] = survey
 
         available_frequencies = np.unique(so_utils.frequencies)
         for frequency in so_utils.frequencies:
@@ -338,11 +361,34 @@ class SONoiseSimulator:
             Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
 
         """
+        available_frequencies = np.unique(so_utils.frequencies)
+        frequency = ch.center_frequency.value
+        band_index = available_frequencies.searchsorted(frequency)
+        return self.surveys[ch.telescope].get_beams()[band_index]
 
+
+    def get_white_noise_power(self, ch, units='sr'):
+        """Get white noise power in uK^2-sr (units='sr') or
+        uK^2-arcmin^2 (units='arcmin2') corresponding to the channel identifier ch.
+        This is useful if you want to generate your own simulations that do not
+        have the atmospheric component.
+
+        Parameters
+        ----------
+
+        ch : mapsims.Channel
+            Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
+
+        """
+        available_frequencies = np.unique(so_utils.frequencies)
+        frequency = ch.center_frequency.value
+        band_index = available_frequencies.searchsorted(frequency)
+        f_sky = self.sky_fraction[ch.telescope]
+        return self.surveys[ch.telescope].get_white_noise(f_sky, units=units)[band_index]
         
 
     def simulate(
-        self, ch, output_units="uK_CMB", seed=None, nsplits=1, mask_value=None
+        self, ch, output_units="uK_CMB", seed=None, nsplits=1, mask_value=None, atmosphere=True
     ):
         """Create a random realization of the noise power spectrum
 
@@ -393,26 +439,41 @@ class SONoiseSimulator:
             )
             * nsplits
         )
+        if not(atmosphere): npower = self.get_white_noise_power(ch,units='arcmin2')
         if self.healpix:
             npix = hp.nside2npix(self.nside)
             output_map = np.zeros((nsplits, 3, npix))
-            for i in range(nsplits):
-                output_map[i] = hp.ma(
-                    np.array(
-                        hp.synfast(
-                            ps, nside=self.nside, pol=True, new=True, verbose=False
+            if atmosphere:
+                for i in range(nsplits):
+                        output_map[i] = hp.ma(
+                            np.array(
+                                hp.synfast(
+                                    ps, nside=self.nside, pol=True, new=True, verbose=False
+                                )
+                            )
                         )
-                    )
-                )
+            else:
+                pmap = (4.*np.pi / hp.nside2npix(self.nside))*((180.*60./np.pi)**2.)
+                powr = (np.sqrt(npower/pmap))
+                output_map[:,0,:] = powr*np.random.standard_normal((nsplits,npix))
+                output_map[:,1,:] = powr*np.random.standard_normal((nsplits,npix)) * np.sqrt(2.)
+                output_map[:,2,:] = powr*np.random.standard_normal((nsplits,npix)) * np.sqrt(2.)
+
         else:
             from pixell import curvedsky, powspec
-
-            ps = powspec.sym_expand(np.asarray(ps), scheme="diag")
+            
             output_map = np.zeros((nsplits, 3) + self.shape)
-            for i in range(nsplits):
-                output_map[i] = curvedsky.rand_map((3,) + self.shape, self.wcs, ps)
+            if atmosphere:
+                ps = powspec.sym_expand(np.asarray(ps), scheme="diag")
+                for i in range(nsplits):
+                    output_map[i] = curvedsky.rand_map((3,) + self.shape, self.wcs, ps)
+            else:
+                output_map[:,0,:] = car_white_noise((nsplits,)+self.shape[-2:],self.wcs,np.sqrt(npower))
+                output_map[:,1,:] = car_white_noise((nsplits,)+self.shape[-2:],self.wcs,np.sqrt(npower*2.))
+                output_map[:,2,:] = car_white_noise((nsplits,)+self.shape[-2:],self.wcs,np.sqrt(npower*2.))
 
         hmap = self.hitmap[ch.telescope]
+
         if hmap is not None:
             good = hmap != 0
             # Normalize on the Effective sky fraction, see discussion in:
@@ -420,6 +481,7 @@ class SONoiseSimulator:
             output_map[:, :, good] /= np.sqrt(
                 hmap[good] / hmap.mean() * self.sky_fraction[ch.telescope]
             )
+
             if mask_value is None:
                 mask_value = (
                     default_mask_value["healpix"]
