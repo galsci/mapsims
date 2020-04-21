@@ -52,6 +52,7 @@ class SONoiseSimulator:
         apply_kludge_correction=True,
         scanning_strategy="classical",
         no_power_below_ell=None,
+        rolloff_ell=None,
         survey_efficiency=0.2,
         LA_years=5,
         LA_number_LF=1,
@@ -146,6 +147,7 @@ class SONoiseSimulator:
             The sky fraction to use in the noise model if the scanning strategy is not provided,
             or an isotropic/homogeonous scan is requested. 
         """
+        self.rolloff_ell = rolloff_ell
 
         if nside is None:
             assert shape is not None
@@ -298,7 +300,7 @@ class SONoiseSimulator:
                 self.ell_max,
                 delta_ell=1,
                 full_covar=False,
-                deconv_beam=self.apply_beam_correction,
+                deconv_beam=self.apply_beam_correction,rolloff_ell=self.rolloff_ell,
             )
             # For SA, so_noise simulates only Polarization,
             # Assume that T is half
@@ -318,7 +320,7 @@ class SONoiseSimulator:
                 self.ell_max,
                 delta_ell=1,
                 full_covar=False,
-                deconv_beam=self.apply_beam_correction,
+                deconv_beam=self.apply_beam_correction,rolloff_ell=self.rolloff_ell,
             )
 
         self.ell = np.arange(ell[-1] + 1)

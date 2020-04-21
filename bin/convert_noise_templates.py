@@ -101,7 +101,7 @@ hp_remote_data = mutils.RemoteData(healpix=True, version=version)
 cr_remote_data = mutils.RemoteData(healpix=False, version=version)
 assert (
     cr_remote_data.local_folder is not None
-), f"Output directory {cr_remote_data.local_folder} needs to exist."
+), f"Output directory {cr_remote_data.data_folders} needs to exist."
 
 for telescope in telescopes:
     for mode in modes:
