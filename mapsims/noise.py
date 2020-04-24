@@ -342,14 +342,23 @@ class SONoiseSimulator:
                     "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
                 )
                 hitmaps = [
-                    enmap.project(hitmap, self.shape, self.wcs) for hitmap in hitmaps
+                    enmap.project(hitmap, self.shape, self.wcs,order=0) for hitmap in hitmaps
                 ]
 
         for hitmap in hitmaps:
             hitmap /= hitmap.max()
         # Discard pixels with very few hits that cause border effects
         # hitmap[hitmap < 1e-3] = 0
-        sky_fractions = [(hitmap != 0).sum() / hitmap.size for hitmap in hitmaps]
+        if self.healpix:
+            sky_fractions = [(hitmap != 0).sum() / hitmap.size for hitmap in hitmaps]
+        else:
+            pmap = enmap.pixsizemap(self.shape[-2:], self.wcs)
+            sky_fractions = [(
+                pmap[hitmap != 0].sum()
+                / 4.0
+                / np.pi
+            ) for hitmap in hitmaps]
+
         if len(hitmaps) == 1:
             hitmaps = hitmaps[0]
             sky_fractions = sky_fractions[0]
