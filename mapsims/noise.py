@@ -313,7 +313,7 @@ class SONoiseSimulator:
                 rnames = []
                 for ch in chs:
                     rnames.append(
-                        f"{tube}_{ch.band}_01_of_20.nominal_telescope_all_time_all_hmap.fits.gz"
+                        f"{tube}_{ch.band}_01_of_20.nominal_telescope_all_time_all_hmap{car_suffix}.fits.gz"
                     )
             else:
                 warning.warn("Unknown hitmap version")
