@@ -366,6 +366,26 @@ class SONoiseSimulator:
             sky_fractions = sky_fractions[0]
         return hitmaps, sky_fractions
 
+    def get_white_noise_power(self, ch, units='sr'):
+        """Get white noise power in uK^2-sr (units='sr') or
+        uK^2-arcmin^2 (units='arcmin2') corresponding to the channel identifier ch.
+        This is useful if you want to generate your own simulations that do not
+        have the atmospheric component.
+
+        Parameters
+        ----------
+
+        ch : mapsims.Channel
+            Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
+
+        """
+        available_frequencies = np.unique(so_utils.frequencies)
+        frequency = ch.center_frequency.value
+        band_index = available_frequencies.searchsorted(frequency)
+        f_sky = self.sky_fraction[ch.telescope]
+        return self.surveys[ch.telescope].get_white_noise(f_sky, units=units)[band_index]
+
+
     def simulate(
         self,
         ch=None,
@@ -374,6 +394,7 @@ class SONoiseSimulator:
         seed=None,
         nsplits=1,
         mask_value=None,
+        atmosphere=True
     ):
         """Create a random realization of the noise power spectrum
 
@@ -400,6 +421,11 @@ class SONoiseSimulator:
             The value to set in masked (unobserved) regions. By default, it uses
             the value in default_mask_value, which for healpix is healpy.UNSEEN
             and for CAR is numpy.nan.
+        atmosphere : bool, optional
+            Whether to include the correlated 1/f from the noise model. This is
+            True by default. If it is set to False, then a pure white noise map
+            is generated from the white noise power in the noise model.
+
 
         Returns
         -------
