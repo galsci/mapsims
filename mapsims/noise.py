@@ -136,7 +136,7 @@ class SONoiseSimulator:
             assert shape is not None
             assert wcs is not None
             self.healpix = False
-            self.shape = shape
+            self.shape = shape[-2:]
             self.wcs = wcs
             self._pixheight = np.abs(wcs.wcs.cdelt[0] * 60.0)
             self.ell_max = (
@@ -354,7 +354,7 @@ class SONoiseSimulator:
         if self.healpix:
             sky_fractions = [(hitmap != 0).sum() / hitmap.size for hitmap in hitmaps]
         else:
-            pmap = enmap.pixsizemap(self.shape[-2:], self.wcs)
+            pmap = enmap.pixsizemap(self.shape, self.wcs)
             sky_fractions = [(
                 pmap[hitmap != 0].sum()
                 / 4.0
@@ -504,8 +504,14 @@ class SONoiseSimulator:
                         )
             else:
                 from pixell import curvedsky, powspec
+                output_map = np.zeros((2, nsplits, 3, ) + self.shape)
+                ps_T = powspec.sym_expand(np.asarray(ps_T), scheme="diag")
+                ps_P = powspec.sym_expand(np.asarray(ps_P), scheme="diag")
+                # TODO: These loops can probably be vectorized
+                for i in range(nsplits):
+                    for i_pol in range(3):
+                        output_map[:,i,i_pol] = curvedsky.rand_map((2,) + self.shape, self.wcs, ps_T if i_pol==0 else ps_P)
 
-                # TODO implement CAR for full covariance
         else:
             hitmaps = [hitmaps]
             sky_fractions = [sky_fractions]
@@ -537,7 +543,6 @@ class SONoiseSimulator:
                     )
             else:
                 from pixell import curvedsky, powspec
-
                 ps = powspec.sym_expand(np.asarray(ps), scheme="diag")
                 output_map = np.zeros((1, nsplits, 3) + self.shape)
                 for i in range(nsplits):
