@@ -52,6 +52,7 @@ class SONoiseSimulator:
         SA_number_UHF=2,
         SA_one_over_f_mode="pessimistic",
         hitmap_version="v0.1",
+        fsky = None,
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -94,8 +95,7 @@ class SONoiseSimulator:
             Choose between the available scanning strategy hitmaps "classical" or "opportunistic" or
             path to a custom hitmap (will be the same for all the channels simulated);
             it will be normalized, so absolute hitcount does not matter
-            not used with hitmaps v0.2
-            set to False to generate full-sky maps
+            not used with hitmaps v0.2. Set to False to generate full-sky maps.
         no_power_below_ell : int
             The input spectra have significant power at low ell, we can zero that power specifying an integer
             :math:`\ell` value here. The power spectra at :math:`\ell < \ell_0` are set to zero.
@@ -130,6 +130,8 @@ class SONoiseSimulator:
             Correlated noise performance of the detectors on the Small Aperture telescopes
         hitmap_version : string
             Version string for hitmaps stored remotely.
+        fsky : optional,float
+            If scanning_strategy is False, this fsky is used for the noise curves.
         """
 
         if nside is None:
@@ -150,7 +152,7 @@ class SONoiseSimulator:
             self.ell_max = ell_max if ell_max is not None else 3 * nside
 
         self.rolloff_ell = rolloff_ell
-
+        self.fsky = fsky
         self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
         self.apply_beam_correction = apply_beam_correction
         self.apply_kludge_correction = apply_kludge_correction
@@ -467,9 +469,10 @@ class SONoiseSimulator:
                 )
 
         if self.scanning_strategy is False:
-            ones = np.ones(hp.nside2npix(self.nside))
+            ones = np.ones(hp.nside2npix(self.nside)) if self.healpix else enmap.ones(self.shape,self.wcs)
             hitmaps = [ones, ones] if self.full_covariance else ones
-            sky_fractions = [1, 1] if self.full_covariance else 1
+            fsky = self.fsky if self.fsky is not None else 1
+            sky_fractions = [fsky, fsky] if self.full_covariance else fsky
         else:
             hitmaps, sky_fractions = self.load_hitmaps(chs, tube)
 
