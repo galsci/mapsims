@@ -16,6 +16,11 @@ one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
 telescope_seed_offset = {"LA": 0, "SA": 1000}
 default_mask_value = {"healpix": hp.UNSEEN, "car": np.nan}
 
+def _get_chs_from_tube(tube):
+    return [
+        so_utils.SOChannel(tube[0] + "A", band) for band in so_utils.tubes[tube]
+    ]
+
 
 class SONoiseSimulator:
     def __init__(
@@ -278,10 +283,7 @@ class SONoiseSimulator:
     def load_hitmaps(self, chs=None, tube=None):
 
         if chs is None:
-            chs = [
-                so_utils.SOChannel(tube[0] + "A", band) for band in so_utils.tubes[tube]
-            ]
-
+            chs = _get_chs_from_tube(tube)
         try:
             len(chs)
         except TypeError:
@@ -414,9 +416,7 @@ class SONoiseSimulator:
             )
 
         if self.full_covariance:
-            chs = [
-                so_utils.SOChannel(tube[0] + "A", band) for band in so_utils.tubes[tube]
-            ]
+            chs = _get_chs_from_tube(tube)
         else:
             assert (
                 ch is not None
