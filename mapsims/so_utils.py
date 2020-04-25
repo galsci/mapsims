@@ -22,8 +22,10 @@ tubes = {
     "ST2": ["MFS1", "MFS2"],
     "ST3": ["LF1", "LF2"],
 }
+tube_names = sorted(tubes.keys())
 bands = ("LF1", "LF2", "MFF1", "MFF2", "MFS1", "MFS2", "UHF1", "UHF2")
 frequencies = (27, 39, 93, 145, 93, 145, 225, 280)
+band_freqs = dict(zip(bands, frequencies)) 
 frequencies_with_correlations = (27, 93, 225)
 hw = sotodlib.hardware.config.get_example()
 

@@ -51,3 +51,17 @@ def test_noise_simulator(telescope):
     expected_map[expected_map == 0] = hp.UNSEEN
     expected_map <<= u.uK_CMB
     assert_quantity_allclose(output_map, expected_map)
+
+
+"""
+Test cases
+
+pixelizations = ['car','healpix']
+tubes = ['LT0','ST2']
+cov = [True,False]
+homogenous = [True, False]
+cache_hitmaps = [True,False]
+
+
+
+"""
