@@ -10,6 +10,10 @@ from so_models_v3 import SO_Noise_Calculator_Public_v3_1_1 as so_models
 from . import so_utils
 from . import utils as mutils
 
+try:
+    from pixell import enmap, wcsutils, curvedsky, powspec
+except: pass
+
 sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
 telescope_seed_offset = {"LA": 0, "SA": 1000}
@@ -19,7 +23,7 @@ _hitmap_version = "v0.2"
 def band_ids_from_tube(tube):
     tubes = so_utils.tubes
     bands = tubes[tube]
-    freqs = return [so_utils.band_freqs[x] for x in bands]
+    freqs = [so_utils.band_freqs[x] for x in bands]
     available_frequencies = np.unique(so_utils.frequencies)
     band_ids = [available_frequencies.searchsorted(f) for f in freqs]
     return band_ids
@@ -28,7 +32,6 @@ def band_ids_from_tube(tube):
 class SONoiseSimulator:
     def __init__(
         self,
-        telescopes=["LA"],
         nside=None,
         shape=None,
         wcs=None,
@@ -50,6 +53,7 @@ class SONoiseSimulator:
         SA_one_over_f_mode="pessimistic",
         sky_fraction = None,
         cache_hitmaps = True,
+        boolean_sky_fraction = True,
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -63,9 +67,6 @@ class SONoiseSimulator:
         Parameters
         ----------
 
-        telescopes : list of strings
-            List of telescope identifiers, typically `LA` or `SA` for the large aperture
-            and small aperture, respectively.
         nside : int
             nside of HEALPix map. If None, uses
             rectangular pixel geometry specified through shape and wcs.
@@ -142,6 +143,7 @@ class SONoiseSimulator:
             self.ell_max = (
                 ell_max if ell_max is not None else 10000 * (1.0 / self._pixheight)
             )
+            self.pmap = enmap.pixsizemap(self.shape, self.wcs)
         else:
             assert shape is None
             assert wcs is None
@@ -150,6 +152,7 @@ class SONoiseSimulator:
             self.ell_max = ell_max if ell_max is not None else 3 * nside
 
         self.rolloff_ell = rolloff_ell
+        self.boolean_sky_fraction = boolean_sky_fraction
         self._sky_fraction = sky_fraction
         self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
         self.apply_beam_correction = apply_beam_correction
@@ -162,27 +165,21 @@ class SONoiseSimulator:
         self.return_uK_CMB = return_uK_CMB
         self.no_power_below_ell = no_power_below_ell
         self.LA_years = LA_years
-        self.LA_number_LF = LA_number_LF
-        self.LA_number_MF = LA_number_MF
-        self.LA_number_UHF = LA_number_UHF
         self.LA_noise_model = LA_noise_model
         self.elevation = elevation
         self.SA_years = SA_years
-        self.SA_number_LF = SA_number_LF
-        self.SA_number_MF = SA_number_MF
-        self.SA_number_UHF = SA_number_UHF
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
         self.homogenous = homogenous
 
         self.hitmap_version = _hitmap_version
         self._cache = cache_hitmaps
-        if self._cache: self._hmap_cache = {}
+        self._hmap_cache = {}
         self.remote_data = mutils.RemoteData(
             healpix=self.healpix, version=self.hitmap_version
         )
 
 
-    def load_noise_spectra(self, tube, ncurve_fsky=1):
+    def get_noise_spectra(self, tube, ncurve_fsky=1):
         """Update a telescope configuration by loading the corresponding
         hitmaps. Each loaded `telescope` is kept in memory, but
         new choice of `scanning_strategy` erases the previous one.
@@ -242,52 +239,87 @@ class SONoiseSimulator:
                 rolloff_ell=self.rolloff_ell,
             )
 
-        self.ell = np.arange(ell[-1] + 1)
-        output_noise_ell_T = {}
-        output_noise_ell_P = {}
+        assert ell[0] == 2 # make sure the noise code is still returning something 
+        # that starts at ell=2
+        ls = np.arange(ell.size + 2)
+        nells_T = np.zeros((3,ell.size + 2))
+        nells_P = np.zeros((3,ell.size + 2))
+        b1,b2 = band_ids_from_tube(tube)
+        for n_out,n_in in zip([nells_T,nells_P],[noise_ell_T,noise_ell_P]):
+            n_out[0,2:] = n_in[b1][b1]
+            n_out[1,2:] = n_in[b2][b2]
+            n_out[2,2:] = n_in[b1][b2] if not(self.full_covariance) else 0
+            if self.no_power_below_ell is not None:
+                n_out[:,ls < self.no_power_below_ell] = 0
 
-        output_noise_ell_T[frequency] = np.insert(
-            noise_ell_T[band_index][band_index], 0, [0, 0]
-        )
-        output_noise_ell_P[frequency] = np.insert(
-            noise_ell_P[band_index][band_index], 0, [0, 0]
-        )
-        if frequency in so_utils.frequencies_with_correlations:
-            output_noise_ell_T[str(frequency) + "_corr"] = np.insert(
-                noise_ell_T[band_index][band_index + 1], 0, [0, 0]
-            )
-            output_noise_ell_P[str(frequency) + "_corr"] = np.insert(
-                noise_ell_P[band_index][band_index + 1], 0, [0, 0]
-            )
-
-        if self.no_power_below_ell is not None:
-            output_noise_ell_T[frequency][self.ell < self.no_power_below_ell] = 0
-            output_noise_ell_P[frequency][self.ell < self.no_power_below_ell] = 0
-        return output_noise_ell_T, output_noise_ell_P
+        return ls,nells_T,nells_P
 
     def _validate_map(self,fmap):
+        raise NotImplementedError
         shape = fmap.shape
         if self.healpix:
             if len(shape)==1: 
+                pass
 
     def _load_map(self,fname,**kwargs):
         # If not a string try as a healpix or CAR map
-        if not(isinstance(fname,string)): return _validate_map(fname)
-        if self.healpix: return hp.read_map(fname,**kwargs)
-        else: 
-            from pixell import enmap
-            return enmap.read_map(fname,**kwargs)
+        if not(isinstance(fname,str)): return _validate_map(fname)
+        
+        # Check if in cache
+        if self._cache: 
+            try: return self._hmap_cache[fname]
+            except: pass
 
-    def _process_hitmap(self,hmap):
-        if self.boolean_sky_fraction:
-            pass
+        # else load
+        if self.healpix:
+            hitmap = hp.ud_grade(
+                    hp.read_map(fname, verbose=False), nside_out=self.nside
+                )
         else:
+
+            hitmap = enmap.read_map(fname)
+            if wcsutils.is_compatible(hitmap.wcs, self.wcs):
+                hitmap = enmap.extract(hitmap, self.shape, self.wcs)
+            else:
+                warnings.warn(
+                    "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
+                )
+                hitmap = enmap.project(hitmap, self.shape, self.wcs,order=0) 
+
+        # and then cache and return
+        if self._cache: self._hmap_cache[fname] = hitmap
+        return hitmap
+
+
+    def _process_hitmaps(self,hitmaps):
+        if self.boolean_sky_fraction:
+            for hitmap in hitmaps:
+                hitmap /= hitmap.max()
+            # Discard pixels with very few hits that cause border effects
+            # hitmap[hitmap < 1e-3] = 0
+            if self.healpix:
+                sky_fractions = [(hitmap != 0).sum() / hitmap.size for hitmap in hitmaps]
+            else:
+                pmap = self.pmap
+                sky_fractions = [(
+                    pmap[hitmap != 0].sum()
+                    / 4.0
+                    / np.pi
+                ) for hitmap in hitmaps]
+
+            if len(hitmaps) == 1:
+                hitmaps = hitmaps[0]
+                sky_fractions = sky_fractions[0]
+        else:
+            raise NotImplementedError
+
+        return hitmaps, sky_fractions
             
             
 
-    def load_hitmap(self, tube=None, hitmap=None):
+    def get_hitmaps(self, tube=None, hitmap=None):
 
-        if hitmap is not None: return _process_hitmap(_load_map(hitmap))
+        if hitmap is not None: return self._process_hitmaps(_load_map(hitmap))
 
         telescope = f'{tube[0]}A' # get LA or SA from tube name
 
@@ -300,57 +332,20 @@ class SONoiseSimulator:
         else:
             car_suffix = ""
 
+        bands = so_utils.tubes[tube]
+
         rnames = []
-        for ch in chs:
+        for band in bands:
             rnames.append(
-                f"{tube}_{ch.band}_01_of_20.nominal_telescope_all_time_all_hmap{car_suffix}.fits.gz"
+                f"{tube}_{band}_01_of_20.nominal_telescope_all_time_all_hmap{car_suffix}.fits.gz"
             )
 
         hitmap_filenames = [self.remote_data.get(rname) for rname in rnames]
+        hitmaps = []
+        for hitmap_filename in hitmap_filenames:
+            hitmaps.append(self._load_map(hitmap_filename))
 
-        if self.healpix:
-            hitmaps = [
-                hp.ud_grade(
-                    hp.read_map(hitmap_filename, verbose=False), nside_out=self.nside
-                )
-                for hitmap_filename in hitmap_filenames
-            ]
-        else:
-            from pixell import enmap, wcsutils
-
-            hitmaps = [
-                enmap.read_map(hitmap_filename) for hitmap_filename in hitmap_filenames
-            ]
-            if wcsutils.is_compatible(hitmaps[0].wcs, self.wcs):
-                hitmaps = [
-                    enmap.extract(hitmap, self.shape, self.wcs) for hitmap in hitmaps
-                ]
-            else:
-                warnings.warn(
-                    "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
-                )
-                hitmaps = [
-                    enmap.project(hitmap, self.shape, self.wcs,order=0) for hitmap in hitmaps
-                ]
-
-        for hitmap in hitmaps:
-            hitmap /= hitmap.max()
-        # Discard pixels with very few hits that cause border effects
-        # hitmap[hitmap < 1e-3] = 0
-        if self.healpix:
-            sky_fractions = [(hitmap != 0).sum() / hitmap.size for hitmap in hitmaps]
-        else:
-            pmap = enmap.pixsizemap(self.shape, self.wcs)
-            sky_fractions = [(
-                pmap[hitmap != 0].sum()
-                / 4.0
-                / np.pi
-            ) for hitmap in hitmaps]
-
-        if len(hitmaps) == 1:
-            hitmaps = hitmaps[0]
-            sky_fractions = sky_fractions[0]
-        return hitmaps, sky_fractions
+        return self._process_hitmaps(hitmaps)
 
     def get_white_noise_power(self, ch, units='sr'):
         """Get white noise power in uK^2-sr (units='sr') or
@@ -447,57 +442,18 @@ class SONoiseSimulator:
                     )  # avoid any risk of same seed between full and the first split
                 )
 
-        if self.scanning_strategy is False:
+        if self.homogenous:
             ones = np.ones(hp.nside2npix(self.nside)) if self.healpix else enmap.ones(self.shape,self.wcs)
             hitmaps = [ones, ones] if self.full_covariance else ones
             fsky = self._sky_fraction if self._sky_fraction is not None else 1
             sky_fractions = [fsky, fsky] if self.full_covariance else fsky
         else:
-            hitmaps, sky_fractions = self.load_hitmaps(chs, tube,hitmap=hitmap)
+            hitmaps, sky_fractions = self.get_hitmaps(tube,hitmap=hitmap)
 
-        ps_T = (
-            np.asarray(
-                [
-                    self.noise_ell_T[chs[0].telescope][
-                        int(chs[0].center_frequency.value)
-                    ]
-                    * sky_fractions[0],
-                    self.noise_ell_T[chs[1].telescope][
-                        int(chs[1].center_frequency.value)
-                    ]
-                    * sky_fractions[1],
-                    self.noise_ell_T[chs[0].telescope][
-                        str(int(chs[0].center_frequency.value)) + "_corr"
-                    ]
-                    * np.mean(sky_fractions),
-                ]
-            )
-            * nsplits
-        )
-
-        ps_P = (
-            np.asarray(
-                [
-                    self.noise_ell_P[chs[0].telescope][
-                        int(chs[0].center_frequency.value)
-                    ]
-                    * sky_fractions[0],
-                    self.noise_ell_P[chs[1].telescope][
-                        int(chs[1].center_frequency.value)
-                    ]
-                    * sky_fractions[1],
-                    self.noise_ell_P[chs[0].telescope][
-                        str(int(chs[0].center_frequency.value)) + "_corr"
-                    ]
-                    * np.mean(sky_fractions),
-                ]
-            )
-            * nsplits
-        )
-
-        if not(self.full_covariance):
-            ps_T[2] = 0
-            ps_P[2] = 0
+        ls,ps_T,ps_P = self.get_noise_spectra(tube, ncurve_fsky=1)
+        fsky = np.append(sky_fractions,[np.mean(sky_fractions)])
+        ps_T = ps_T * fsky[:,None]
+        ps_P = ps_P * fsky[:,None]
 
 
         if self.healpix:
@@ -515,20 +471,23 @@ class SONoiseSimulator:
                         )
                     )
         else:
-            from pixell import curvedsky, powspec
             output_map = np.zeros((2, nsplits, 3, ) + self.shape)
             ps_T = powspec.sym_expand(np.asarray(ps_T), scheme="diag")
             ps_P = powspec.sym_expand(np.asarray(ps_P), scheme="diag")
             # TODO: These loops can probably be vectorized
             for i in range(nsplits):
                 for i_pol in range(3):
-                    output_map[:,i,i_pol] = curvedsky.rand_map((2,) + self.shape, self.wcs, ps_T if i_pol==0 else ps_P)
+                    output_map[:,i,i_pol] = curvedsky.rand_map((2,) + self.shape, self.wcs, ps_T if i_pol==0 else ps_P,spin=0)
 
+        tubes = so_utils.tubes
+        bands = tubes[tube]
+        telescope = f'{tube[0]}A' # get LA or SA from tube name
 
-        for out_map, hitmap, sky_fraction, ch in zip(
-            output_map, hitmaps, sky_fractions, chs
+        for out_map, hitmap, sky_fraction, band in zip(
+            output_map, hitmaps, sky_fractions, bands
         ):
 
+            freq = so_utils.SOChannel(telescope, band, tube=tube).center_frequency
             good = hitmap != 0
             # Normalize on the Effective sky fraction, see discussion in:
             # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
@@ -536,16 +495,11 @@ class SONoiseSimulator:
             out_map[:, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units),
-                equivalencies=u.cmb_equivalencies(ch.center_frequency),
+                equivalencies=u.cmb_equivalencies(freq),
             )
             out_map *= unit_conv
 
-        if not self.full_covariance:
-            output_map = output_map[0]
         if nsplits == 1:
-            if self.full_covariance:
-                return output_map[:, 0, :, :]
-            else:
-                return output_map[0]
+            return output_map[:, 0, :, :]
 
         return output_map

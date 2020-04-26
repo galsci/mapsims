@@ -135,7 +135,7 @@ def save_maps(hmap,root_name,telescope):
         )
         enmap.write_map(oname, imap)
         os.system(f"gzip -f {oname}")
-        plots = enplot.get_plots(imap)
+        plots = enplot.get_plots(enmap.downgrade(imap,8))
         savename = cr_remote_data.get_local_output(f"rmap_{root_name}_{res:.2f}")
         enplot.write(
             savename,
