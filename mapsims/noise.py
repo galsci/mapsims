@@ -31,6 +31,7 @@ def band_ids_from_tube(tube):
 def band_index(tube,band):
     return so_utils.tubes[tube].index(band)
 
+
 class SONoiseSimulator:
     def __init__(
         self,
@@ -128,7 +129,7 @@ class SONoiseSimulator:
             Correlated noise performance of the detectors on the Small Aperture telescopes
         sky_fraction : optional,float
             If homogenous is True, this sky_fraction is used for the noise curves.
-        cache_hitmaps : bool
+.        cache_hitmaps : bool
             If True, caches hitmaps.
         boolean_sky_fraction: bool
             If True, determines fsky based on fraction of hitmap that is zero. If False,
@@ -468,34 +469,47 @@ class SONoiseSimulator:
         else:
             hitmaps, sky_fractions = self.get_hitmaps(tube,hitmap=hitmap)
 
-        ls,ps_T,ps_P = self.get_noise_spectra(tube, ncurve_fsky=1)
         fsky = np.append(sky_fractions,[np.mean(sky_fractions)])
-        ps_T = ps_T * fsky[:,None]
-        ps_P = ps_P * fsky[:,None]
 
-
-        if self.healpix:
-            npix = hp.nside2npix(self.nside)
-            output_map = np.zeros((2, nsplits, 3, npix))
-            for i in range(nsplits):
-                for i_pol in range(3):
-                    output_map[0][i][i_pol], output_map[1][i][i_pol] = np.array(
-                        hp.synfast(
-                            ps_T if i_pol == 0 else ps_P,
-                            nside=self.nside,
-                            pol=False,
-                            new=True,
-                            verbose=False,
-                        )
-                    )
+        if not(atmosphere):
+            npower = self.get_white_noise_power(tube,sky_fraction=1,units='arcmin2') * nsplits * fsky[:2]
+            if self.healpix:
+                ashape = (hp.nside2npix(self.nside),)
+                sel = np.s_[:,None,None,None]
+                pmap = (4.*np.pi / hp.nside2npix(self.nside))*((180.*60./np.pi)**2.)
+            else:
+                ashape = self.shape[-2:]
+                sel = np.s_[:,None,None,None,None]
+                pmap = self.pmap*((180.*60./np.pi)**2.)
+            spowr = (np.sqrt(npower[sel]/pmap))
+            output_map = spowr*np.random.standard_normal((2,nsplits,3,)+ashape)
+            output_map[:,:,1:,:] = output_map[:,:,1:,:] * np.sqrt(2.)
         else:
-            output_map = np.zeros((2, nsplits, 3, ) + self.shape)
-            ps_T = powspec.sym_expand(np.asarray(ps_T), scheme="diag")
-            ps_P = powspec.sym_expand(np.asarray(ps_P), scheme="diag")
-            # TODO: These loops can probably be vectorized
-            for i in range(nsplits):
-                for i_pol in range(3):
-                    output_map[:,i,i_pol] = curvedsky.rand_map((2,) + self.shape, self.wcs, ps_T if i_pol==0 else ps_P,spin=0)
+            ls,ps_T,ps_P = self.get_noise_spectra(tube, ncurve_fsky=1)
+            ps_T = ps_T * fsky[:,None] * nsplits
+            ps_P = ps_P * fsky[:,None] * nsplits
+            if self.healpix:
+                npix = hp.nside2npix(self.nside)
+                output_map = np.zeros((2, nsplits, 3, npix))
+                for i in range(nsplits):
+                    for i_pol in range(3):
+                        output_map[0][i][i_pol], output_map[1][i][i_pol] = np.array(
+                            hp.synfast(
+                                ps_T if i_pol == 0 else ps_P,
+                                nside=self.nside,
+                                pol=False,
+                                new=True,
+                                verbose=False,
+                            )
+                        )
+            else:
+                output_map = np.zeros((2, nsplits, 3, ) + self.shape)
+                ps_T = powspec.sym_expand(np.asarray(ps_T), scheme="diag")
+                ps_P = powspec.sym_expand(np.asarray(ps_P), scheme="diag")
+                # TODO: These loops can probably be vectorized
+                for i in range(nsplits):
+                    for i_pol in range(3):
+                        output_map[:,i,i_pol] = curvedsky.rand_map((2,) + self.shape, self.wcs, ps_T if i_pol==0 else ps_P,spin=0)
 
         tubes = so_utils.tubes
         bands = tubes[tube]
