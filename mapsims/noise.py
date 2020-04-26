@@ -46,7 +46,7 @@ class SONoiseSimulator:
         apply_kludge_correction=True,
         homogenous=False,
         no_power_below_ell=None,
-        rolloff_ell=None,
+        rolloff_ell=50,
         survey_efficiency=0.2,
         full_covariance=False,
         LA_years=5,
