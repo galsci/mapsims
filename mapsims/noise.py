@@ -179,6 +179,20 @@ class SONoiseSimulator:
         )
 
 
+    def get_beam_fwhm(self, tube):
+        """Get beam FWHMs in arcminutes corresponding to the tueb.
+        This is useful if non-beam-deconvolved sims are requested and you want to 
+        know what beam to apply to your signal simulation.
+
+        Parameters
+        ----------
+
+
+        """
+        b1,b2 = band_ids_from_tube(tube)
+        return self.surveys[ch.telescope].get_beams()[(b1,b2)]
+
+
     def get_noise_spectra(self, tube, ncurve_fsky=1):
         """Update a telescope configuration by loading the corresponding
         hitmaps. Each loaded `telescope` is kept in memory, but
@@ -347,7 +361,7 @@ class SONoiseSimulator:
 
         return self._process_hitmaps(hitmaps)
 
-    def get_white_noise_power(self, ch, units='sr'):
+    def get_white_noise_power(self, tube, units='sr'):
         """Get white noise power in uK^2-sr (units='sr') or
         uK^2-arcmin^2 (units='arcmin2') corresponding to the channel identifier ch.
         This is useful if you want to generate your own simulations that do not
