@@ -372,7 +372,7 @@ class SONoiseSimulator:
 
         return self._process_hitmaps(hitmaps)
 
-    def get_white_noise_power(self, tube, units='sr'):
+    def get_white_noise_power(self, tube, sky_fraction,band=None,units='sr'):
         """Get white noise power in uK^2-sr (units='sr') or
         uK^2-arcmin^2 (units='arcmin2') corresponding to the channel identifier ch.
         This is useful if you want to generate your own simulations that do not
@@ -385,12 +385,11 @@ class SONoiseSimulator:
             Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
 
         """
-        available_frequencies = np.unique(so_utils.frequencies)
-        frequency = ch.center_frequency.value
-        band_index = available_frequencies.searchsorted(frequency)
-        f_sky = self.sky_fraction[ch.telescope]
-        return self.surveys[ch.telescope].get_white_noise(f_sky, units=units)[band_index]
-
+        survey = self.get_survey(tube)
+        bands = band_ids_from_tube(tube)
+        ret = survey.get_white_noise(sky_fraction, units=units)[bands]
+        if band is not None: ret = ret[band_index(tube,band)]
+        return ret
 
     def simulate(
         self,
