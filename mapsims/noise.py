@@ -28,6 +28,8 @@ def band_ids_from_tube(tube):
     band_ids = [available_frequencies.searchsorted(f) for f in freqs]
     return band_ids
 
+def band_index(tube,band):
+    return so_utils.tubes[tube].index(band)
 
 class SONoiseSimulator:
     def __init__(
@@ -179,7 +181,7 @@ class SONoiseSimulator:
         )
 
 
-    def get_beam_fwhm(self, tube):
+    def get_beam_fwhm(self, tube, band=None):
         """Get beam FWHMs in arcminutes corresponding to the tueb.
         This is useful if non-beam-deconvolved sims are requested and you want to 
         know what beam to apply to your signal simulation.
@@ -189,8 +191,38 @@ class SONoiseSimulator:
 
 
         """
-        b1,b2 = band_ids_from_tube(tube)
-        return self.surveys[ch.telescope].get_beams()[(b1,b2)]
+        survey = self.get_survey(tube)
+        bands = band_ids_from_tube(tube)
+        ret = survey.get_beams()[bands]
+        if band is not None: ret = ret[band_index(tube,band)]
+        return ret
+
+    def get_survey(self,tube):
+        telescope = f'{tube[0]}A' # get LA or SA from tube name
+        if telescope=='SA':
+            if   tube=='ST0': N_tubes = [0,0,1] # the UHF telescope
+            elif tube=='ST1': N_tubes = [0,1,0] # the MF telescope
+            elif tube=='ST2': N_tubes = [0,0.6,0] # the MF/LF telescope
+            elif tube=='ST3': N_tubes = [0.4,0,0] # the MF/LF telescope
+            else: raise ValueError
+
+            survey = so_models.SOSatV3point1(
+                sensitivity_mode=self.sensitivity_mode,
+                survey_efficiency=self.survey_efficiency,
+                survey_years=self.SA_years,
+                N_tubes=N_tubes,
+                el=None,  # SAT does not support noise elevation function
+                one_over_f_mode=self.SA_one_over_f_mode,
+            )
+        elif telescope=='LA':
+            survey = getattr(so_models, self.LA_noise_model)(
+                sensitivity_mode=self.sensitivity_mode,
+                survey_efficiency=self.survey_efficiency,
+                survey_years=self.LA_years,
+                N_tubes=[1,1,1],
+                el=self.elevation,
+            )
+        return survey
 
 
     def get_noise_spectra(self, tube, ncurve_fsky=1):
@@ -208,22 +240,8 @@ class SONoiseSimulator:
         """
 
         telescope = f'{tube[0]}A' # get LA or SA from tube name
-
+        survey = self.get_survey(tube)
         if telescope == "SA":
-            if   tube=='ST0': N_tubes = [0,0,1] # the UHF telescope
-            elif tube=='ST1': N_tubes = [0,1,0] # the MF telescope
-            elif tube=='ST2': N_tubes = [0,0.6,0] # the MF/LF telescope
-            elif tube=='ST3': N_tubes = [0.4,0,0] # the MF/LF telescope
-            else: raise ValueError
-
-            survey = so_models.SOSatV3point1(
-                sensitivity_mode=self.sensitivity_mode,
-                survey_efficiency=self.survey_efficiency,
-                survey_years=self.SA_years,
-                N_tubes=N_tubes,
-                el=None,  # SAT does not support noise elevation function
-                one_over_f_mode=self.SA_one_over_f_mode,
-            )
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 ncurve_fsky,  # We load hitmaps later, so we compute and apply sky fraction later
                 self.ell_max,
@@ -237,13 +255,6 @@ class SONoiseSimulator:
             if noise_ell_T is None:
                 noise_ell_T = noise_ell_P / 2
         elif telescope == "LA":
-            survey = getattr(so_models, self.LA_noise_model)(
-                sensitivity_mode=self.sensitivity_mode,
-                survey_efficiency=self.survey_efficiency,
-                survey_years=self.LA_years,
-                N_tubes=[1,1,1],
-                el=self.elevation,
-            )
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 ncurve_fsky,  # We load hitmaps later, so we compute and apply sky fraction later
                 self.ell_max,
@@ -384,6 +395,7 @@ class SONoiseSimulator:
     def simulate(
         self,
         tube,
+        band=None,
         output_units="uK_CMB",
         seed=None,
         nsplits=1,
@@ -439,22 +451,15 @@ class SONoiseSimulator:
             )
 
 
+        # This seed tuple prevents collisions with the signal sims
+        # but we should eventually switch to centralized seed
+        # tracking.
         if seed is not None:
+            try: iter(seed)
+            except: seed = (seed,)
+            tube_id = so_utils.tube_names.index(tube)
+            seed = (0,0,6,tube_id) + seed
             np.random.seed(seed)
-        else:
-            if self.seed is not None:
-                try:
-                    frequency_offset = int(chs[0].band)
-                except ValueError:
-                    frequency_offset = so_utils.bands.index(chs[0].band) * 100
-                np.random.seed(
-                    self.seed
-                    + frequency_offset
-                    + telescope_seed_offset[chs[0].telescope]
-                    + (
-                        nsplits - 1
-                    )  # avoid any risk of same seed between full and the first split
-                )
 
         if self.homogenous:
             ones = np.ones(hp.nside2npix(self.nside)) if self.healpix else enmap.ones(self.shape,self.wcs)
