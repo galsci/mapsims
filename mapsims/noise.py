@@ -74,7 +74,6 @@ class SONoiseSimulator:
         shape=None,
         wcs=None,
         ell_max=None,
-        num=None,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
         apply_beam_correction=False,
