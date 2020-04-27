@@ -8,30 +8,9 @@ import os, sys
 import healpy as hp
 import mapsims
 from mapsims import utils as mutils
-from mpi4py import MPI
 
-
-def mpi_distribute(num_tasks,avail_cores,allow_empty=False):
-    if not(allow_empty): assert avail_cores<=num_tasks
-    min_each, rem = divmod(num_tasks,avail_cores)
-    num_each = np.array([min_each]*avail_cores) # first distribute equally
-    if rem>0: num_each[-rem:] += 1  # add the remainder to the last set of cores (so that rank 0 never gets extra jobs)
-    task_range = list(range(num_tasks)) # the full range of tasks
-    cumul = np.cumsum(num_each).tolist() # the end indices for each task
-    task_dist = [task_range[x:y] for x,y in zip([0]+cumul[:-1],cumul)] # a list containing the tasks for each core
-    assert sum(num_each)==num_tasks
-    assert len(num_each)==avail_cores
-    assert len(task_dist)==avail_cores
-    return num_each,task_dist
-
-def distribute(njobs,verbose=True,**kwargs):
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    numcores = comm.Get_size()
-    num_each,each_tasks = mpi_distribute(njobs,numcores,**kwargs)
-    if rank==0: print ("At most ", max(num_each) , " tasks...")
-    my_tasks = each_tasks[rank]
-    return comm,rank,my_tasks
+comm = mpi.COMM_WORLD
+    
 
 
 import argparse
@@ -130,18 +109,19 @@ def save_maps(hmap,root_name,telescope):
     for res in resolutions[telescope]:
         shape, wcs = get_geometry(res, bounds_deg=bounds[telescope])
         imap = ivar_hp_to_cyl(hmap, shape, wcs)
-        oname = cr_remote_data.get_local_output(
-            f"{root_name}_CAR_{res:.2f}_arcmin.fits"
-        )
-        enmap.write_map(oname, imap)
-        os.system(f"gzip -f {oname}")
-        plots = enplot.get_plots(enmap.downgrade(imap,8))
-        savename = cr_remote_data.get_local_output(f"rmap_{root_name}_{res:.2f}")
-        enplot.write(
-            savename,
-            plots
-        )
-        print(f"Plot saved to {savename}")
+        if comm.rank==0:
+            oname = cr_remote_data.get_local_output(
+                f"{root_name}_CAR_{res:.2f}_arcmin.fits"
+            )
+            enmap.write_map(oname, imap)
+            os.system(f"gzip -f {oname}")
+            plots = enplot.get_plots(enmap.downgrade(imap,8))
+            savename = cr_remote_data.get_local_output(f"rmap_{root_name}_{res:.2f}")
+            enplot.write(
+                savename,
+                plots
+            )
+            print(f"Plot saved to {savename}")
 
 
 if version=='v0.1':
@@ -153,10 +133,8 @@ if version=='v0.1':
         for mode in modes:
             jobs.append((telescope,mode))
 
-    comm,rank,my_tasks = distribute(len(jobs))
-
-    for task in my_tasks:
-        telescope,mode = jobs[task]
+    for job in jobs:
+        telescope,mode = job
         root_name = f'total_hits_{telescope}_{mode}'
         hmap = hp.read_map(hp_remote_data.get(f"{root_name}.fits.gz"))
         save_maps(hmap,root_name,telescope)
@@ -168,10 +146,7 @@ elif version=='v0.2':
     for tube in tubes.keys():
         for band in tubes[tube]: modes.append( f'{tube}_{band}' ) 
 
-    comm,rank,my_tasks = distribute(len(modes))
-
-    for task in my_tasks:
-        mode = modes[task]
+    for mode in modes:
         telescope = f'{mode[0]}A'
         root_name = f'{mode}_01_of_20.nominal_telescope_all_time_all_hmap'
         hmap = hp.read_map(hp_remote_data.get(f"{root_name}.fits.gz"))
