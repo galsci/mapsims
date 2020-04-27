@@ -678,14 +678,14 @@ class SONoiseSimulator:
             output_map, hitmaps, sky_fractions, bands
         ):
             freq = so_utils.SOChannel(telescope, band, tube=tube).center_frequency
-            good = hitmap != 0
-            # Normalize on the Effective sky fraction, see discussion in:
-            # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
             if not (self.homogenous):
+                good = hitmap != 0
+                # Normalize on the Effective sky fraction, see discussion in:
+                # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
                 out_map[:, :, good] /= np.sqrt(
                     hitmap[good] / hitmap.mean() * sky_fraction
                 )
-            out_map[:, :, np.logical_not(good)] = mask_value
+                out_map[:, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
             )
