@@ -7,9 +7,15 @@ from astropy.tests.helper import assert_quantity_allclose
 from astropy.utils import data
 import mapsims
 import pysm.units as u
+from mapsims import so_utils
 
 NSIDE = 16
 
+def test_freq_order():
+    freqs = np.unique(so_utils.frequencies)
+    ifreqs = (27, 39, 93, 145, 225, 280)
+    for f,f2 in zip(freqs,ifreqs):
+        assert f==f2
 
 @pytest.mark.parametrize("telescope", ["SA", "LA"])
 def test_noise_simulator(telescope):

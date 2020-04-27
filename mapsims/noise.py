@@ -10,17 +10,35 @@ from so_models_v3 import SO_Noise_Calculator_Public_v3_1_1 as so_models
 from . import so_utils
 from . import utils as mutils
 
+# pixell is optional and needed when CAR simulations are requested
 try:
     from pixell import enmap, wcsutils, curvedsky, powspec
 except: pass
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
-telescope_seed_offset = {"LA": 0, "SA": 1000}
 default_mask_value = {"healpix": hp.UNSEEN, "car": np.nan}
 _hitmap_version = "v0.2"
 
-def band_ids_from_tube(tube):
+def _band_ids_from_tube(tube):
+    """Internal function to convert a tube name
+    to a pair of indices, where the indices
+    correspond to the positions in a list of
+    frequencies that the two bands of the
+    tube correspond to. The list has the
+    same order that the noise curve code
+    uses and is identical to the unique
+    set of frequencies in so_utils.frequencies.
+
+    e.g.
+    >>> _band_ids_from_tube('LT0')
+    [6, 7]
+    >>> _band_ids_from_tube('ST1')
+    [2, 3]
+    >>> _band_ids_from_tube('ST2')
+    [4, 5]
+    
+    """
     tubes = so_utils.tubes
     bands = tubes[tube]
     freqs = [so_utils.band_freqs[x] for x in bands]
@@ -28,7 +46,21 @@ def band_ids_from_tube(tube):
     band_ids = [available_frequencies.searchsorted(f) for f in freqs]
     return band_ids
 
-def band_index(tube,band):
+def _band_index(tube,band):
+    """
+    Internal function to get the index position
+    of a band in a tube.
+
+    e.g.
+    >>> _band_index('LT0','UHF1')
+    0
+    >>> _band_index('LT0','UHF2')
+    1
+    >>> _band_index('ST2','MFS1')
+    0
+    >>> _band_index('ST2','MFS2')
+    1
+    """
     return so_utils.tubes[tube].index(band)
 
 
@@ -48,7 +80,7 @@ class SONoiseSimulator:
         no_power_below_ell=None,
         rolloff_ell=50,
         survey_efficiency=0.2,
-        full_covariance=False,
+        full_covariance=True,
         LA_years=5,
         LA_noise_model="SOLatV3point1",
         elevation=50,
@@ -57,6 +89,7 @@ class SONoiseSimulator:
         sky_fraction = None,
         cache_hitmaps = True,
         boolean_sky_fraction = True,
+        rescale_white_noise = None,
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -82,8 +115,6 @@ class SONoiseSimulator:
             Maximum ell for the angular power spectrum, if not provided set to 3 * nside when using healpix
             or 10000 * (1.0 / pixel_height_arcmin) when using CAR, corresponding roughly to the Nyquist
             frequency.
-        num : int
-            Numpy random seed, each band is going to get a different seed as seed + band + (1000 for SA)
         return_uK_CMB : bool
             True, output is in microK_CMB, False output is in microK_RJ
         sensitivity_mode : str
@@ -103,14 +134,11 @@ class SONoiseSimulator:
         survey_efficiency : float
             Fraction of calendar time that may be used to compute map depth.
         full_covariance : bool
+            Whether or not to include the intra-tube covariance between bands.
+            If white noise (atmosphere=False) sims are requested, no
+            covariance is included regardless of the value of full_covariance.
         LA_years : int
             Total number of years for the Large Aperture telescopes survey
-        LA_number_LF : int
-            Number of Low Frequency tubes in LAT
-        LA_number_MF : int
-            Number of Medium Frequency tubes in LAT
-        LA_number_UHF : int
-            Number of Ultra High Frequency tubes in LAT
         LA_noise_model : str
             Noise model among the ones available in `so_noise_model`, "SOLatV3point1" is default, "SOLatV3" is
             the model released in 2018 which had a bug in the atmosphere contribution
@@ -120,20 +148,17 @@ class SONoiseSimulator:
             reference elevation of 50 degrees.
         SA_years : int
             Total number of years for the Small Aperture telescopes survey
-        SA_number_*: survey-averaged number of each SAT tube in operation.
-            For example, the default is 0.4 LF, 1.6 MF, and 1 UHF]
-            populating a total of 3 tubes.  Fractional tubes are acceptable
-            (imagine a tube were swapped out part way through the
-            survey).
         SA_one_over_f_mode : {"pessimistic", "optimistic", "none"}
             Correlated noise performance of the detectors on the Small Aperture telescopes
         sky_fraction : optional,float
             If homogenous is True, this sky_fraction is used for the noise curves.
-.        cache_hitmaps : bool
+        cache_hitmaps : bool
             If True, caches hitmaps.
         boolean_sky_fraction: bool
             If True, determines fsky based on fraction of hitmap that is zero. If False,
             determines sky_fraction from <Nhits>.
+        rescale_white_noise : float or tuple of floats, optional
+        
         """
 
         if nside is None:
@@ -164,7 +189,6 @@ class SONoiseSimulator:
         if self.apply_kludge_correction:
             self.survey_efficiency *= 0.85
         self.full_covariance = full_covariance
-        self.seed = num
         self.return_uK_CMB = return_uK_CMB
         self.no_power_below_ell = no_power_below_ell
         self.LA_years = LA_years
@@ -193,9 +217,9 @@ class SONoiseSimulator:
 
         """
         survey = self.get_survey(tube)
-        bands = band_ids_from_tube(tube)
+        bands = _band_ids_from_tube(tube)
         ret = survey.get_beams()[bands]
-        if band is not None: ret = ret[band_index(tube,band)]
+        if band is not None: ret = ret[_band_index(tube,band)]
         return ret
 
     def get_survey(self,tube):
@@ -270,7 +294,7 @@ class SONoiseSimulator:
         ls = np.arange(ell.size + 2)
         nells_T = np.zeros((3,ell.size + 2))
         nells_P = np.zeros((3,ell.size + 2))
-        b1,b2 = band_ids_from_tube(tube)
+        b1,b2 = _band_ids_from_tube(tube)
         for n_out,n_in in zip([nells_T,nells_P],[noise_ell_T,noise_ell_P]):
             n_out[0,2:] = n_in[b1][b1]
             n_out[1,2:] = n_in[b2][b2]
@@ -281,15 +305,38 @@ class SONoiseSimulator:
         return ls,nells_T,nells_P
 
     def _validate_map(self,fmap):
-        raise NotImplementedError
         shape = fmap.shape
         if self.healpix:
             if len(shape)==1: 
-                pass
+                npix = shape[0]
+            elif len(shape)==2:
+                assert shape[0]==1 or shape[0]==2
+                npix = shape[1]
+            else:
+                raise ValueError
+            assert npix == hp.nside2npix(self.nside)
+            if len(shape)==1: 
+                return fmap[None,:]
+            else: 
+                return fmap
+        else:
+            if len(shape)==2:
+                ashape = shape
+            elif len(shape)==3:
+                assert shape[0]==1 or shape[0]==2
+                ashape = shape[-2:]
+            else:
+                raise ValueError
+            assert [x==y for x,y in zip(ashape,self.shape)]
+            if len(shape)==2:
+                return fmap[None,...]
+            else:
+                return fmap
+                
 
     def _load_map(self,fname,**kwargs):
         # If not a string try as a healpix or CAR map
-        if not(isinstance(fname,str)): return _validate_map(fname)
+        if not(isinstance(fname,str)): return self._validate_map(fname)
         
         # Check if in cache
         if self._cache: 
@@ -318,34 +365,30 @@ class SONoiseSimulator:
 
 
     def _process_hitmaps(self,hitmaps):
+        nhitmaps = hitmaps.shape[0]
+        assert nhitmaps==1 or nhitmaps==2
         if self.boolean_sky_fraction:
-            for hitmap in hitmaps:
-                hitmap /= hitmap.max()
-            # Discard pixels with very few hits that cause border effects
-            # hitmap[hitmap < 1e-3] = 0
+            for i in range(nhitmaps):
+                hitmaps[i] /= hitmaps[i].max()
+
             if self.healpix:
-                sky_fractions = [(hitmap != 0).sum() / hitmap.size for hitmap in hitmaps]
+                sky_fractions = [(hitmaps[i] != 0).sum() / hitmaps[i].size for i in range(nhitmaps)]
             else:
                 pmap = self.pmap
                 sky_fractions = [(
-                    pmap[hitmap != 0].sum()
+                    pmap[hitmaps[i] != 0].sum()
                     / 4.0
                     / np.pi
-                ) for hitmap in hitmaps]
-
-            if len(hitmaps) == 1:
-                hitmaps = hitmaps[0]
-                sky_fractions = sky_fractions[0]
+                ) for i in range(nhitmaps)]
         else:
             raise NotImplementedError
-
         return hitmaps, sky_fractions
             
             
 
     def get_hitmaps(self, tube=None, hitmap=None):
 
-        if hitmap is not None: return self._process_hitmaps(_load_map(hitmap))
+        if hitmap is not None: return self._process_hitmaps(self._load_map(hitmap))
 
         telescope = f'{tube[0]}A' # get LA or SA from tube name
 
@@ -371,7 +414,7 @@ class SONoiseSimulator:
         for hitmap_filename in hitmap_filenames:
             hitmaps.append(self._load_map(hitmap_filename))
 
-        return self._process_hitmaps(hitmaps)
+        return self._process_hitmaps(np.asarray(hitmaps))
 
     def get_white_noise_power(self, tube, sky_fraction,band=None,units='sr'):
         """Get white noise power in uK^2-sr (units='sr') or
@@ -387,15 +430,14 @@ class SONoiseSimulator:
 
         """
         survey = self.get_survey(tube)
-        bands = band_ids_from_tube(tube)
+        bands = _band_ids_from_tube(tube)
         ret = survey.get_white_noise(sky_fraction, units=units)[bands]
-        if band is not None: ret = ret[band_index(tube,band)]
+        if band is not None: ret = ret[_band_index(tube,band)]
         return ret
 
     def simulate(
         self,
         tube,
-        band=None,
         output_units="uK_CMB",
         seed=None,
         nsplits=1,
@@ -409,17 +451,16 @@ class SONoiseSimulator:
         Parameters
         ----------
 
-        ch : mapsims.Channel
-            Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
-            Optional, we can specify a tube and simulate both channels
         tube : str
             Specify a specific tube, required for hitmaps v0.2, for available
             tubes and their channels, see so_utils.tubes.
         output_units : str
             Output unit supported by PySM.units, e.g. uK_CMB or K_RJ
-        seed : integer, optional
-            Specify a seed, if not specified, we use self.seed and then offset it
-            differently for each channel.
+        seed : integer or tuple of integers, optional
+            Specify a seed. The seed is converted to a tuple if not already
+            one and appended to (0,0,6,tube_id) to avoid collisions between
+            tubes, with the signal sims and with ACT noise sims, where 
+            tube_id is the integer ID of the tube.
         nsplits : integer, optional
             Number of splits to generate. The splits will have independent noise
             realizations, with noise power scaled by a factor of nsplits, i.e. atmospheric
@@ -432,15 +473,25 @@ class SONoiseSimulator:
         atmosphere : bool, optional
             Whether to include the correlated 1/f from the noise model. This is
             True by default. If it is set to False, then a pure white noise map
-            is generated from the white noise power in the noise model.
-        hitmap
-
+            is generated from the white noise power in the noise model, and 
+            the covariance between arrays is ignored.
+        hitmap : string or map, optional
+            Provide the path to a hitmap to override the default used for 
+            the tube. You could also provide the hitmap as an array
+            directly.
 
         Returns
         -------
 
-        output_map : ndarray
-            Numpy array with the HEALPix map realization of noise
+        output_map : ndarray or ndmap
+            Numpy array with the HEALPix or CAR map realization of noise.
+            The shape of the returned array is (2,3,nsplits,)+oshape, where 
+            oshape is (npix,) for HEALPix and (Ny,Nx) for CAR.
+            The first dimension of size 2 corresponds to the two different
+            bands within a dichroic tube. The second dimension corresponds
+            the three polarization Stokes components I,Q,U and the third
+            dimension corresponds to independent split realizations of the
+            noise.
         """
         assert nsplits >= 1
         if mask_value is None:
@@ -461,7 +512,7 @@ class SONoiseSimulator:
             seed = (0,0,6,tube_id) + seed
             np.random.seed(seed)
 
-        if self.homogenous:
+        if self.homogenous and (hitmap is None):
             ones = np.ones(hp.nside2npix(self.nside)) if self.healpix else enmap.ones(self.shape,self.wcs)
             hitmaps = [ones, ones] if self.full_covariance else ones
             fsky = self._sky_fraction if self._sky_fraction is not None else 1
@@ -469,9 +520,12 @@ class SONoiseSimulator:
         else:
             hitmaps, sky_fractions = self.get_hitmaps(tube,hitmap=hitmap)
 
-        fsky = np.append(sky_fractions,[np.mean(sky_fractions)])
+        if len(sky_fractions)==1: fsky = np.asarray([sky_fractions[0]]*3)
+        else: fsky = np.append(sky_fractions,[np.mean(sky_fractions)])
 
         if not(atmosphere):
+            # If no atmosphere is requested, we use a simpler/faster method
+            # that generates white noise in real-space.
             npower = self.get_white_noise_power(tube,sky_fraction=1,units='arcmin2') * nsplits * fsky[:2]
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
@@ -518,7 +572,6 @@ class SONoiseSimulator:
         for out_map, hitmap, sky_fraction, band in zip(
             output_map, hitmaps, sky_fractions, bands
         ):
-
             freq = so_utils.SOChannel(telescope, band, tube=tube).center_frequency
             good = hitmap != 0
             # Normalize on the Effective sky fraction, see discussion in:
@@ -530,8 +583,5 @@ class SONoiseSimulator:
                 equivalencies=u.cmb_equivalencies(freq),
             )
             out_map *= unit_conv
-
-        if nsplits == 1:
-            return output_map[:, 0, :, :]
 
         return output_map
