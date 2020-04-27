@@ -607,9 +607,14 @@ class SONoiseSimulator:
             hitmaps, sky_fractions = self.get_hitmaps(tube, hitmap=hitmap)
 
         if len(sky_fractions) == 1:
+            assert hitmaps.shape[0] == 1
             fsky = np.asarray([sky_fractions[0]] * 3)
-        else:
+            hitmaps = np.repeat(hitmaps,2,axis=0)
+        elif len(sky_fractions) == 2:
+            assert len(hitmaps) == 2
             fsky = np.append(sky_fractions, [np.mean(sky_fractions)])
+        else:
+            raise ValueError
 
         if not (atmosphere):
             if self.apply_beam_correction:
@@ -673,22 +678,19 @@ class SONoiseSimulator:
         tubes = so_utils.tubes
         bands = tubes[tube]
         telescope = f"{tube[0]}A"  # get LA or SA from tube name
-
-        for out_map, hitmap, sky_fraction, band in zip(
-            output_map, hitmaps, sky_fractions, bands
-        ):
-            freq = so_utils.SOChannel(telescope, band, tube=tube).center_frequency
+        for i in range(2):
+            freq = so_utils.SOChannel(telescope, bands[i], tube=tube).center_frequency
             if not (self.homogenous):
-                good = hitmap != 0
+                good = hitmaps[i] != 0
                 # Normalize on the Effective sky fraction, see discussion in:
                 # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-                out_map[:, :, good] /= np.sqrt(
-                    hitmap[good] / hitmap.mean() * sky_fraction
+                output_map[i,:, :, good] /= np.sqrt(
+                    hitmaps[i][good][...,None,None] / hitmaps[i].mean() * fsky[i]
                 )
-                out_map[:, :, np.logical_not(good)] = mask_value
+                output_map[i,:, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
             )
-            out_map *= unit_conv
+            output_map[i] *= unit_conv
 
         return output_map
