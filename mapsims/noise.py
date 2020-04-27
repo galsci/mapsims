@@ -655,7 +655,7 @@ class SONoiseSimulator:
                             )
                         )
             else:
-                output_map = np.zeros((2, nsplits, 3,) + self.shape)
+                output_map = enmap.zeros((2, nsplits, 3,) + self.shape,self.wcs)
                 ps_T = powspec.sym_expand(np.asarray(ps_T), scheme="diag")
                 ps_P = powspec.sym_expand(np.asarray(ps_P), scheme="diag")
                 # TODO: These loops can probably be vectorized
