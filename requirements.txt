@@ -5,3 +5,4 @@ toml
 h5py
 so_pysm_models
 so_noise_models
+pixell

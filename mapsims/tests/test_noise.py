@@ -9,7 +9,7 @@ import mapsims
 import pysm.units as u
 from mapsims import so_utils
 
-NSIDE = 16
+nside = 16
 res = np.deg2rad(30 / 60.) 
 
 def test_freq_order():
@@ -23,34 +23,23 @@ def test_noise_simulator(tube):
 
     seed = 1234
 
-    simulator = mapsims.SONoiseSimulator(
-        nside=NSIDE,
-        ell_max=500,
-        return_uK_CMB=True,
-        sensitivity_mode="baseline",
-        apply_beam_correction=True,
-        apply_kludge_correction=True,
-        SA_one_over_f_mode="optimistic",
-    )
+    simulator = mapsims.SONoiseSimulator(nside=nside)
+    output_map = simulator.simulate(tube,seed=seed)
 
-    output_map = simulator.simulate(tube,seed=seed) * u.uK_CMB
-    expected_map = hp.read_map(
-        data.get_pkg_data_filename(
-            "data/noise_{}_uKCMB_classical_nside16_seed1234.fits.gz".format(
-                tube
-            )
-        ),
-        (0, 1, 2),
-    )
-    expected_map[expected_map == 0] = hp.UNSEEN
-    expected_map <<= u.uK_CMB
-    assert_quantity_allclose(output_map, expected_map)
+    for i,band in enumerate(so_utils.tubes[tube]):
+        expected_map = hp.read_map(
+            data.get_pkg_data_filename(f"data/noise_{tube}_{band}_uKCMB_classical_nside16_seed1234_healpix.fits.gz"
+                                   ),
+            (0, 1, 2),
+        )
+        assert_quantity_allclose(output_map[i,0], expected_map)
 
 
 
 @pytest.mark.parametrize("tube", ["LT0", "ST3"])
 def test_noise_simulator_car(tube):
 
+    from pixell import enmap
     seed = 1234
     shape,wcs = enmap.fullsky_geometry(res=res)
     simulator = mapsims.SONoiseSimulator(shape=shape,wcs=wcs)
@@ -58,10 +47,8 @@ def test_noise_simulator_car(tube):
     output_map = simulator.simulate(tube,seed=seed)
     expected_map = enmap.read_map(
         data.get_pkg_data_filename(
-            "data/noise_{}_uKCMB_classical_nside16_seed1234_car.fits.gz".format(
-                tube
+            f"data/noise_{tube}_uKCMB_classical_res30_seed1234_car.fits.gz"
             )
-        ),
     )
     expected_map[expected_map == 0] = np.nan
     assert_quantity_allclose(output_map, expected_map)

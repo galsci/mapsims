@@ -16,7 +16,6 @@ Integration tests for mapsims.noise with v0.2 hitmaps.
 
 def config_from_yaml(filename):
     import yaml
-
     with open(filename) as f:
         config = yaml.safe_load(f)
     return config
