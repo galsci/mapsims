@@ -91,7 +91,6 @@ class SONoiseSimulator:
         sky_fraction=None,
         cache_hitmaps=True,
         boolean_sky_fraction=True,
-        rescale_white_noise=None,
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -159,8 +158,6 @@ class SONoiseSimulator:
         boolean_sky_fraction: bool
             If True, determines fsky based on fraction of hitmap that is zero. If False,
             determines sky_fraction from <Nhits>.
-        rescale_white_noise : float or tuple of floats, optional
-        
         """
 
         if nside is None:
