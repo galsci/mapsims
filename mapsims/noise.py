@@ -600,7 +600,7 @@ class SONoiseSimulator:
                 if self.healpix
                 else enmap.ones(self.shape, self.wcs)
             )
-            hitmaps = [ones, ones] if self.full_covariance else ones
+            hitmaps = [None, None]
             fsky = self._sky_fraction if self._sky_fraction is not None else 1
             sky_fractions = [fsky, fsky] if self.full_covariance else fsky
         else:
@@ -632,7 +632,9 @@ class SONoiseSimulator:
             else:
                 ashape = self.shape[-2:]
                 sel = np.s_[:, None, None, None, None]
-                pmap = enmap.enmap(self.pmap * ((180.0 * 60.0 / np.pi) ** 2.0),self.wcs)
+                pmap = enmap.enmap(
+                    self.pmap * ((180.0 * 60.0 / np.pi) ** 2.0), self.wcs
+                )
             spowr = np.sqrt(npower[sel] / pmap)
             output_map = spowr * np.random.standard_normal((2, nsplits, 3,) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
@@ -655,7 +657,7 @@ class SONoiseSimulator:
                             )
                         )
             else:
-                output_map = enmap.zeros((2, nsplits, 3,) + self.shape,self.wcs)
+                output_map = enmap.zeros((2, nsplits, 3,) + self.shape, self.wcs)
                 ps_T = powspec.sym_expand(np.asarray(ps_T), scheme="diag")
                 ps_P = powspec.sym_expand(np.asarray(ps_P), scheme="diag")
                 # TODO: These loops can probably be vectorized
@@ -679,7 +681,10 @@ class SONoiseSimulator:
             good = hitmap != 0
             # Normalize on the Effective sky fraction, see discussion in:
             # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-            out_map[:, :, good] /= np.sqrt(hitmap[good] / hitmap.mean() * sky_fraction)
+            if not (self.homogenous):
+                out_map[:, :, good] /= np.sqrt(
+                    hitmap[good] / hitmap.mean() * sky_fraction
+                )
             out_map[:, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
