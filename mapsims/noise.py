@@ -632,7 +632,7 @@ class SONoiseSimulator:
             else:
                 ashape = self.shape[-2:]
                 sel = np.s_[:, None, None, None, None]
-                pmap = self.pmap * ((180.0 * 60.0 / np.pi) ** 2.0)
+                pmap = enmap.enmap(self.pmap * ((180.0 * 60.0 / np.pi) ** 2.0),self.wcs)
             spowr = np.sqrt(npower[sel] / pmap)
             output_map = spowr * np.random.standard_normal((2, nsplits, 3,) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
