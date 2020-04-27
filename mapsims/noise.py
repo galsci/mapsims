@@ -214,15 +214,34 @@ class SONoiseSimulator:
         Parameters
         ----------
 
+        tube : str
+            Specify a specific tube. For available
+            tubes and their channels, see so_utils.tubes.
 
+        band : str,optional
+            Optionally specify the band name within the tube to get just its
+            white noise.
+
+
+        Returns
+        -------
+
+        beam : tuple of floats
+            The beam FWHM in arcminutes either as
+            a tuple for the pair of bands in the tube, or just for the specific
+            band requested.
         """
-        survey = self.get_survey(tube)
+
+        survey = self._get_survey(tube)
         bands = _band_ids_from_tube(tube)
         ret = survey.get_beams()[bands]
         if band is not None: ret = ret[_band_index(tube,band)]
         return ret
 
-    def get_survey(self,tube):
+    def _get_survey(self,tube):
+        """Internal function to get the survey object
+        from the SO noise model code.
+        """
         telescope = f'{tube[0]}A' # get LA or SA from tube name
         if telescope=='SA':
             if   tube=='ST0': N_tubes = [0,0,1] # the UHF telescope
@@ -265,7 +284,7 @@ class SONoiseSimulator:
         """
 
         telescope = f'{tube[0]}A' # get LA or SA from tube name
-        survey = self.get_survey(tube)
+        survey = self._get_survey(tube)
         if telescope == "SA":
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 ncurve_fsky,  # We load hitmaps later, so we compute and apply sky fraction later
@@ -305,6 +324,11 @@ class SONoiseSimulator:
         return ls,nells_T,nells_P
 
     def _validate_map(self,fmap):
+        """Internal function to validate an externally provided map.
+        It checks the healpix or CAR attributes against what the
+        class was initialized with. It adds a leading dimension if 
+        necessary.
+        """
         shape = fmap.shape
         if self.healpix:
             if len(shape)==1: 
@@ -320,6 +344,7 @@ class SONoiseSimulator:
             else: 
                 return fmap
         else:
+            assert wcsutils.is_compatible(fmap.wcs, self.wcs)            
             if len(shape)==2:
                 ashape = shape
             elif len(shape)==3:
@@ -335,6 +360,9 @@ class SONoiseSimulator:
                 
 
     def _load_map(self,fname,**kwargs):
+        """Internal function to load a healpix or CAR map
+        from disk and reproject it if necessary.
+        """
         # If not a string try as a healpix or CAR map
         if not(isinstance(fname,str)): return self._validate_map(fname)
         
@@ -365,6 +393,9 @@ class SONoiseSimulator:
 
 
     def _process_hitmaps(self,hitmaps):
+        """Internal function to process hitmaps and based on the
+        desired scheme, obtain sky fractions from them.
+        """
         nhitmaps = hitmaps.shape[0]
         assert nhitmaps==1 or nhitmaps==2
         if self.boolean_sky_fraction:
@@ -387,6 +418,31 @@ class SONoiseSimulator:
             
 
     def get_hitmaps(self, tube=None, hitmap=None):
+        """Get and process hitmaps and sky fractions for the provided tube or provided
+        an external one.
+
+        Parameters
+        ----------
+
+        tube : str
+            Specify a specific tube. For available
+            tubes and their channels, see so_utils.tubes.
+
+        hitmap : string or map, optional
+            Provide the path to a hitmap to override the default used for 
+            the tube. You could also provide the hitmap as an array
+            directly.
+
+        Returns
+        -------
+
+        hitmaps : ndarray or ndmap
+            Processed hitmaps.
+
+        sky_fractions : float
+            The sky fraction covered by the survey determined from the hitmaps.
+
+        """
 
         if hitmap is not None: return self._process_hitmaps(self._load_map(hitmap))
 
@@ -418,18 +474,39 @@ class SONoiseSimulator:
 
     def get_white_noise_power(self, tube, sky_fraction,band=None,units='sr'):
         """Get white noise power in uK^2-sr (units='sr') or
-        uK^2-arcmin^2 (units='arcmin2') corresponding to the channel identifier ch.
+        uK^2-arcmin^2 (units='arcmin2') corresponding to the tube name tube.
         This is useful if you want to generate your own simulations that do not
         have the atmospheric component.
 
         Parameters
         ----------
 
-        ch : mapsims.Channel
-            Channel identifier, create with e.g. mapsims.SOChannel("SA", 27)
+        tube : str
+            Specify a specific tube. For available
+            tubes and their channels, see so_utils.tubes.
+
+        sky_fraction : float
+            The sky fraction covered by the survey.
+
+        band : str,optional
+            Optionally specify the band name within the tube to get just its
+            white noise.
+
+        units: str
+            'sr' for white noise power in uK^2-steradian and 'arcmin2' for
+            the same in uK^2-arcmin^2 units.
+
+        Returns
+        -------
+
+        wnoise : tuple of floats
+            The white noise variance in the requested units either as
+            a tuple for the pair of bands in the tube, or just for the specific
+            band requested.
+            
 
         """
-        survey = self.get_survey(tube)
+        survey = self._get_survey(tube)
         bands = _band_ids_from_tube(tube)
         ret = survey.get_white_noise(sky_fraction, units=units)[bands]
         if band is not None: ret = ret[_band_index(tube,band)]
@@ -452,7 +529,7 @@ class SONoiseSimulator:
         ----------
 
         tube : str
-            Specify a specific tube, required for hitmaps v0.2, for available
+            Specify a specific tube. For available
             tubes and their channels, see so_utils.tubes.
         output_units : str
             Output unit supported by PySM.units, e.g. uK_CMB or K_RJ
