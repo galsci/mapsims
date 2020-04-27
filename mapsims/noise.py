@@ -77,7 +77,7 @@ class SONoiseSimulator:
         num=None,
         return_uK_CMB=True,
         sensitivity_mode="baseline",
-        apply_beam_correction=True,
+        apply_beam_correction=False,
         apply_kludge_correction=True,
         homogenous=False,
         no_power_below_ell=None,
@@ -616,6 +616,10 @@ class SONoiseSimulator:
             fsky = np.append(sky_fractions, [np.mean(sky_fractions)])
 
         if not (atmosphere):
+            if self.apply_beam_correction:
+                raise NotImplementedError(
+                    "Beam correction is not currently implemented for pure-white-noise sims."
+                )
             # If no atmosphere is requested, we use a simpler/faster method
             # that generates white noise in real-space.
             npower = (
