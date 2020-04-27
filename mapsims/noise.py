@@ -320,7 +320,7 @@ class SONoiseSimulator:
         for n_out, n_in in zip([nells_T, nells_P], [noise_ell_T, noise_ell_P]):
             n_out[0, 2:] = n_in[b1][b1]
             n_out[1, 2:] = n_in[b2][b2]
-            n_out[2, 2:] = n_in[b1][b2] if not (self.full_covariance) else 0
+            n_out[2, 2:] = n_in[b1][b2] if self.full_covariance else 0
             if self.no_power_below_ell is not None:
                 n_out[:, ls < self.no_power_below_ell] = 0
 
