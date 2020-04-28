@@ -272,7 +272,7 @@ class SONoiseSimulator:
             )
         return survey
 
-    def get_noise_spectra(self, tube, ncurve_fsky=1):
+    def get_noise_spectra(self, tube, ncurve_fsky=1, return_corr=False):
         """Update a telescope configuration by loading the corresponding
         hitmaps. Each loaded `telescope` is kept in memory, but
         new choice of `scanning_strategy` erases the previous one.
@@ -283,6 +283,26 @@ class SONoiseSimulator:
         telescope : string
             Telescope identifier, typically `LA` or `SA` for the large aperture
             and small aperture, respectively.
+
+        return_corr : bool
+            If True, returns cross-correlation coeffient instead of
+            cross-correlation power in the third row of the returned arrays.
+
+        Returns
+        -------
+        
+        ls : (nells,) ndarray
+            Array of nells multipoles starting at ell=0 and spaced by delta_ell=1
+            corresponding to the noise power spectra nells_T and nells_P
+
+        nells_T : (3,nells) ndarray
+            The first two rows contain the temperature auto-correlation of the noise power
+            spectra of each band in the tube. The third row contains the correlation
+            power between the two bands by default, but you can get
+            the cross-correlation coefficient instead by setting return_corr=True.
+
+        nells_P : (3,nells) ndarray
+            Same as for nells_T but for polarization.
 
         """
 
@@ -320,7 +340,9 @@ class SONoiseSimulator:
         for n_out, n_in in zip([nells_T, nells_P], [noise_ell_T, noise_ell_P]):
             n_out[0, 2:] = n_in[b1][b1]
             n_out[1, 2:] = n_in[b2][b2]
-            n_out[2, 2:] = n_in[b1][b2] if self.full_covariance else 0
+            # re-scaling if correlation coefficient is requested
+            scale = np.sqrt(n_in[b1][b1]*n_in[b2][b2]) if return_corr else 1
+            n_out[2, 2:] = (n_in[b1][b2]/scale) if self.full_covariance else 0
             if self.no_power_below_ell is not None:
                 n_out[:, ls < self.no_power_below_ell] = 0
 
@@ -517,6 +539,12 @@ class SONoiseSimulator:
             ret = ret[_band_index(tube, band)]
         return ret
 
+    def _get_wscale_factor(self,white_noise_rms,tube,fsky):
+        if white_noise_rms is None: return np.ones((2,1))
+        cnoise = np.sqrt(self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2") * fsky )
+        return white_noise_rms / cnoise
+
+
     def simulate(
         self,
         tube,
@@ -526,6 +554,7 @@ class SONoiseSimulator:
         mask_value=None,
         atmosphere=True,
         hitmap=None,
+        white_noise_rms=None,
     ):
         """Create a random realization of the noise power spectrum
 
@@ -560,6 +589,10 @@ class SONoiseSimulator:
             Provide the path to a hitmap to override the default used for 
             the tube. You could also provide the hitmap as an array
             directly.
+        white_noise_rms : float or tuple of floats, optional
+            Optionally scale the simulation so that the small-scale limit white noise
+            level is white_noise_rms in uK-arcmin (either a single number or
+            a pair for the dichroic array).
 
         Returns
         -------
@@ -608,14 +641,15 @@ class SONoiseSimulator:
 
         if len(sky_fractions) == 1:
             assert hitmaps.shape[0] == 1
-            fsky = np.asarray([sky_fractions[0]] * 3)
+            fsky = np.asarray([sky_fractions[0]] * 2)
             hitmaps = np.repeat(hitmaps,2,axis=0)
         elif len(sky_fractions) == 2:
             assert len(hitmaps) == 2
-            fsky = np.append(sky_fractions, [np.mean(sky_fractions)])
+            fsky = np.asarray(sky_fractions)
         else:
             raise ValueError
 
+        wnoise_scale = self._get_wscale_factor(white_noise_rms,tube,fsky)
         if not (atmosphere):
             if self.apply_beam_correction:
                 raise NotImplementedError(
@@ -626,7 +660,7 @@ class SONoiseSimulator:
             npower = (
                 self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
                 * nsplits
-                * fsky[:2]
+                * fsky * wnoise_scale
             )
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
@@ -644,9 +678,13 @@ class SONoiseSimulator:
             output_map = spowr * np.random.standard_normal((2, nsplits, 3,) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
         else:
-            ls, ps_T, ps_P = self.get_noise_spectra(tube, ncurve_fsky=1)
-            ps_T = ps_T * fsky[:, None] * nsplits
-            ps_P = ps_P * fsky[:, None] * nsplits
+            # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
+            # since that can be used straightforwardly when the auto-correlations are re-scaled.
+            ls, ps_T, ps_P = self.get_noise_spectra(tube, ncurve_fsky=1,return_corr=True)
+            ps_T[:2] = ps_T[:2] * fsky[:, None] * nsplits * wnoise_scale
+            ps_T[2] *= np.sqrt(np.prod(ps_T[:2],axis=0))
+            ps_P[:2] = ps_P[:2] * fsky[:, None] * nsplits * wnoise_scale
+            ps_P[2] *= np.sqrt(np.prod(ps_P[:2],axis=0))
             if self.healpix:
                 npix = hp.nside2npix(self.nside)
                 output_map = np.zeros((2, nsplits, 3, npix))
