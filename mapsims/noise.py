@@ -550,6 +550,73 @@ class SONoiseSimulator:
         )
         return white_noise_rms / cnoise
 
+
+    def get_ivar(
+        self,
+        tube,
+        output_units="uK_CMB",
+        hitmap=None,
+        white_noise_rms=None,
+    ):
+        """Get the inverse noise variance in each pixel for the requested tube.
+
+        Parameters
+        ----------
+
+        tube : str
+            Specify a specific tube. For available
+            tubes and their channels, see so_utils.tubes.
+        output_units : str
+            Output unit supported by PySM.units, e.g. uK_CMB or K_RJ
+        hitmap : string or map, optional
+            Provide the path to a hitmap to override the default used for 
+            the tube. You could also provide the hitmap as an array
+            directly.
+        white_noise_rms : float or tuple of floats, optional
+            Optionally scale the simulation so that the small-scale limit white noise
+            level is white_noise_rms in uK-arcmin (either a single number or
+            a pair for the dichroic array).
+
+        Returns
+        -------
+
+        ivar_map : ndarray or ndmap
+            Numpy array with the HEALPix or CAR map of the inverse variance
+            in each pixel. The default units are uK^(-2). This is an extensive
+            quantity that depends on the size of pixels.
+        """
+        fsky, hitmaps = self._get_requested_hitmaps(tube,hitmap)
+        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
+        power = self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")* fsky* wnoise_scale
+        """
+        We now have the physical white noise power uK^2-sr
+        and the hitmap
+        """
+        
+    def _get_requested_hitmaps(self,tube,hitmap):
+        if self.homogenous and (hitmap is None):
+            ones = (
+                np.ones(hp.nside2npix(self.nside))
+                if self.healpix
+                else enmap.ones(self.shape, self.wcs)
+            )
+            hitmaps = [None, None]
+            fsky = self._sky_fraction if self._sky_fraction is not None else 1
+            sky_fractions = [fsky, fsky] if self.full_covariance else fsky
+        else:
+            hitmaps, sky_fractions = self.get_hitmaps(tube, hitmap=hitmap)
+
+        if len(sky_fractions) == 1:
+            assert hitmaps.shape[0] == 1
+            fsky = np.asarray([sky_fractions[0]] * 2)
+            hitmaps = np.repeat(hitmaps, 2, axis=0)
+        elif len(sky_fractions) == 2:
+            assert len(hitmaps) == 2
+            fsky = np.asarray(sky_fractions)
+        else:
+            raise ValueError
+        return fsky, hitmaps
+
     def simulate(
         self,
         tube,
@@ -632,29 +699,9 @@ class SONoiseSimulator:
             seed = (0, 0, 6, tube_id) + seed
             np.random.seed(seed)
 
-        if self.homogenous and (hitmap is None):
-            ones = (
-                np.ones(hp.nside2npix(self.nside))
-                if self.healpix
-                else enmap.ones(self.shape, self.wcs)
-            )
-            hitmaps = [None, None]
-            fsky = self._sky_fraction if self._sky_fraction is not None else 1
-            sky_fractions = [fsky, fsky] if self.full_covariance else fsky
-        else:
-            hitmaps, sky_fractions = self.get_hitmaps(tube, hitmap=hitmap)
-
-        if len(sky_fractions) == 1:
-            assert hitmaps.shape[0] == 1
-            fsky = np.asarray([sky_fractions[0]] * 2)
-            hitmaps = np.repeat(hitmaps, 2, axis=0)
-        elif len(sky_fractions) == 2:
-            assert len(hitmaps) == 2
-            fsky = np.asarray(sky_fractions)
-        else:
-            raise ValueError
-
+        fsky, hitmaps = self._get_requested_hitmaps(tube,hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
+
         if not (atmosphere):
             if self.apply_beam_correction:
                 raise NotImplementedError(
