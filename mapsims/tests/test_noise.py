@@ -50,6 +50,5 @@ def test_noise_simulator_car(tube):
             f"data/noise_{tube}_uKCMB_classical_res30_seed1234_car.fits.gz"
             )
     )
-    expected_map[expected_map == 0] = np.nan
     assert_quantity_allclose(output_map, expected_map)
 
