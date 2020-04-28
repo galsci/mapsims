@@ -177,6 +177,7 @@ class SONoiseSimulator:
             self.healpix = True
             self.nside = nside
             self.ell_max = ell_max if ell_max is not None else 3 * nside
+            self.pmap = 4*np.pi / hp.nside2npix(nside)
 
         self.rolloff_ell = rolloff_ell
         self.boolean_sky_fraction = boolean_sky_fraction
@@ -396,6 +397,12 @@ class SONoiseSimulator:
         if self._cache:
             self._hmap_cache[fname] = hitmap
         return hitmap
+
+    def _average(self,imap):
+        # Internal function to calculate <imap> general to healpix and CAR
+        if self.healpix: assert imap.ndim==1
+        else: assert imap.ndim==2
+        return ((self.pmap*imap).sum() / 4.0 / np.pi)
 
     def _process_hitmaps(self, hitmaps):
         """Internal function to process hitmaps and based on the
@@ -631,7 +638,7 @@ class SONoiseSimulator:
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
                 sel = np.s_[:, None, None, None]
-                pmap = (4.0 * np.pi / hp.nside2npix(self.nside)) * (
+                pmap = self.pmap * (
                     (180.0 * 60.0 / np.pi) ** 2.0
                 )
             else:
@@ -685,7 +692,7 @@ class SONoiseSimulator:
                 # Normalize on the Effective sky fraction, see discussion in:
                 # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
                 output_map[i,:, :, good] /= np.sqrt(
-                    hitmaps[i][good][...,None,None] / hitmaps[i].mean() * fsky[i]
+                    hitmaps[i][good][...,None,None] / self._average(hitmaps[i]) * fsky[i]
                 )
                 output_map[i,:, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
