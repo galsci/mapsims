@@ -39,12 +39,12 @@ env:
         
         # List runtime dependencies for the package that are available as conda
         # packages here.
-        - CONDA_DEPENDENCIES='cython toml healpy numba mpi4py libsharp=*=*openmpi* h5py jupyter_client nbformat ipykernel nbval'
-        - CONDA_DEPENDENCIES_DOC='cython toml healpy sphinx-astropy libsharp=*=*openmpi* numba mpi4py h5py'
+        - CONDA_DEPENDENCIES='cython toml healpy numba pysm3 mpi4py libsharp=*=*openmpi* h5py jupyter_client nbformat ipykernel nbval'
+        - CONDA_DEPENDENCIES_DOC='cython toml healpy pysm3 sphinx-astropy libsharp=*=*openmpi* numba mpi4py h5py'
         
         # List other runtime dependencies for the package that are available as
         # pip packages here.
-        - PIP_DEPENDENCIES='quaternionarray https://github.com/healpy/pysm/archive/master.zip https://github.com/simonsobs/so_pysm_models/archive/master.zip https://github.com/simonsobs/so_noise_models/archive/master.zip git+git://github.com/simonsobs/sotodlib.git@aca85843b70b0c6ebac031aa48fff47f93ed6661'
+        - PIP_DEPENDENCIES='quaternionarray https://github.com/simonsobs/so_pysm_models/archive/master.zip https://github.com/simonsobs/so_noise_models/archive/master.zip git+git://github.com/simonsobs/sotodlib.git@aca85843b70b0c6ebac031aa48fff47f93ed6661'
 
         # Conda packages for affiliated packages are hosted in channel
         # "astropy" while builds for astropy LTS with recent numpy versions
