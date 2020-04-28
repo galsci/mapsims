@@ -597,7 +597,19 @@ class SONoiseSimulator:
         and the hitmap
         ivar = hitmap * pixel_area * fsky / <hitmap> / power
         """
-        return hitmaps * self.pmap * fsky / np.asarray([self._average(hitmaps[i]) for i in range(2)])  / power
+        ret = hitmaps * self.pmap * fsky / np.asarray([self._average(hitmaps[i]) for i in range(2)])  / power
+        # Convert to desired units
+        tubes = so_utils.tubes
+        bands = tubes[tube]
+        telescope = f"{tube[0]}A"  # get LA or SA from tube name
+        for i in range(2):
+            freq = so_utils.SOChannel(telescope, bands[i], tube=tube).center_frequency
+            unit_conv = (1 * u.uK_CMB).to_value(
+                u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
+            )
+            ret[i] /= unit_conv**2. # divide by square since the default is 1/uK^2
+        return ret
+        
         
     def _get_requested_hitmaps(self,tube,hitmap):
         if self.homogenous and (hitmap is None):
