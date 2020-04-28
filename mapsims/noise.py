@@ -341,8 +341,8 @@ class SONoiseSimulator:
             n_out[0, 2:] = n_in[b1][b1]
             n_out[1, 2:] = n_in[b2][b2]
             # re-scaling if correlation coefficient is requested
-            scale = np.sqrt(n_in[b1][b1]*n_in[b2][b2]) if return_corr else 1
-            n_out[2, 2:] = (n_in[b1][b2]/scale) if self.full_covariance else 0
+            scale = np.sqrt(n_in[b1][b1] * n_in[b2][b2]) if return_corr else 1
+            n_out[2, 2:] = (n_in[b1][b2] / scale) if self.full_covariance else 0
             if self.no_power_below_ell is not None:
                 n_out[:, ls < self.no_power_below_ell] = 0
 
@@ -539,11 +539,16 @@ class SONoiseSimulator:
             ret = ret[_band_index(tube, band)]
         return ret
 
-    def _get_wscale_factor(self,white_noise_rms,tube,fsky):
-        if white_noise_rms is None: return np.ones((2,1))
-        cnoise = np.sqrt(self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2") * fsky )
+    def _get_wscale_factor(self, white_noise_rms, tube, fsky):
+        """Internal function to re-scale white noise power
+        to a new value corresponding to white noise RMS in uK-arcmin.
+        """
+        if white_noise_rms is None:
+            return np.ones((2, 1))
+        cnoise = np.sqrt(
+            self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2") * fsky
+        )
         return white_noise_rms / cnoise
-
 
     def simulate(
         self,
@@ -642,14 +647,14 @@ class SONoiseSimulator:
         if len(sky_fractions) == 1:
             assert hitmaps.shape[0] == 1
             fsky = np.asarray([sky_fractions[0]] * 2)
-            hitmaps = np.repeat(hitmaps,2,axis=0)
+            hitmaps = np.repeat(hitmaps, 2, axis=0)
         elif len(sky_fractions) == 2:
             assert len(hitmaps) == 2
             fsky = np.asarray(sky_fractions)
         else:
             raise ValueError
 
-        wnoise_scale = self._get_wscale_factor(white_noise_rms,tube,fsky)
+        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
         if not (atmosphere):
             if self.apply_beam_correction:
                 raise NotImplementedError(
@@ -660,7 +665,8 @@ class SONoiseSimulator:
             npower = (
                 self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
                 * nsplits
-                * fsky * wnoise_scale
+                * fsky
+                * wnoise_scale
             )
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
@@ -680,11 +686,13 @@ class SONoiseSimulator:
         else:
             # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
             # since that can be used straightforwardly when the auto-correlations are re-scaled.
-            ls, ps_T, ps_P = self.get_noise_spectra(tube, ncurve_fsky=1,return_corr=True)
+            ls, ps_T, ps_P = self.get_noise_spectra(
+                tube, ncurve_fsky=1, return_corr=True
+            )
             ps_T[:2] = ps_T[:2] * fsky[:, None] * nsplits * wnoise_scale
-            ps_T[2] *= np.sqrt(np.prod(ps_T[:2],axis=0))
+            ps_T[2] *= np.sqrt(np.prod(ps_T[:2], axis=0))
             ps_P[:2] = ps_P[:2] * fsky[:, None] * nsplits * wnoise_scale
-            ps_P[2] *= np.sqrt(np.prod(ps_P[:2],axis=0))
+            ps_P[2] *= np.sqrt(np.prod(ps_P[:2], axis=0))
             if self.healpix:
                 npix = hp.nside2npix(self.nside)
                 output_map = np.zeros((2, nsplits, 3, npix))
@@ -722,10 +730,10 @@ class SONoiseSimulator:
                 good = hitmaps[i] != 0
                 # Normalize on the Effective sky fraction, see discussion in:
                 # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-                output_map[i,:, :, good] /= np.sqrt(
-                    hitmaps[i][good][...,None,None] / hitmaps[i].mean() * fsky[i]
+                output_map[i, :, :, good] /= np.sqrt(
+                    hitmaps[i][good][..., None, None] / hitmaps[i].mean() * fsky[i]
                 )
-                output_map[i,:, :, np.logical_not(good)] = mask_value
+                output_map[i, :, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
             )
