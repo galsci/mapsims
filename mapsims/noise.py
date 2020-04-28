@@ -255,22 +255,24 @@ class SONoiseSimulator:
             else:
                 raise ValueError
 
-            survey = so_models.SOSatV3point1(
-                sensitivity_mode=self.sensitivity_mode,
-                survey_efficiency=self.survey_efficiency,
-                survey_years=self.SA_years,
-                N_tubes=N_tubes,
-                el=None,  # SAT does not support noise elevation function
-                one_over_f_mode=self.SA_one_over_f_mode,
-            )
+            with np.errstate(divide='ignore',invalid='ignore'):
+                survey = so_models.SOSatV3point1(
+                    sensitivity_mode=self.sensitivity_mode,
+                    survey_efficiency=self.survey_efficiency,
+                    survey_years=self.SA_years,
+                    N_tubes=N_tubes,
+                    el=None,  # SAT does not support noise elevation function
+                    one_over_f_mode=self.SA_one_over_f_mode,
+                )
         elif telescope == "LA":
-            survey = getattr(so_models, self.LA_noise_model)(
-                sensitivity_mode=self.sensitivity_mode,
-                survey_efficiency=self.survey_efficiency,
-                survey_years=self.LA_years,
-                N_tubes=[1, 1, 1],
-                el=self.elevation,
-            )
+            with np.errstate(divide='ignore',invalid='ignore'):
+                survey = getattr(so_models, self.LA_noise_model)(
+                    sensitivity_mode=self.sensitivity_mode,
+                    survey_efficiency=self.survey_efficiency,
+                    survey_years=self.LA_years,
+                    N_tubes=[1, 1, 1],
+                    el=self.elevation,
+                )
         return survey
 
     def get_noise_spectra(self, tube, ncurve_fsky=1, return_corr=False):
@@ -789,5 +791,4 @@ class SONoiseSimulator:
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
             )
             output_map[i] *= unit_conv
-
         return output_map
