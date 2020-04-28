@@ -177,7 +177,7 @@ class SONoiseSimulator:
             self.healpix = True
             self.nside = nside
             self.ell_max = ell_max if ell_max is not None else 3 * nside
-            self.pmap = 4*np.pi / hp.nside2npix(nside)
+            self.pmap = 4 * np.pi / hp.nside2npix(nside)
 
         self.rolloff_ell = rolloff_ell
         self.boolean_sky_fraction = boolean_sky_fraction
@@ -255,7 +255,7 @@ class SONoiseSimulator:
             else:
                 raise ValueError
 
-            with np.errstate(divide='ignore',invalid='ignore'):
+            with np.errstate(divide="ignore", invalid="ignore"):
                 survey = so_models.SOSatV3point1(
                     sensitivity_mode=self.sensitivity_mode,
                     survey_efficiency=self.survey_efficiency,
@@ -265,7 +265,7 @@ class SONoiseSimulator:
                     one_over_f_mode=self.SA_one_over_f_mode,
                 )
         elif telescope == "LA":
-            with np.errstate(divide='ignore',invalid='ignore'):
+            with np.errstate(divide="ignore", invalid="ignore"):
                 survey = getattr(so_models, self.LA_noise_model)(
                     sensitivity_mode=self.sensitivity_mode,
                     survey_efficiency=self.survey_efficiency,
@@ -422,11 +422,13 @@ class SONoiseSimulator:
             self._hmap_cache[fname] = hitmap
         return hitmap
 
-    def _average(self,imap):
+    def _average(self, imap):
         # Internal function to calculate <imap> general to healpix and CAR
-        if self.healpix: assert imap.ndim==1
-        else: assert imap.ndim==2
-        return ((self.pmap*imap).sum() / 4.0 / np.pi)
+        if self.healpix:
+            assert imap.ndim == 1
+        else:
+            assert imap.ndim == 2
+        return (self.pmap * imap).sum() / 4.0 / np.pi
 
     def _process_hitmaps(self, hitmaps):
         """Internal function to process hitmaps and based on the
@@ -439,9 +441,7 @@ class SONoiseSimulator:
                 hitmaps[i] /= hitmaps[i].max()
 
             # We define sky fraction as <Nhits>
-            sky_fractions = [
-                self._average(hitmaps[i]) for i in range(nhitmaps)
-            ]
+            sky_fractions = [self._average(hitmaps[i]) for i in range(nhitmaps)]
         else:
             raise NotImplementedError
         return hitmaps, sky_fractions
@@ -554,13 +554,8 @@ class SONoiseSimulator:
         )
         return white_noise_rms / cnoise
 
-
     def get_ivar(
-        self,
-        tube,
-        output_units="uK_CMB",
-        hitmap=None,
-        white_noise_rms=None,
+        self, tube, output_units="uK_CMB", hitmap=None, white_noise_rms=None,
     ):
         """Get the inverse noise variance in each pixel for the requested tube.
 
@@ -589,15 +584,25 @@ class SONoiseSimulator:
             in each pixel. The default units are uK^(-2). This is an extensive
             quantity that depends on the size of pixels.
         """
-        fsky, hitmaps = self._get_requested_hitmaps(tube,hitmap)
+        fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
-        power = self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")* fsky* wnoise_scale
+        power = (
+            self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
+            * fsky
+            * wnoise_scale
+        )
         """
         We now have the physical white noise power uK^2-sr
         and the hitmap
         ivar = hitmap * pixel_area * fsky / <hitmap> / power
         """
-        ret = hitmaps * self.pmap * fsky / np.asarray([self._average(hitmaps[i]) for i in range(2)])  / power
+        ret = (
+            hitmaps
+            * self.pmap
+            * fsky
+            / np.asarray([self._average(hitmaps[i]) for i in range(2)])
+            / power
+        )
         # Convert to desired units
         tubes = so_utils.tubes
         bands = tubes[tube]
@@ -607,11 +612,10 @@ class SONoiseSimulator:
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
             )
-            ret[i] /= unit_conv**2. # divide by square since the default is 1/uK^2
+            ret[i] /= unit_conv ** 2.0  # divide by square since the default is 1/uK^2
         return ret
-        
-        
-    def _get_requested_hitmaps(self,tube,hitmap):
+
+    def _get_requested_hitmaps(self, tube, hitmap):
         if self.homogenous and (hitmap is None):
             ones = (
                 np.ones(hp.nside2npix(self.nside))
@@ -717,7 +721,7 @@ class SONoiseSimulator:
             seed = (0, 0, 6, tube_id) + seed
             np.random.seed(seed)
 
-        fsky, hitmaps = self._get_requested_hitmaps(tube,hitmap)
+        fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
 
         if not (atmosphere):
@@ -736,9 +740,7 @@ class SONoiseSimulator:
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
                 sel = np.s_[:, None, None, None]
-                pmap = self.pmap * (
-                    (180.0 * 60.0 / np.pi) ** 2.0
-                )
+                pmap = self.pmap * ((180.0 * 60.0 / np.pi) ** 2.0)
             else:
                 ashape = self.shape[-2:]
                 sel = np.s_[:, None, None, None, None]
@@ -795,9 +797,7 @@ class SONoiseSimulator:
                 good = hitmaps[i] != 0
                 # Normalize on the Effective sky fraction, see discussion in:
                 # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-                output_map[i, :, :, good] /= np.sqrt(
-                    hitmaps[i][good][..., None, None]
-                )
+                output_map[i, :, :, good] /= np.sqrt(hitmaps[i][good][..., None, None])
                 output_map[i, :, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
