@@ -429,14 +429,15 @@ class SONoiseSimulator:
             for i in range(nhitmaps):
                 hitmaps[i] /= hitmaps[i].max()
 
+            # We define sky fraction as <Nhits>
             if self.healpix:
                 sky_fractions = [
-                    (hitmaps[i] != 0).sum() / hitmaps[i].size for i in range(nhitmaps)
+                    hitmaps[i].sum() / hitmaps[i].size for i in range(nhitmaps)
                 ]
             else:
-                pmap = self.pmap
+                pmap = self.pmap # need to weight by pixel area for CAR
                 sky_fractions = [
-                    (pmap[hitmaps[i] != 0].sum() / 4.0 / np.pi) for i in range(nhitmaps)
+                    ((pmap*hitmaps[i]).sum() / 4.0 / np.pi) for i in range(nhitmaps)
                 ]
         else:
             raise NotImplementedError
@@ -778,7 +779,7 @@ class SONoiseSimulator:
                 # Normalize on the Effective sky fraction, see discussion in:
                 # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
                 output_map[i, :, :, good] /= np.sqrt(
-                    hitmaps[i][good][..., None, None] / hitmaps[i].mean() * fsky[i]
+                    hitmaps[i][good][..., None, None]
                 )
                 output_map[i, :, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
