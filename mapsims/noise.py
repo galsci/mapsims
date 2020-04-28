@@ -177,6 +177,7 @@ class SONoiseSimulator:
             self.healpix = True
             self.nside = nside
             self.ell_max = ell_max if ell_max is not None else 3 * nside
+            self.pmap = 4*np.pi / hp.nside2npix(nside)
 
         self.rolloff_ell = rolloff_ell
         self.boolean_sky_fraction = boolean_sky_fraction
@@ -419,6 +420,12 @@ class SONoiseSimulator:
             self._hmap_cache[fname] = hitmap
         return hitmap
 
+    def _average(self,imap):
+        # Internal function to calculate <imap> general to healpix and CAR
+        if self.healpix: assert imap.ndim==1
+        else: assert imap.ndim==2
+        return ((self.pmap*imap).sum() / 4.0 / np.pi)
+
     def _process_hitmaps(self, hitmaps):
         """Internal function to process hitmaps and based on the
         desired scheme, obtain sky fractions from them.
@@ -430,15 +437,9 @@ class SONoiseSimulator:
                 hitmaps[i] /= hitmaps[i].max()
 
             # We define sky fraction as <Nhits>
-            if self.healpix:
-                sky_fractions = [
-                    hitmaps[i].sum() / hitmaps[i].size for i in range(nhitmaps)
-                ]
-            else:
-                pmap = self.pmap # need to weight by pixel area for CAR
-                sky_fractions = [
-                    ((pmap*hitmaps[i]).sum() / 4.0 / np.pi) for i in range(nhitmaps)
-                ]
+            sky_fractions = [
+                self._average(hitmaps[i]) for i in range(nhitmaps)
+            ]
         else:
             raise NotImplementedError
         return hitmaps, sky_fractions
@@ -592,7 +593,9 @@ class SONoiseSimulator:
         """
         We now have the physical white noise power uK^2-sr
         and the hitmap
+        ivar = hitmap * pixel_area * fsky / <hitmap> / power
         """
+        return hitmaps * self.pmap * fsky / np.asarray([self._average(hitmaps[i]) for i in range(2)])  / power
         
     def _get_requested_hitmaps(self,tube,hitmap):
         if self.homogenous and (hitmap is None):
@@ -719,7 +722,7 @@ class SONoiseSimulator:
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
                 sel = np.s_[:, None, None, None]
-                pmap = (4.0 * np.pi / hp.nside2npix(self.nside)) * (
+                pmap = self.pmap * (
                     (180.0 * 60.0 / np.pi) ** 2.0
                 )
             else:
