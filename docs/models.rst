@@ -5,6 +5,21 @@ This page contains high-level description of the models available within the ``m
 this models are specific to the Simons Observatory, more general PySM models are instead
 available in the ``so_pysm_models`` package, see `the documentation about those models <https://so-pysm-models.readthedocs.io/en/latest/models.html>`_.
 
+Model templates
+===============
+
+Model templates or more in general model data are stored on the Simons Observatory project pages at NERSC in the folder::
+
+    /global/project/projectdirs/sobs/www/so_mapsims_data
+    
+Which is then made publicly available via web at https://portal.nersc.gov/project/sobs/so_mapsims_data
+
+For example all the available hitmaps are available there. In order to copy data at that location:
+
+* run `collabsu sobs` (you need permissions by the allocation PI)
+* copy data there
+* run `bash update_html_list.sh` in the `/global/project/projectdirs/sobs/www/so_mapsims_data` folder, this creates the html pages that list the files and also fixes permissions.
+
 20180822 noise power spectra and hitmaps
 ========================================
 
