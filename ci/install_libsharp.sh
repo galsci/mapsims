@@ -3,9 +3,9 @@ git clone https://github.com/Libsharp/libsharp --branch v1.0.0 --single-branch -
     && cd libsharp \
     && autoreconf \
     && CC="mpicc" \
-    ./configure --enable-pic \
+    ./configure --enable-mpi --enable-pic \
     && make -j4 \
     && cp -a auto/* $LIBSHARP \
     && cd python \
-    && CC="gcc -g" LDSHARED="gcc -g -shared" \
+    && CC="mpicc -g" LDSHARED="mpicc -g -shared" \
     pip install .

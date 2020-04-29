@@ -3,7 +3,6 @@ import numpy as np
 import healpy as hp
 from astropy.utils import data
 import warnings
-import traceback
 
 import pysm.units as u
 
@@ -15,7 +14,6 @@ from . import utils as mutils
 try:
     from pixell import enmap, wcsutils, curvedsky, powspec
 except:
-    print(traceback.format_exc())
     pass
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
