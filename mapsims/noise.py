@@ -34,11 +34,11 @@ def _band_ids_from_tube(tube):
 
     e.g.
     >>> _band_ids_from_tube('LT0')
-    [6, 7]
+    [4, 5]
     >>> _band_ids_from_tube('ST1')
     [2, 3]
     >>> _band_ids_from_tube('ST2')
-    [4, 5]
+    [2, 3]
     
     """
     tubes = so_utils.tubes
