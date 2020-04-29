@@ -44,7 +44,7 @@ env:
         
         # List other runtime dependencies for the package that are available as
         # pip packages here.
-        - PIP_DEPENDENCIES='quaternionarray importlib_resources https://github.com/simonsobs/so_pysm_models/archive/master.zip https://github.com/simonsobs/so_noise_models/archive/master.zip git+git://github.com/simonsobs/sotodlib.git@aca85843b70b0c6ebac031aa48fff47f93ed6661'
+        - PIP_DEPENDENCIES='pixell quaternionarray importlib_resources https://github.com/simonsobs/so_pysm_models/archive/master.zip https://github.com/simonsobs/so_noise_models/archive/master.zip git+git://github.com/simonsobs/sotodlib.git@aca85843b70b0c6ebac031aa48fff47f93ed6661'
 
         # Conda packages for affiliated packages are hosted in channel
         # "astropy" while builds for astropy LTS with recent numpy versions
