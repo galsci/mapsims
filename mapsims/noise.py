@@ -156,7 +156,7 @@ class SONoiseSimulator:
         cache_hitmaps : bool
             If True, caches hitmaps.
         boolean_sky_fraction: bool
-            If True, determines fsky based on fraction of hitmap that is zero. If False,
+            If True, determines sky fraction based on fraction of hitmap that is zero. If False,
             determines sky_fraction from <Nhits>.
         """
 
@@ -170,14 +170,14 @@ class SONoiseSimulator:
             self.ell_max = (
                 ell_max if ell_max is not None else 10000 * (1.0 / self._pixheight)
             )
-            self.pmap = enmap.pixsizemap(self.shape, self.wcs)
+            self.pixarea_map = enmap.pixsizemap(self.shape, self.wcs)
         else:
             assert shape is None
             assert wcs is None
             self.healpix = True
             self.nside = nside
             self.ell_max = ell_max if ell_max is not None else 3 * nside
-            self.pmap = 4*np.pi / hp.nside2npix(nside)
+            self.pixarea_map = hp.nside2pixarea(nside)
 
         self.rolloff_ell = rolloff_ell
         self.boolean_sky_fraction = boolean_sky_fraction
@@ -273,7 +273,7 @@ class SONoiseSimulator:
             )
         return survey
 
-    def get_noise_spectra(self, tube, ncurve_fsky=1):
+    def get_noise_spectra(self, tube, ncurve_sky_fraction=1):
         """Update a telescope configuration by loading the corresponding
         hitmaps. Each loaded `telescope` is kept in memory, but
         new choice of `scanning_strategy` erases the previous one.
@@ -285,16 +285,23 @@ class SONoiseSimulator:
             Telescope identifier, typically `LA` or `SA` for the large aperture
             and small aperture, respectively.
 
+        ncurve_sky_fraction : float,optional
+            The sky fraction to report to the noise simulator code.
+            In the current implementation, the default is to pass
+            a sky fraction of 1, and scale the result by
+            the corresponding sky fraction determined from each
+            band's hitmap.
+
         """
 
         telescope = f"{tube[0]}A"  # get LA or SA from tube name
         survey = self._get_survey(tube)
         if telescope == "SA":
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
-                ncurve_fsky,  # We load hitmaps later, so we compute and apply sky fraction later
+                ncurve_sky_fraction,
                 self.ell_max,
                 delta_ell=1,
-                full_covar=True,
+                full_covar=True,  # we always obtain the full covariance and later remove correlations as necessary
                 deconv_beam=self.apply_beam_correction,
                 rolloff_ell=self.rolloff_ell,
             )
@@ -304,7 +311,7 @@ class SONoiseSimulator:
                 noise_ell_T = noise_ell_P / 2
         elif telescope == "LA":
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
-                ncurve_fsky,  # We load hitmaps later, so we compute and apply sky fraction later
+                ncurve_sky_fraction,
                 self.ell_max,
                 delta_ell=1,
                 full_covar=True,
@@ -398,11 +405,13 @@ class SONoiseSimulator:
             self._hmap_cache[fname] = hitmap
         return hitmap
 
-    def _average(self,imap):
+    def _average(self, imap):
         # Internal function to calculate <imap> general to healpix and CAR
-        if self.healpix: assert imap.ndim==1
-        else: assert imap.ndim==2
-        return ((self.pmap*imap).sum() / 4.0 / np.pi)
+        if self.healpix:
+            assert imap.ndim == 1
+        else:
+            assert imap.ndim == 2
+        return (self.pixarea_map * imap).sum() / 4.0 / np.pi
 
     def _process_hitmaps(self, hitmaps):
         """Internal function to process hitmaps and based on the
@@ -419,7 +428,7 @@ class SONoiseSimulator:
                     (hitmaps[i] != 0).sum() / hitmaps[i].size for i in range(nhitmaps)
                 ]
             else:
-                pmap = self.pmap
+                pmap = self.pixarea_map
                 sky_fractions = [
                     (pmap[hitmaps[i] != 0].sum() / 4.0 / np.pi) for i in range(nhitmaps)
                 ]
@@ -616,7 +625,7 @@ class SONoiseSimulator:
         if len(sky_fractions) == 1:
             assert hitmaps.shape[0] == 1
             fsky = np.asarray([sky_fractions[0]] * 3)
-            hitmaps = np.repeat(hitmaps,2,axis=0)
+            hitmaps = np.repeat(hitmaps, 2, axis=0)
         elif len(sky_fractions) == 2:
             assert len(hitmaps) == 2
             fsky = np.append(sky_fractions, [np.mean(sky_fractions)])
@@ -638,20 +647,18 @@ class SONoiseSimulator:
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
                 sel = np.s_[:, None, None, None]
-                pmap = self.pmap * (
-                    (180.0 * 60.0 / np.pi) ** 2.0
-                )
+                pmap = self.pixarea_map * ((180.0 * 60.0 / np.pi) ** 2.0)
             else:
                 ashape = self.shape[-2:]
                 sel = np.s_[:, None, None, None, None]
                 pmap = enmap.enmap(
-                    self.pmap * ((180.0 * 60.0 / np.pi) ** 2.0), self.wcs
+                    self.pixarea_map * ((180.0 * 60.0 / np.pi) ** 2.0), self.wcs
                 )
             spowr = np.sqrt(npower[sel] / pmap)
             output_map = spowr * np.random.standard_normal((2, nsplits, 3,) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
         else:
-            ls, ps_T, ps_P = self.get_noise_spectra(tube, ncurve_fsky=1)
+            ls, ps_T, ps_P = self.get_noise_spectra(tube, ncurve_sky_fraction=1)
             ps_T = ps_T * fsky[:, None] * nsplits
             ps_P = ps_P * fsky[:, None] * nsplits
             if self.healpix:
@@ -691,10 +698,12 @@ class SONoiseSimulator:
                 good = hitmaps[i] != 0
                 # Normalize on the Effective sky fraction, see discussion in:
                 # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
-                output_map[i,:, :, good] /= np.sqrt(
-                    hitmaps[i][good][...,None,None] / self._average(hitmaps[i]) * fsky[i]
+                output_map[i, :, :, good] /= np.sqrt(
+                    hitmaps[i][good][..., None, None]
+                    / self._average(hitmaps[i])
+                    * fsky[i]
                 )
-                output_map[i,:, :, np.logical_not(good)] = mask_value
+                output_map[i, :, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
             )
