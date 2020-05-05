@@ -28,7 +28,7 @@ PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
 default_output_filename_template = (
-    "simonsobs_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
+    "simonsobs_{tag}_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
 )
 
 
