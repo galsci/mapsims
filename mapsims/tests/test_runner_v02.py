@@ -21,4 +21,4 @@ def test_from_config_v02():
     expected_map = hp.read_map(
         data.get_pkg_data_filename("data/simonsobs_ST0_UHF1_nside16.fits.gz"), (0, 1, 2)
     )
-    assert_quantity_allclose(output_map, expected_map, rtol=1e-2)
+    assert_quantity_allclose(output_map, expected_map, rtol=1e-6)
