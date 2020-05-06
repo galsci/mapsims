@@ -614,9 +614,9 @@ class SONoiseSimulator:
                 if self.healpix
                 else enmap.ones(self.shape, self.wcs)
             )
-            hitmaps = [None, None]
+            hitmaps = [ones, ones] if self.full_covariance else ones.reshape((1, -1))
             fsky = self._sky_fraction if self._sky_fraction is not None else 1
-            sky_fractions = [fsky, fsky] if self.full_covariance else fsky
+            sky_fractions = [fsky, fsky] if self.full_covariance else [fsky]
         else:
             hitmaps, sky_fractions = self.get_hitmaps(tube, hitmap=hitmap)
 
