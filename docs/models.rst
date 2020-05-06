@@ -11,7 +11,7 @@ Model templates
 Model templates or more in general model data are stored on the Simons Observatory project pages at NERSC in the folder::
 
     /global/project/projectdirs/sobs/www/so_mapsims_data
-    
+
 Which is then made publicly available via web at https://portal.nersc.gov/project/sobs/so_mapsims_data
 
 For example all the available hitmaps are available there. In order to copy data at that location:
@@ -20,26 +20,24 @@ For example all the available hitmaps are available there. In order to copy data
 * copy data there
 * run `bash update_html_list.sh` in the `/global/project/projectdirs/sobs/www/so_mapsims_data` folder, this creates the html pages that list the files and also fixes permissions.
 
-20180822 noise power spectra and hitmaps
-========================================
+Noise power spectra and hitmaps
+===============================
 
-The :py:class:`.SONoiseSimulator` class provides a wrapper to call the software that was released on 20180822
+The :py:class:`.SONoiseSimulator` class provides a wrapper to call `so_noise_models`
 to simulate power spectra of the noise taking into account the expected performance of the whole experiment.
 The noise simulator accepts a number of parameters to configure the simulation, see the documentation
-of the class of the source code of `the noise spectra simulator included in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/SO_Noise_Calculator_Public_20180822.py>`_.
+in the `so_noise_models repository <https://github.com/simonsobs/so_noise_models>`_.
 
-It also includes low-resolution simulated relative hitmaps for the "classical" and the "opportunistic" scanning
-strategies.
+It also includes simulated relative hitmaps simulated in time domain with TOAST.
 
 As an example::
 
-    >>> from mapsims import noise, SOChannel
+    >>> from mapsims import noise
     >>> import healpy as hp
     >>> noise_sim = noise.SONoiseSimulator(nside=128)
-    >>> ch = SOChannel(telescope="LA", band=27)
-    >>> hp.mollview(noise_sim.load_hitmaps([ch])[0], title="Relative hitmap")
-    >>> noise_map = noise_sim.simulate(ch)
-    >>> hp.mollview(noise_map[1], min=-100, max=100, unit="uK_CMB", title="Q noise map LA 27")
+    >>> hp.mollview(noise_sim.get_hitmaps("ST0")[0][0], title="Relative hitmap")
+    >>> noise_maps = noise_sim.simulate(tube="ST0")
+    >>> hp.mollview(noise_maps[0][0][1], min=-10, max=10, unit="uK_CMB", title="Q noise map ST0")
 
 Cosmic Microwave Background simulations
 =======================================

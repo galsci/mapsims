@@ -9,6 +9,10 @@ import healpy as hp
 import mapsims
 from mapsims import utils as mutils
 
+comm = mpi.COMM_WORLD
+    
+
+
 import argparse
 
 # Parse command line
@@ -93,8 +97,6 @@ bounds["LA"] = [-80.0, 40.0]
 bounds["SA"] = [-70.0, 30.0]
 
 
-telescopes = ["SA", "LA"]
-modes = ["opportunistic", "classical"]
 
 hp_remote_data = mutils.RemoteData(healpix=True, version=version)
 cr_remote_data = mutils.RemoteData(healpix=False, version=version)
@@ -102,20 +104,51 @@ assert (
     cr_remote_data.local_folder is not None
 ), f"Output directory {cr_remote_data.local_folder} needs to exist."
 
-for telescope in telescopes:
-    for mode in modes:
-        hmap = hp.read_map(hp_remote_data.get(f"total_hits_{telescope}_{mode}.fits.gz"))
-        for res in resolutions[telescope]:
-            shape, wcs = get_geometry(res, bounds_deg=bounds[telescope])
-            imap = ivar_hp_to_cyl(hmap, shape, wcs)
+
+def save_maps(hmap,root_name,telescope):
+    for res in resolutions[telescope]:
+        shape, wcs = get_geometry(res, bounds_deg=bounds[telescope])
+        imap = ivar_hp_to_cyl(hmap, shape, wcs)
+        if comm.rank==0:
             oname = cr_remote_data.get_local_output(
-                f"total_hits_{telescope}_{mode}_CAR_{res:.2f}_arcmin.fits"
+                f"{root_name}_CAR_{res:.2f}_arcmin.fits"
             )
             enmap.write_map(oname, imap)
             os.system(f"gzip -f {oname}")
-            print(f"{telescope}_{mode}_CAR_{res:.2f}_arcmin")
-            plots = enplot.get_plots(imap)
+            plots = enplot.get_plots(enmap.downgrade(imap,8))
+            savename = cr_remote_data.get_local_output(f"rmap_{root_name}_{res:.2f}")
             enplot.write(
                 savename,
-                cr_remote_data.get_local_output(f"rmap_{telescope}_{mode}_{res:.2f}"),
+                plots
             )
+            print(f"Plot saved to {savename}")
+
+
+if version=='v0.1':
+    telescopes = ["SA", "LA"]
+    modes = ["opportunistic", "classical"]
+
+    jobs = []
+    for telescope in telescopes:
+        for mode in modes:
+            jobs.append((telescope,mode))
+
+    for job in jobs:
+        telescope,mode = job
+        root_name = f'total_hits_{telescope}_{mode}'
+        hmap = hp.read_map(hp_remote_data.get(f"{root_name}.fits.gz"))
+        save_maps(hmap,root_name,telescope)
+
+elif version=='v0.2':
+    from mapsims import so_utils
+    tubes = so_utils.tubes
+    modes = []
+    for tube in tubes.keys():
+        for band in tubes[tube]: modes.append( f'{tube}_{band}' ) 
+
+    for mode in modes:
+        telescope = f'{mode[0]}A'
+        root_name = f'{mode}_01_of_20.nominal_telescope_all_time_all_hmap'
+        hmap = hp.read_map(hp_remote_data.get(f"{root_name}.fits.gz"))
+        save_maps(hmap,root_name,telescope)
+    

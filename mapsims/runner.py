@@ -28,7 +28,7 @@ PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
 default_output_filename_template = (
-    "simonsobs_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
+    "simonsobs_{tag}_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
 )
 
 
@@ -360,7 +360,9 @@ class MapSim:
                     kwargs = dict(tube=self.tube, output_units=self.unit)
                     if function_accepts_argument(comp.simulate, "nsplits"):
                         kwargs["nsplits"] = self.nsplits
-                    component_map = comp.simulate(ch[0], **kwargs)
+                    if function_accepts_argument(comp.simulate, "seed"):
+                        kwargs["seed"] = self.num
+                    component_map = comp.simulate(**kwargs)
                     if self.nsplits == 1:
                         component_map = component_map.reshape((len(ch), 1, 3, -1))
                     component_map[hp.mask_bad(component_map)] = np.nan

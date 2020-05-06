@@ -9,20 +9,22 @@ First you need to create a configuration file, see ``data/example_config_v0.2.to
 or `in the repository <https://github.com/simonsobs/mapsims/blob/master/mapsims/data/example_config_v0.2.toml>`_.
 
 It first defines some global configuration options like output :math:`N_{side}`, the desired output unit and the
-channels, and a tag to define the output filenames, then has 2 subsections. They both define subsections with a ``class`` attribute that
+channels, and a tag to define the output filenames, then has 2 sections. They both define subsections with a ``class`` attribute that
 specifies which object should be instantiated; all other arguments are passed into the class
 constructor.
 
 * The ``pysm_components`` subsection allows to choose any pre-existing PySM model (using ``pysm_components_string`` and ``pysm_output_reference_frame``) and later add any custom class, for example one from ``so_pysm_models``.
 * The ``other_components`` section instead includes models that generate a map to be summed after PySM has been executed, for example the noise simulation.
 
-All the arguments to the different components are defined by each class, the most general components are defined in ``so_pysm_models``, see `the documentation<https://so-pysm-models.readthedocs.io/en/latest/models.html>`_, for example :py:class:`so_pysm_models.WebSkyCIB`, the models specific to Simons Observatory are instead defined directly in ``mapsims``, for example :py:class:`SONoiseSimulator`.
-Another option is to look through the available simulations in the `Map-based simulations repository<https://github.com/simonsobs/map_based_simulations`_ and inspect the ``toml`` configuration files that were used for previous simulations.
+All the arguments to the different components are defined by each class, the most general components are defined in ``so_pysm_models``, see `the documentation <https://so-pysm-models.readthedocs.io/en/latest/models.html>`_, for example :py:class:`so_pysm_models.WebSkyCIB`, the models specific to Simons Observatory are instead defined directly in ``mapsims``, for example :py:class:`SONoiseSimulator`.
+Another option is to look through the available simulations in the `Map-based simulations repository <https://github.com/simonsobs/map_based_simulations>`_ and inspect the ``toml`` configuration files that were used for previous simulations.
 
 ``channels`` supports both simulating the Simons Observatory channels at single frequencies or top-hat bandpasses.
 If you specify channels named by the telescope and the frequency in GHz ``"SA_27"``, the simulations are performed at a single frequency. Instead if you specify one of the bandpasses, for example ``"LA_MFF1"``, the simulations are executed with top-hat bandpasses (10 equally spaced points within the band integrated with the Trapezoidal rule).
 If you specify shortcuts for groups of channels, i.e. ``"all"``, ``"LA"`` or ``"SA"``, top-hat bandpasses are selected.
 We also support simulating a dichroic tube which includes also the full covariance due to the atmosphere, in this case you can set channels to a tube tag, e.g. ``"ST3"`` for the Small Aperture telescope tube 3 which includes the ``LF1`` and ``LF2`` bands.
+
+Noise simulations only support specifying tubes, foreground-only simulations instead can also be executed for a single frequency or a single band.
 
 The simulation seed
 -------------------
@@ -115,10 +117,6 @@ it can be either "classical" or "opportunistic"::
     ...     sensitivity_mode="baseline",
     ...     apply_beam_correction=True,
     ...     apply_kludge_correction=True,
-    ...     scanning_strategy="classical",
-    ...     LA_number_LF=1,
-    ...     LA_number_MF=4,
-    ...     LA_number_UHF=2,
     ...     SA_one_over_f_mode="pessimistic",
     ... )
 
@@ -127,7 +125,7 @@ simulator as dictionaries, we can also specify any default model from PySM as a 
 e.g. "d7,a1,s2"::
 
     >>> simulator = mapsims.MapSim(
-    ...     channels="LA_27",
+    ...     channels="ST0",
     ...     nside=NSIDE,
     ...     unit="uK_CMB",
     ...     pysm_output_reference_frame="G",

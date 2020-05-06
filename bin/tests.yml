@@ -1,0 +1,34 @@
+hp_homogenous_white:
+  pix: healpix
+  nside: 512
+  tube: ST0
+  homogenous: True
+  wnoise: True
+  fsky: 0.4
+  
+hp_homogenous:
+  pix: healpix
+  nside: 512
+  tube: ST3
+  homogenous: True
+  wnoise: False
+  fsky: 0.4  
+
+hp_homogenous_mask:
+  pix: healpix
+  nside: 512
+  tube: ST3
+  homogenous: False
+  wnoise: False
+  fsky: 0.5
+  mask: test_mask.fits
+
+
+car_homogenous:
+  pix: car
+  res: 2
+  tube: LT3
+  homogenous: True
+  wnoise: False
+  fsky: 0.4  
+  
