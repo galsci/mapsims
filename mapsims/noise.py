@@ -39,7 +39,7 @@ def _band_ids_from_tube(tube):
     [2, 3]
     >>> _band_ids_from_tube('ST2')
     [2, 3]
-    
+
     """
     tubes = so_utils.tubes
     bands = tubes[tube]
@@ -156,7 +156,7 @@ class SONoiseSimulator:
         cache_hitmaps : bool
             If True, caches hitmaps.
         boolean_sky_fraction: bool
-            If True, determines fsky based on fraction of hitmap that is zero. If False,
+            If True, determines sky fraction based on fraction of hitmap that is zero. If False,
             determines sky_fraction from <Nhits>.
         """
 
@@ -170,14 +170,14 @@ class SONoiseSimulator:
             self.ell_max = (
                 ell_max if ell_max is not None else 10000 * (1.0 / self._pixheight)
             )
-            self.pmap = enmap.pixsizemap(self.shape, self.wcs)
+            self.pixarea_map = enmap.pixsizemap(self.shape, self.wcs)
         else:
             assert shape is None
             assert wcs is None
             self.healpix = True
             self.nside = nside
             self.ell_max = ell_max if ell_max is not None else 3 * nside
-            self.pmap = 4 * np.pi / hp.nside2npix(nside)
+            self.pixarea_map = hp.nside2pixarea(nside)
 
         self.rolloff_ell = rolloff_ell
         self.boolean_sky_fraction = boolean_sky_fraction
@@ -207,7 +207,7 @@ class SONoiseSimulator:
 
     def get_beam_fwhm(self, tube, band=None):
         """Get beam FWHMs in arcminutes corresponding to the tueb.
-        This is useful if non-beam-deconvolved sims are requested and you want to 
+        This is useful if non-beam-deconvolved sims are requested and you want to
         know what beam to apply to your signal simulation.
 
         Parameters
@@ -275,7 +275,7 @@ class SONoiseSimulator:
                 )
         return survey
 
-    def get_noise_spectra(self, tube, ncurve_fsky=1, return_corr=False):
+    def get_noise_spectra(self, tube, ncurve_sky_fraction=1, return_corr=False):
         """Update a telescope configuration by loading the corresponding
         hitmaps. Each loaded `telescope` is kept in memory, but
         new choice of `scanning_strategy` erases the previous one.
@@ -286,6 +286,13 @@ class SONoiseSimulator:
         telescope : string
             Telescope identifier, typically `LA` or `SA` for the large aperture
             and small aperture, respectively.
+
+        ncurve_sky_fraction : float,optional
+            The sky fraction to report to the noise simulator code.
+            In the current implementation, the default is to pass
+            a sky fraction of 1, and scale the result by
+            the corresponding sky fraction determined from each
+            band's hitmap.
 
         return_corr : bool
             If True, returns cross-correlation coeffient instead of
@@ -313,10 +320,10 @@ class SONoiseSimulator:
         survey = self._get_survey(tube)
         if telescope == "SA":
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
-                ncurve_fsky,  # We load hitmaps later, so we compute and apply sky fraction later
+                ncurve_sky_fraction,
                 self.ell_max,
                 delta_ell=1,
-                full_covar=True,
+                full_covar=True,  # we always obtain the full covariance and later remove correlations as necessary
                 deconv_beam=self.apply_beam_correction,
                 rolloff_ell=self.rolloff_ell,
             )
@@ -326,7 +333,7 @@ class SONoiseSimulator:
                 noise_ell_T = noise_ell_P / 2
         elif telescope == "LA":
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
-                ncurve_fsky,  # We load hitmaps later, so we compute and apply sky fraction later
+                ncurve_sky_fraction,
                 self.ell_max,
                 delta_ell=1,
                 full_covar=True,
@@ -354,7 +361,7 @@ class SONoiseSimulator:
     def _validate_map(self, fmap):
         """Internal function to validate an externally provided map.
         It checks the healpix or CAR attributes against what the
-        class was initialized with. It adds a leading dimension if 
+        class was initialized with. It adds a leading dimension if
         necessary.
         """
         shape = fmap.shape
@@ -428,7 +435,7 @@ class SONoiseSimulator:
             assert imap.ndim == 1
         else:
             assert imap.ndim == 2
-        return (self.pmap * imap).sum() / 4.0 / np.pi
+        return (self.pixarea_map * imap).sum() / 4.0 / np.pi
 
     def _process_hitmaps(self, hitmaps):
         """Internal function to process hitmaps and based on the
@@ -458,7 +465,7 @@ class SONoiseSimulator:
             tubes and their channels, see so_utils.tubes.
 
         hitmap : string or map, optional
-            Provide the path to a hitmap to override the default used for 
+            Provide the path to a hitmap to override the default used for
             the tube. You could also provide the hitmap as an array
             directly.
 
@@ -533,8 +540,6 @@ class SONoiseSimulator:
             The white noise variance in the requested units either as
             a tuple for the pair of bands in the tube, or just for the specific
             band requested.
-            
-
         """
         survey = self._get_survey(tube)
         bands = _band_ids_from_tube(tube)
@@ -663,7 +668,7 @@ class SONoiseSimulator:
         seed : integer or tuple of integers, optional
             Specify a seed. The seed is converted to a tuple if not already
             one and appended to (0,0,6,tube_id) to avoid collisions between
-            tubes, with the signal sims and with ACT noise sims, where 
+            tubes, with the signal sims and with ACT noise sims, where
             tube_id is the integer ID of the tube.
         nsplits : integer, optional
             Number of splits to generate. The splits will have independent noise
@@ -677,10 +682,10 @@ class SONoiseSimulator:
         atmosphere : bool, optional
             Whether to include the correlated 1/f from the noise model. This is
             True by default. If it is set to False, then a pure white noise map
-            is generated from the white noise power in the noise model, and 
+            is generated from the white noise power in the noise model, and
             the covariance between arrays is ignored.
         hitmap : string or map, optional
-            Provide the path to a hitmap to override the default used for 
+            Provide the path to a hitmap to override the default used for
             the tube. You could also provide the hitmap as an array
             directly.
         white_noise_rms : float or tuple of floats, optional
@@ -693,7 +698,7 @@ class SONoiseSimulator:
 
         output_map : ndarray or ndmap
             Numpy array with the HEALPix or CAR map realization of noise.
-            The shape of the returned array is (2,3,nsplits,)+oshape, where 
+            The shape of the returned array is (2,3,nsplits,)+oshape, where
             oshape is (npix,) for HEALPix and (Ny,Nx) for CAR.
             The first dimension of size 2 corresponds to the two different
             bands within a dichroic tube. The second dimension corresponds
@@ -740,15 +745,15 @@ class SONoiseSimulator:
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
                 sel = np.s_[:, None, None, None]
-                pmap = self.pmap * ((180.0 * 60.0 / np.pi) ** 2.0)
+                pmap = self.pixarea_map * ((180.0 * 60.0 / np.pi) ** 2.0)
             else:
                 ashape = self.shape[-2:]
                 sel = np.s_[:, None, None, None, None]
                 pmap = enmap.enmap(
-                    self.pmap * ((180.0 * 60.0 / np.pi) ** 2.0), self.wcs
+                    self.pixarea_map * ((180.0 * 60.0 / np.pi) ** 2.0), self.wcs
                 )
             spowr = np.sqrt(npower[sel] / pmap)
-            output_map = spowr * np.random.standard_normal((2, nsplits, 3,) + ashape)
+            output_map = spowr * np.random.standard_normal((2, nsplits, 3) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
         else:
             # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
@@ -775,7 +780,7 @@ class SONoiseSimulator:
                             )
                         )
             else:
-                output_map = enmap.zeros((2, nsplits, 3,) + self.shape, self.wcs)
+                output_map = enmap.zeros((2, nsplits, 3) + self.shape, self.wcs)
                 ps_T = powspec.sym_expand(np.asarray(ps_T), scheme="diag")
                 ps_P = powspec.sym_expand(np.asarray(ps_P), scheme="diag")
                 # TODO: These loops can probably be vectorized
@@ -800,7 +805,7 @@ class SONoiseSimulator:
                 output_map[i, :, :, good] /= np.sqrt(hitmaps[i][good][..., None, None])
                 output_map[i, :, :, np.logical_not(good)] = mask_value
             unit_conv = (1 * u.uK_CMB).to_value(
-                u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
+                u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq)
             )
             output_map[i] *= unit_conv
         return output_map
