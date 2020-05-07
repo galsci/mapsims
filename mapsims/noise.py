@@ -759,7 +759,7 @@ class SONoiseSimulator:
             # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
             # since that can be used straightforwardly when the auto-correlations are re-scaled.
             ls, ps_T, ps_P = self.get_noise_spectra(
-                tube, ncurve_fsky=1, return_corr=True
+                tube, ncurve_sky_fraction=1, return_corr=True
             )
             ps_T[:2] = ps_T[:2] * fsky[:, None] * nsplits * wnoise_scale
             ps_T[2] *= np.sqrt(np.prod(ps_T[:2], axis=0))

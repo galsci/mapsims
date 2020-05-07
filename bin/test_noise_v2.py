@@ -77,7 +77,7 @@ for key in config.keys():
         homogenous=c.homogenous,
         sky_fraction=c.fsky if c.homogenous else None,
     )
-    ells, nlt, nlp = nsim.get_noise_spectra(c.tube, ncurve_fsky=c.fsky)
+    ells, nlt, nlp = nsim.get_noise_spectra(c.tube, ncurve_sky_fraction=c.fsky)
 
     if not(c.homogenous):
         try:
