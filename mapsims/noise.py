@@ -276,16 +276,15 @@ class SONoiseSimulator:
         return survey
 
     def get_noise_spectra(self, tube, ncurve_sky_fraction=1, return_corr=False):
-        """Update a telescope configuration by loading the corresponding
-        hitmaps. Each loaded `telescope` is kept in memory, but
-        new choice of `scanning_strategy` erases the previous one.
+        """Get the noise power spectra corresponding to the requested tube
+        from the SO noise model code.
 
         Parameters
         ----------
 
-        telescope : string
-            Telescope identifier, typically `LA` or `SA` for the large aperture
-            and small aperture, respectively.
+        tube : str
+            Specify a specific tube. For available
+            tubes and their channels, see so_utils.tubes.
 
         ncurve_sky_fraction : float,optional
             The sky fraction to report to the noise simulator code.
