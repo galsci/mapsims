@@ -8,3 +8,4 @@ so_noise_models
 sotodlib
 sotoddb
 pixell
+pyyaml
