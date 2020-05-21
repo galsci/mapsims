@@ -67,17 +67,6 @@ def _band_index(tube, band):
     return so_utils.tubes[tube].index(band)
 
 
-def _get_wscale_factor(white_noise_rms, tube, sky_fraction):
-    """Internal function to re-scale white noise power
-    to a new value corresponding to white noise RMS in uK-arcmin.
-    """
-    if white_noise_rms is None:
-        return np.ones((2, 1))
-    cnoise = np.sqrt(
-        self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2") * sky_fraction
-    )
-    return white_noise_rms / cnoise
-
 
 
 class SONoiseSimulator:
@@ -372,6 +361,7 @@ class SONoiseSimulator:
         ell = ls
         return ell, nells_T, nells_P
 
+    
     def _validate_map(self, fmap):
         """Internal function to validate an externally provided map.
         It checks the healpix or CAR attributes against what the
@@ -593,7 +583,7 @@ class SONoiseSimulator:
             quantity that depends on the size of pixels.
         """
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
-        wnoise_scale = _get_wscale_factor(white_noise_rms, tube, fsky)
+        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
         power = (
             self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
             * fsky
@@ -623,6 +613,18 @@ class SONoiseSimulator:
             ret[i] /= unit_conv ** 2.0  # divide by square since the default is 1/uK^2
         return ret
 
+    def _get_wscale_factor(self,white_noise_rms, tube, sky_fraction):
+        """Internal function to re-scale white noise power
+        to a new value corresponding to white noise RMS in uK-arcmin.
+        """
+        if white_noise_rms is None:
+            return np.ones((2, 1))
+        cnoise = np.sqrt(
+            self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2") * sky_fraction
+        )
+        return white_noise_rms / cnoise
+
+    
     def _get_requested_hitmaps(self, tube, hitmap):
         if self.homogenous and (hitmap is None):
             ones = (
@@ -730,7 +732,7 @@ class SONoiseSimulator:
             np.random.seed(seed)
 
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
-        wnoise_scale = _get_wscale_factor(white_noise_rms, tube, fsky)
+        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
 
         if not (atmosphere):
             if self.apply_beam_correction:
