@@ -67,6 +67,19 @@ def _band_index(tube, band):
     return so_utils.tubes[tube].index(band)
 
 
+def _get_wscale_factor(white_noise_rms, tube, sky_fraction):
+    """Internal function to re-scale white noise power
+    to a new value corresponding to white noise RMS in uK-arcmin.
+    """
+    if white_noise_rms is None:
+        return np.ones((2, 1))
+    cnoise = np.sqrt(
+        self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2") * sky_fraction
+    )
+    return white_noise_rms / cnoise
+
+
+
 class SONoiseSimulator:
     def __init__(
         self,
@@ -294,13 +307,14 @@ class SONoiseSimulator:
             band's hitmap.
 
         return_corr : bool
-            If True, returns cross-correlation coeffient instead of
-            cross-correlation power in the third row of the returned arrays.
+            If True, returns cross-correlation N_XY / sqrt(N_XX * N_YY) coeffient instead of
+            cross-correlation power N_XY in the third row of the returned arrays. This is
+            more convenient sometimes, e.g. when you need to scale the auto-correlation power by some factor.
 
         Returns
         -------
         
-        ls : (nells,) ndarray
+        ell : (nells,) ndarray
             Array of nells multipoles starting at ell=0 and spaced by delta_ell=1
             corresponding to the noise power spectra nells_T and nells_P
 
@@ -355,7 +369,8 @@ class SONoiseSimulator:
             if self.no_power_below_ell is not None:
                 n_out[:, ls < self.no_power_below_ell] = 0
 
-        return ls, nells_T, nells_P
+        ell = ls
+        return ell, nells_T, nells_P
 
     def _validate_map(self, fmap):
         """Internal function to validate an externally provided map.
@@ -547,18 +562,7 @@ class SONoiseSimulator:
             ret = ret[_band_index(tube, band)]
         return ret
 
-    def _get_wscale_factor(self, white_noise_rms, tube, sky_fraction):
-        """Internal function to re-scale white noise power
-        to a new value corresponding to white noise RMS in uK-arcmin.
-        """
-        if white_noise_rms is None:
-            return np.ones((2, 1))
-        cnoise = np.sqrt(
-            self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2") * sky_fraction
-        )
-        return white_noise_rms / cnoise
-
-    def get_ivar(
+    def get_inverse_variance(
         self, tube, output_units="uK_CMB", hitmap=None, white_noise_rms=None,
     ):
         """Get the inverse noise variance in each pixel for the requested tube.
@@ -589,7 +593,7 @@ class SONoiseSimulator:
             quantity that depends on the size of pixels.
         """
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
-        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
+        wnoise_scale = _get_wscale_factor(white_noise_rms, tube, fsky)
         power = (
             self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
             * fsky
@@ -726,7 +730,7 @@ class SONoiseSimulator:
             np.random.seed(seed)
 
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
-        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
+        wnoise_scale = _get_wscale_factor(white_noise_rms, tube, fsky)
 
         if not (atmosphere):
             if self.apply_beam_correction:
