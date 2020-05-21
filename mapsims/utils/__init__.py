@@ -7,7 +7,6 @@ import os
 from astropy.utils import data
 import warnings
 
-
 def _DATAURL(healpix, version):
     if healpix:
         return f"https://portal.nersc.gov/project/sobs/so_mapsims_data/{version}/healpix/"

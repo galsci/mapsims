@@ -34,6 +34,7 @@ def test_noise_simulator(tube):
                 f"data/noise_{tube}_{band}_uKCMB_classical_nside16_seed1234_healpix.fits.gz"
             ),
             (0, 1, 2),
+            verbose=False,
         )
         assert_quantity_allclose(output_map[i, 0], expected_map)
 
@@ -54,4 +55,4 @@ def test_noise_simulator_car(tube):
             f"data/noise_{tube}_uKCMB_classical_res30_seed1234_car.fits.gz"
         )
     )
-    assert_quantity_allclose(output_map, expected_map)
+    assert_quantity_allclose(output_map, expected_map, rtol=1e-5)
