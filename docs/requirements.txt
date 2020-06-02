@@ -6,7 +6,10 @@ sphinx-astropy
 healpy
 quaternionarray
 pysm3
+pyyaml
+h5py
 importlib_resources
 https://github.com/simonsobs/so_pysm_models/archive/master.zip
 https://github.com/simonsobs/so_noise_models/archive/master.zip
-git+git://github.com/simonsobs/sotodlib.git@aca85843b70b0c6ebac031aa48fff47f93ed6661
+git+git://github.com/simonsobs/sotodlib.git@0c64e07ab429e7f0c0e95befeedbaca486d3a414
+git+git://github.com/simonsobs/sotoddb@164b855285a59dcda03843817455722bf0f44bf2
