@@ -1,7 +1,5 @@
-import os.path
 import numpy as np
 import healpy as hp
-from astropy.utils import data
 import warnings
 
 import pysm.units as u
@@ -12,9 +10,11 @@ from . import utils as mutils
 
 # pixell is optional and needed when CAR simulations are requested
 try:
-    from pixell import enmap, wcsutils, curvedsky, powspec
+    import pixell
+    import pixell.curvedsky
+    import pixell.powspec
 except:
-    pass
+    pixell = None
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
@@ -67,8 +67,6 @@ def _band_index(tube, band):
     return so_utils.tubes[tube].index(band)
 
 
-
-
 class SONoiseSimulator:
     def __init__(
         self,
@@ -110,9 +108,9 @@ class SONoiseSimulator:
             nside of HEALPix map. If None, uses
             rectangular pixel geometry specified through shape and wcs.
         shape : tuple of ints
-            shape of ndmap array (see pixell.enmap). Must also specify wcs.
+            shape of ndmap array (see pixell.pixell.enmap). Must also specify wcs.
         wcs : astropy.wcs.wcs.WCS instance
-            World Coordinate System for geometry of map (see pixell.enmap). Must
+            World Coordinate System for geometry of map (see pixell.pixell.enmap). Must
             also specify shape.
         ell_max : int
             Maximum ell for the angular power spectrum, if not provided set to 3 * nside when using healpix
@@ -130,10 +128,12 @@ class SONoiseSimulator:
             Set to True to generate full-sky maps with no hit-count variation, with noise curves
             corresponding to a survey that covers a sky fraction of sky_fraction (defaults to 1).
         no_power_below_ell : int
-            The input spectra have significant power at low ell, we can zero that power specifying an integer
-            :math:`\ell` value here. The power spectra at :math:`\ell < \ell_0` are set to zero.
+            The input spectra have significant power at low :math:`\ell`,
+            we can zero that power specifying an integer :math:`\ell` value here.
+            The power spectra at :math:`\ell < \ell_0` are set to zero.
         rolloff_ell : int
-            Low ell power damping, see the docstring of so_noise_models.so_models_v3.SO_Noise_Calculator_Public_v3_1_1.rolloff
+            Low ell power damping, see the docstring of
+            `so_noise_models.so_models_v3.SO_Noise_Calculator_Public_v3_1_1.rolloff`
         survey_efficiency : float
             Fraction of calendar time that may be used to compute map depth.
         full_covariance : bool
@@ -172,7 +172,7 @@ class SONoiseSimulator:
             self.ell_max = (
                 ell_max if ell_max is not None else 10000 * (1.0 / self._pixheight)
             )
-            self.pixarea_map = enmap.pixsizemap(self.shape, self.wcs)
+            self.pixarea_map = pixell.enmap.pixsizemap(self.shape, self.wcs)
         else:
             assert shape is None
             assert wcs is None
@@ -361,7 +361,6 @@ class SONoiseSimulator:
         ell = ls
         return ell, nells_T, nells_P
 
-    
     def _validate_map(self, fmap):
         """Internal function to validate an externally provided map.
         It checks the healpix or CAR attributes against what the
@@ -383,7 +382,7 @@ class SONoiseSimulator:
             else:
                 return fmap
         else:
-            assert wcsutils.is_compatible(fmap.wcs, self.wcs)
+            assert pixell.wcsutils.is_compatible(fmap.wcs, self.wcs)
             if len(shape) == 2:
                 ashape = shape
             elif len(shape) == 3:
@@ -419,14 +418,14 @@ class SONoiseSimulator:
             )
         else:
 
-            hitmap = enmap.read_map(fname)
-            if wcsutils.is_compatible(hitmap.wcs, self.wcs):
-                hitmap = enmap.extract(hitmap, self.shape, self.wcs)
+            hitmap = pixell.enmap.read_map(fname)
+            if pixell.wcsutils.is_compatible(hitmap.wcs, self.wcs):
+                hitmap = pixell.enmap.extract(hitmap, self.shape, self.wcs)
             else:
                 warnings.warn(
                     "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
                 )
-                hitmap = enmap.project(hitmap, self.shape, self.wcs, order=0)
+                hitmap = pixell.enmap.project(hitmap, self.shape, self.wcs, order=0)
 
         # and then cache and return
         if self._cache:
@@ -553,7 +552,7 @@ class SONoiseSimulator:
         return ret
 
     def get_inverse_variance(
-        self, tube, output_units="uK_CMB", hitmap=None, white_noise_rms=None,
+        self, tube, output_units="uK_CMB", hitmap=None, white_noise_rms=None
     ):
         """Get the inverse noise variance in each pixel for the requested tube.
 
@@ -608,29 +607,29 @@ class SONoiseSimulator:
         for i in range(2):
             freq = so_utils.SOChannel(telescope, bands[i], tube=tube).center_frequency
             unit_conv = (1 * u.uK_CMB).to_value(
-                u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq),
+                u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq)
             )
             ret[i] /= unit_conv ** 2.0  # divide by square since the default is 1/uK^2
         return ret
 
-    def _get_wscale_factor(self,white_noise_rms, tube, sky_fraction):
+    def _get_wscale_factor(self, white_noise_rms, tube, sky_fraction):
         """Internal function to re-scale white noise power
         to a new value corresponding to white noise RMS in uK-arcmin.
         """
         if white_noise_rms is None:
             return np.ones((2, 1))
         cnoise = np.sqrt(
-            self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2") * sky_fraction
+            self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
+            * sky_fraction
         )
         return white_noise_rms / cnoise
 
-    
     def _get_requested_hitmaps(self, tube, hitmap):
         if self.homogenous and (hitmap is None):
             ones = (
                 np.ones(hp.nside2npix(self.nside))
                 if self.healpix
-                else enmap.ones(self.shape, self.wcs)
+                else pixell.enmap.ones(self.shape, self.wcs)
             )
             hitmaps = [ones, ones] if self.full_covariance else ones.reshape((1, -1))
             fsky = self._sky_fraction if self._sky_fraction is not None else 1
@@ -754,7 +753,7 @@ class SONoiseSimulator:
             else:
                 ashape = self.shape[-2:]
                 sel = np.s_[:, None, None, None, None]
-                pmap = enmap.enmap(
+                pmap = pixell.enmap.pixell.enmap(
                     self.pixarea_map * ((180.0 * 60.0 / np.pi) ** 2.0), self.wcs
                 )
             spowr = np.sqrt(npower[sel] / pmap)
@@ -785,13 +784,13 @@ class SONoiseSimulator:
                             )
                         )
             else:
-                output_map = enmap.zeros((2, nsplits, 3) + self.shape, self.wcs)
-                ps_T = powspec.sym_expand(np.asarray(ps_T), scheme="diag")
-                ps_P = powspec.sym_expand(np.asarray(ps_P), scheme="diag")
+                output_map = pixell.enmap.zeros((2, nsplits, 3) + self.shape, self.wcs)
+                ps_T = pixell.powspec.sym_expand(np.asarray(ps_T), scheme="diag")
+                ps_P = pixell.powspec.sym_expand(np.asarray(ps_P), scheme="diag")
                 # TODO: These loops can probably be vectorized
                 for i in range(nsplits):
                     for i_pol in range(3):
-                        output_map[:, i, i_pol] = curvedsky.rand_map(
+                        output_map[:, i, i_pol] = pixell.curvedsky.rand_map(
                             (2,) + self.shape,
                             self.wcs,
                             ps_T if i_pol == 0 else ps_P,
