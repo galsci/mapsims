@@ -25,7 +25,7 @@ tubes = {
 tube_names = sorted(tubes.keys())
 bands = ("LF1", "LF2", "MFF1", "MFF2", "MFS1", "MFS2", "UHF1", "UHF2")
 frequencies = (27, 39, 93, 145, 93, 145, 225, 280)
-band_freqs = dict(zip(bands, frequencies)) 
+band_freqs = dict(zip(bands, frequencies))
 hw = hardware.get_example()
 
 
