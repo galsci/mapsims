@@ -1,12 +1,9 @@
-import numpy as np
 from astropy.tests.helper import assert_quantity_allclose
 import healpy as hp
 
-import pysm.units as u
 from astropy.utils import data
 
 import mapsims
-import so_pysm_models
 
 NSIDE = 16
 

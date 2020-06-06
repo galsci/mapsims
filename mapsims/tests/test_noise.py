@@ -6,7 +6,6 @@ from astropy.tests.helper import assert_quantity_allclose
 
 from astropy.utils import data
 import mapsims
-import pysm.units as u
 from mapsims import so_utils
 
 nside = 16
