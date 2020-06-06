@@ -50,7 +50,7 @@ class SONoiseSimulator:
         SA_one_over_f_mode="pessimistic",
         sky_fraction=None,
         cache_hitmaps=True,
-        boolean_sky_fraction=True,
+        boolean_sky_fraction=False,
         instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS,
     ):
         """Simulate noise maps for Simons Observatory
@@ -418,13 +418,13 @@ class SONoiseSimulator:
         nhitmaps = hitmaps.shape[0]
         assert nhitmaps == 1 or nhitmaps == 2
         if self.boolean_sky_fraction:
+            raise NotImplementedError
+        else:
             for i in range(nhitmaps):
                 hitmaps[i] /= hitmaps[i].max()
 
             # We define sky fraction as <Nhits>
             sky_fractions = [self._average(hitmaps[i]) for i in range(nhitmaps)]
-        else:
-            raise NotImplementedError
         return hitmaps, sky_fractions
 
     def get_hitmaps(self, tube=None, hitmap=None):
@@ -530,7 +530,7 @@ class SONoiseSimulator:
         output_units : str
             Output unit supported by PySM.units, e.g. uK_CMB or K_RJ
         hitmap : string or map, optional
-            Provide the path to a hitmap to override the default used for 
+            Provide the path to a hitmap to override the default used for
             the tube. You could also provide the hitmap as an array
             directly.
         white_noise_rms : float or tuple of floats, optional
