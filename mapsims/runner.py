@@ -1,14 +1,17 @@
-import os.path
 import importlib
+import os.path
+from astropy.table import Table
+from astropy.utils import data
+import healpy as hp
 import numpy as np
 
-import pysm
-from pysm import units as u
+try:  # PySM >= 3.2.1
+    import pysm3.units as u
+    import pysm3 as pysm
+except ImportError:
+    import pysm.units as u
+    import pysm
 import toml
-
-import healpy as hp
-from astropy.utils import data
-from astropy.table import Table
 
 from so_pysm_models import get_so_models
 
@@ -22,7 +25,6 @@ except ImportError:
 import warnings
 
 from . import so_utils
-from . import Channel
 
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]

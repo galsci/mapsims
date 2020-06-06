@@ -2,7 +2,10 @@ import numpy as np
 import healpy as hp
 import warnings
 
-import pysm.units as u
+try:  # PySM >= 3.2.1
+    import pysm3.units as u
+except ImportError:
+    import pysm.units as u
 
 from so_models_v3 import SO_Noise_Calculator_Public_v3_1_1 as so_models
 from . import so_utils

@@ -1,7 +1,5 @@
-import so_pysm_models
-from . import so_utils
 import healpy as hp
-import pysm.units as u
+import so_pysm_models
 
 
 class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
