@@ -180,7 +180,37 @@ def parse_channels(channels):
         return [SOChannel(*ch.split("_")) for ch in channels]
 
 
-def parse_instrument_parameters(instrument_parameters, channels="all"):
+def parse_instrument_parameters(
+    instrument_parameters="simonsobs_instrument_parameters_2020.06", filter=None
+):
+    """Create a list of Channel objects from a HDF5 and an optional filter
+
+    Reads a HDF5 file which contains the instruments parameters and
+    parses it into a list of Channel objects, by default all channels
+    are included.
+
+    Parameters
+    ----------
+    instrument_parameters : str or Path
+        A string (without .h5 extension) specifies an instrument parameters file
+        included in the package `data/` folder
+        A path or a string containing a path to an externally provided HDF5 file with
+        the expected format. By default the latest Simons Observatory parameters
+    filter : str or None
+        If None, all channels are included.
+        Otherwise, provide a string with:
+        * a key, e.g. tag, tube or telescope
+        * :
+        * comma separated list of desider values
+        e.g. all SAT channels = "telescope:SA"
+        LT1 and LT2 tubes = "tube:LT1,LT2"
+        LT1_UHF1 and LT0_UHF1 = "tag:LT1_UHF1,LT0_UHF1"
+
+    Returns
+    -------
+    channel_objects_list : list of Channel objects
+        List of the selected Channel objects
+    """
     if not isinstance(
         instrument_parameters, Path
     ) and not instrument_parameters.endswith("h5"):
@@ -190,19 +220,17 @@ def parse_instrument_parameters(instrument_parameters, channels="all"):
     instrument_parameters = Path(instrument_parameters)
     if h5py is None:
         raise ImportError("h5py is needed to parse instrument parameter files")
+
+    if filter is not None:
+        filter_key, filter_values = filter.split(":")
+        filter_values = filter_values.split(",")
+
     channel_objects_list = []
     with h5py.File(instrument_parameters, "r") as f:
-        telescope = None
-        if channels == "all":
-            channels = f.keys()
-        if isinstance(channels, str) and channels.endswith("T"):
-            telescope = channels
-            channels = f.keys()
-        if isinstance(channels, str):
-            channels = [channels]
-        for ch in channels:
-            if telescope is not None:
-                if telescope != f[ch].attrs["telescope"]:
+
+        for ch in f.keys():
+            if filter is not None:
+                if f[ch].attrs[filter_key] not in filter_values:
                     continue
             channel_objects_list.append(
                 Channel(
