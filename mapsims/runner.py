@@ -14,6 +14,7 @@ except ImportError:
 import toml
 
 from so_pysm_models import get_so_models
+from .utils import DEFAULT_INSTRUMENT_PARAMETERS
 
 try:
     from mpi4py import MPI
@@ -24,7 +25,7 @@ except ImportError:
 
 import warnings
 
-from . import so_utils
+from .channel_utils import parse_instrument_parameters
 
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
@@ -90,7 +91,7 @@ def command_line_script(args=None):
     parser.add_argument(
         "--channels",
         type=str,
-        help="Channels e.g. all, SA, LA, LA_27, ST2",
+        help="Channels e.g. all, 'LT1_UHF1,LT0_UHF1', 'tube:LT1', see docstring of MapSim",
         required=False,
     )
     res = parser.parse_args(args)
@@ -122,7 +123,9 @@ def from_config(config_file, override=None):
 
     nside = config.get("nside", None)
     if nside is None:
-        channels = so_utils.parse_channels(config["channels"])
+        channels = parse_instrument_parameters(
+            config["instrument_parameters"], config["channels"]
+        )
         nside = get_default_so_resolution(channels[0])
 
     components = {}
@@ -169,7 +172,7 @@ def from_config(config_file, override=None):
         pysm_custom_components=components["pysm_components"],
         pysm_output_reference_frame=pysm_output_reference_frame,
         other_components=components["other_components"],
-        instrument_parameters=config.get("instrument_parameters", None),
+        instrument_parameters=config["instrument_parameters"],
     )
     return map_sim
 
@@ -189,7 +192,7 @@ class MapSim:
         pysm_output_reference_frame="C",
         pysm_custom_components=None,
         other_components=None,
-        instrument_parameters=None,
+        instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS,
     ):
         """Run map based simulations
 
@@ -204,14 +207,15 @@ class MapSim:
         ----------
 
         channels : str
-            all/SO for all channels, LA for all Large Aperture channels, SA for Small,
-            otherwise a single channel label, e.g. LA_27 or a list of channel labels,
-            or "027" for "LA_27" and "SA_27"
-            to simulate a tube, leave channels None and set tube instead
-        tube : str
-            tube to simulate, it is necessary for noise simulations with hitmaps v0.2
-            currently only 1 tube at a time is supported
-            see mapsims.so_utils.tubes for the available tubes
+            If "all", all channels are included.
+            Otherwise a list of channel tags:
+            LT1_UHF1 and LT0_UHF1 = "LT1_UHF1,LT0_UHF1"
+            Otherwise, provide a string with:
+            * a key, e.g. tube or telescope
+            * :
+            * comma separated list of desider values
+            e.g. all SAT channels = "telescope:SA"
+            LT1 and LT2 tubes = "tube:LT1,LT2"
         nside : int
             output HEALPix Nside, if None, automatically pick the default resolution of the
             first channel,
@@ -240,21 +244,17 @@ class MapSim:
             Dictionary of component name, component class pairs, the output of these are **not** rotated,
             they should already be in the same reference frame specified in pysm_output_reference_frame.
         instrument_parameters : HDF5 file path or str
+            A string (without .h5 extension) specifies an instrument parameters file
+            included in the package `data/` folder
+            A path or a string containing a path to an externally provided HDF5 file with
+            the expected format. By default the latest Simons Observatory parameters
             Instrument parameters in HDF5 format, each channel tag is a group, each group has attributes
             band, center_frequency_GHz, fwhm_arcmin, bandpass_frequency_GHz, bandpass_weight
 
 
         """
 
-        self.tube = None
-        if instrument_parameters is None:
-            self.channels = so_utils.parse_channels(channels)
-            if isinstance(self.channels[0], tuple):
-                self.tube = self.channels[0][0].tube
-        else:
-            self.channels = so_utils.parse_instrument_parameters(
-                instrument_parameters, channels
-            )
+        self.channels = parse_instrument_parameters(instrument_parameters, channels)
 
         if nside is None:
             self.nside = get_default_so_resolution(self.channels[0])
@@ -359,7 +359,7 @@ class MapSim:
 
             if self.other_components is not None:
                 for comp in self.other_components.values():
-                    kwargs = dict(tube=self.tube, output_units=self.unit)
+                    kwargs = dict(tube=ch[0].tube, output_units=self.unit)
                     if function_accepts_argument(comp.simulate, "nsplits"):
                         kwargs["nsplits"] = self.nsplits
                     if function_accepts_argument(comp.simulate, "seed"):

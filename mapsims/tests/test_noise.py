@@ -6,17 +6,9 @@ from astropy.tests.helper import assert_quantity_allclose
 
 from astropy.utils import data
 import mapsims
-from mapsims import so_utils
 
 nside = 16
 res = np.deg2rad(30 / 60.0)
-
-
-def test_freq_order():
-    freqs = np.unique(so_utils.frequencies)
-    ifreqs = (27, 39, 93, 145, 225, 280)
-    for f, f2 in zip(freqs, ifreqs):
-        assert f == f2
 
 
 @pytest.mark.parametrize("tube", ["ST0", "ST3"])
@@ -27,10 +19,10 @@ def test_noise_simulator(tube):
     simulator = mapsims.SONoiseSimulator(nside=nside)
     output_map = simulator.simulate(tube, seed=seed)
 
-    for i, band in enumerate(so_utils.tubes[tube]):
+    for i, ch in enumerate(simulator.tubes[tube]):
         expected_map = hp.read_map(
             data.get_pkg_data_filename(
-                f"data/noise_{tube}_{band}_uKCMB_classical_nside16_seed1234_healpix.fits.gz"
+                f"data/noise_{tube}_{ch.band}_uKCMB_classical_nside16_seed1234_healpix.fits.gz"
             ),
             (0, 1, 2),
             verbose=False,

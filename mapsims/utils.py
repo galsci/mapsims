@@ -7,10 +7,14 @@ import os
 from astropy.utils import data
 import warnings
 
+DEFAULT_INSTRUMENT_PARAMETERS = "simonsobs_instrument_parameters_2020.06"
+
+
 def _DATAURL(healpix, version):
     if healpix:
-        return f"https://portal.nersc.gov/project/sobs/so_mapsims_data/{version}/healpix/"
-        
+        return (
+            f"https://portal.nersc.gov/project/sobs/so_mapsims_data/{version}/healpix/"
+        )
     else:
         return f"https://portal.nersc.gov/project/sobs/so_mapsims_data/{version}/car/"
 

@@ -1,9 +1,10 @@
 
 nside = 16
-channels = "ST0"
+channels = "tube:ST0"
 unit = "uK_CMB"
 mapsims_version = "2.0.dev"
 so_pysm_models_version = "2.0.dev"
+instrument_parameters = "simonsobs_instrument_parameters_2020.06"
 tag = "test_sim"
 num = 0
 

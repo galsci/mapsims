@@ -44,7 +44,7 @@ def test_from_classes():
     )
 
     simulator = mapsims.MapSim(
-        channels="ST0",
+        channels="tube:ST0",
         nside=NSIDE,
         unit="uK_CMB",
         pysm_components_string="SO_d0",
