@@ -393,6 +393,7 @@ class MapSim:
                             each_split_channel_map,
                             coord=self.pysm_output_reference_frame,
                             column_units=self.unit,
+                            dtype=np.float32,
                             overwrite=True,
                         )
                 else:
