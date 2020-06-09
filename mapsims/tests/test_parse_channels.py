@@ -1,18 +1,25 @@
-from mapsims import so_utils
-import pytest
+from mapsims.channel_utils import parse_instrument_parameters
+from mapsims.utils import DEFAULT_INSTRUMENT_PARAMETERS
 
 
 def test_single_ch():
-    assert so_utils.parse_channels("SA_27")[0].tag == "SA_27"
+    ch = "ST3_LF2"
+    assert parse_instrument_parameters(DEFAULT_INSTRUMENT_PARAMETERS, ch)[0].tag == ch
 
 
-@pytest.mark.parametrize("telescope", ["SA", "LA"])
-def test_telescopes(telescope):
-    assert len(so_utils.parse_channels(telescope)) == 8
+def test_telescopes():
+    assert (
+        len(parse_instrument_parameters(DEFAULT_INSTRUMENT_PARAMETERS, "telescope:SA"))
+        == 8
+    )
+    assert (
+        len(parse_instrument_parameters(DEFAULT_INSTRUMENT_PARAMETERS, "telescope:LA"))
+        == 14
+    )
 
 
 def test_tube():
-    channels = so_utils.parse_channels("ST3")
+    channels = parse_instrument_parameters(DEFAULT_INSTRUMENT_PARAMETERS, "tube:ST3")
     assert len(channels) == 1
     assert isinstance(channels[0], tuple)
     assert channels[0][1].tag == "ST3_LF2"

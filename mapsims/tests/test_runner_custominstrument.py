@@ -1,11 +1,12 @@
-import numpy as np
 from mpi4py import MPI
 from astropy.tests.helper import assert_quantity_allclose
-import healpy as hp
 
-import pysm
-import pysm.units as u
-from astropy.utils import data
+try:  # PySM >= 3.2.1
+    import pysm3 as pysm
+    import pysm3.units as u
+except ImportError:
+    import pysm
+    import pysm.units as u
 
 import mapsims
 import so_pysm_models

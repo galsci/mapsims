@@ -19,12 +19,10 @@ constructor.
 All the arguments to the different components are defined by each class, the most general components are defined in ``so_pysm_models``, see `the documentation <https://so-pysm-models.readthedocs.io/en/latest/models.html>`_, for example :py:class:`so_pysm_models.WebSkyCIB`, the models specific to Simons Observatory are instead defined directly in ``mapsims``, for example :py:class:`SONoiseSimulator`.
 Another option is to look through the available simulations in the `Map-based simulations repository <https://github.com/simonsobs/map_based_simulations>`_ and inspect the ``toml`` configuration files that were used for previous simulations.
 
-``channels`` supports both simulating the Simons Observatory channels at single frequencies or top-hat bandpasses.
-If you specify channels named by the telescope and the frequency in GHz ``"SA_27"``, the simulations are performed at a single frequency. Instead if you specify one of the bandpasses, for example ``"LA_MFF1"``, the simulations are executed with top-hat bandpasses (10 equally spaced points within the band integrated with the Trapezoidal rule).
-If you specify shortcuts for groups of channels, i.e. ``"all"``, ``"LA"`` or ``"SA"``, top-hat bandpasses are selected.
-We also support simulating a dichroic tube which includes also the full covariance due to the atmosphere, in this case you can set channels to a tube tag, e.g. ``"ST3"`` for the Small Aperture telescope tube 3 which includes the ``LF1`` and ``LF2`` bands.
-
-Noise simulations only support specifying tubes, foreground-only simulations instead can also be executed for a single frequency or a single band.
+``channels`` supports both simulating the Simons Observatory channels with top-hat bandpasses.
+If you specify channels named by the tube and the band name, for example ``"ST3_LF2"``, the simulations are executed with top-hat bandpasses (10 equally spaced points within the band integrated with the Trapezoidal rule).
+If you specify shortcuts for groups of channels, i.e. ``"all"``, ``"telescope:LA"`` or ``"telescope:SA"``.
+We also support simulating a dichroic tube which includes also the full covariance due to the atmosphere, in this case you can set channels to a tube tag, e.g. ``"tube:ST3"`` for the Small Aperture telescope tube 3 which includes the ``LF1`` and ``LF2`` bands.
 
 The simulation seed
 -------------------
@@ -73,7 +71,7 @@ in a configuration file in the terminal and write the output to FITS files::
 
 It also supports overriding from the command line a subset of the parameters, here the full list::
 
-    mapsims_run --nside 32 --channels ST1 --num 4 example_config_v0.2.toml
+    mapsims_run --nside 32 --channels tube:ST1 --num 4 example_config_v0.2.toml
 
 MapSims object
 ==============
@@ -137,9 +135,7 @@ e.g. "d7,a1,s2"::
 and compute the output map using the ``execute`` method::
 
     >>> output_map = simulator.execute()
-    Sigma ...
 
 write instead directly output FITS maps to disk with::
 
     >>> simulator.execute(write_outputs=True)
-    Sigma ...
