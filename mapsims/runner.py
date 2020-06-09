@@ -375,8 +375,8 @@ class MapSim:
                     for split, each_split_channel_map in enumerate(channel_map):
                         filename = self.output_filename_template.format(
                             telescope=each.telescope
-                            if self.tube is None
-                            else self.tube,
+                            if each.tube is None
+                            else each.tube,
                             band=each.band,
                             nside=self.nside,
                             tag=self.tag,
