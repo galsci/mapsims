@@ -18,7 +18,7 @@ try:
 except:
     pixell = None
 
-from .channel_utils import parse_instrument_parameters
+from .channel_utils import parse_channels
 from .utils import DEFAULT_INSTRUMENT_PARAMETERS, RemoteData
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
@@ -125,7 +125,7 @@ class SONoiseSimulator:
             See the help of MapSims
         """
 
-        channels_list = parse_instrument_parameters(instrument_parameters)
+        channels_list = parse_channels(instrument_parameters=instrument_parameters)
         self.channels = {ch.tag: ch for ch in channels_list}
         self.tubes = defaultdict(list)
         for ch in channels_list:
