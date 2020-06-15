@@ -44,7 +44,7 @@ def get_default_so_resolution(ch, field="NSIDE"):
     default_resolution.add_index("channel")
     first_ch = ch if not isinstance(ch, tuple) else ch[0]
     return default_resolution.loc[
-        first_ch.telescope + "_" + str(int(first_ch.center_frequency.value))
+        first_ch.telescope + "_" + str(first_ch.band)
     ][field]
 
 
