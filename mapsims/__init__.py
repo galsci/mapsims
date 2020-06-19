@@ -7,7 +7,7 @@ from ._astropy_init import *
 from .channel_utils import Channel, parse_channels
 from .noise import SONoiseSimulator
 from .cmb import SOPrecomputedCMB, SOStandalonePrecomputedCMB
-from .runner import MapSim, from_config
+from .runner import MapSim, from_config, get_default_so_resolution
 
 # ----------------------------------------------------------------------------
 
