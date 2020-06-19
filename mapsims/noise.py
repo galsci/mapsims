@@ -725,6 +725,10 @@ class SONoiseSimulator:
             np.random.seed(seed)
 
 
+        # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
+        # since that can be used straightforwardly when the auto-correlations are re-scaled.
+        ell, ps_T, ps_P, fsky, wnoise_scale, hitmaps = self.get_noise_properties(tube, nsplits=nsplits, hitmap=hitmap, white_noise_rms=white_noise_rms)
+
         if not (atmosphere):
             if self.apply_beam_correction:
                 raise NotImplementedError(
@@ -752,9 +756,6 @@ class SONoiseSimulator:
             output_map = spowr * np.random.standard_normal((2, nsplits, 3) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
         else:
-            # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
-            # since that can be used straightforwardly when the auto-correlations are re-scaled.
-            ell, ps_T, ps_P, fsky, wnoise_scale, hitmaps = self.get_noise_properties(tube, nsplits=nsplits, hitmap=hitmap, white_noise_rms=white_noise_rms)
             if self.healpix:
                 npix = hp.nside2npix(self.nside)
                 output_map = np.zeros((2, nsplits, 3, npix))
