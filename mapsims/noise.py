@@ -740,7 +740,7 @@ class SONoiseSimulator:
                 self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
                 * nsplits
                 * fsky
-                * wnoise_scale
+                * wnoise_scale.flatten()
             )
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
