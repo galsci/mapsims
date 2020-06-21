@@ -38,7 +38,7 @@ class SONoiseSimulator:
         sensitivity_mode="baseline",
         apply_beam_correction=False,
         apply_kludge_correction=True,
-        homogenous=False,
+        homogeneous=False,
         no_power_below_ell=None,
         rolloff_ell=50,
         survey_efficiency=0.2,
@@ -85,7 +85,7 @@ class SONoiseSimulator:
             Include the effect of the beam in the noise angular power spectrum
         apply_kludge_correction : bool
             If True, reduce the hitcount by a factor of 0.85 to account for not-uniformity in the scanning
-        homogenous : bool
+        homogeneous : bool
             Set to True to generate full-sky maps with no hit-count variation, with noise curves
             corresponding to a survey that covers a sky fraction of sky_fraction (defaults to 1).
         no_power_below_ell : int
@@ -115,7 +115,7 @@ class SONoiseSimulator:
         SA_one_over_f_mode : {"pessimistic", "optimistic", "none"}
             Correlated noise performance of the detectors on the Small Aperture telescopes
         sky_fraction : optional,float
-            If homogenous is True, this sky_fraction is used for the noise curves.
+            If homogeneous is True, this sky_fraction is used for the noise curves.
         cache_hitmaps : bool
             If True, caches hitmaps.
         boolean_sky_fraction: bool
@@ -167,7 +167,7 @@ class SONoiseSimulator:
         self.elevation = elevation
         self.SA_years = SA_years
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
-        self.homogenous = homogenous
+        self.homogeneous = homogeneous
 
         self.hitmap_version = _hitmap_version
         self._cache = cache_hitmaps
@@ -589,7 +589,7 @@ class SONoiseSimulator:
         return white_noise_rms / cnoise
 
     def _get_requested_hitmaps(self, tube, hitmap):
-        if self.homogenous and (hitmap is None):
+        if self.homogeneous and (hitmap is None):
             ones = (
                 np.ones(hp.nside2npix(self.nside))
                 if self.healpix
@@ -786,7 +786,7 @@ class SONoiseSimulator:
 
         for i in range(2):
             freq = self.tubes[tube][i].center_frequency
-            if not (self.homogenous):
+            if not (self.homogeneous):
                 good = hitmaps[i] != 0
                 # Normalize on the Effective sky fraction, see discussion in:
                 # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311
