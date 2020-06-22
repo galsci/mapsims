@@ -45,7 +45,7 @@ env:
         
         # List other runtime dependencies for the package that are available as
         # pip packages here.
-        - PIP_DEPENDENCIES='quaternionarray importlib_resources pyyaml https://github.com/simonsobs/so_pysm_models/archive/master.zip https://github.com/simonsobs/so_noise_models/archive/master.zip'
+        - PIP_DEPENDENCIES='quaternionarray importlib_resources pyyaml pixell https://github.com/simonsobs/so_pysm_models/archive/master.zip https://github.com/simonsobs/so_noise_models/archive/master.zip'
 
         # Conda packages for affiliated packages are hosted in channel
         # "astropy" while builds for astropy LTS with recent numpy versions
@@ -90,9 +90,8 @@ matrix:
         - os: linux
           env: PYTHON_VERSION=3.6 NUMPY_VERSION=1.18.1
 
-        # pixell doesn't build (June 2020)
-        # - os: linux
-        #    env: PYTHON_VERSION=3.8 NUMPY_VERSION=1.18.1
+        - os: linux
+          env: PYTHON_VERSION=3.8 NUMPY_VERSION=1.18.1
 
         - os: linux
           env: NUMPY_VERSION=1.17.5
