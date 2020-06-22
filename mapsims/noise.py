@@ -142,6 +142,7 @@ class SONoiseSimulator:
                 ell_max if ell_max is not None else 10000 * (1.0 / self._pixheight)
             )
             self.pixarea_map = pixell.enmap.pixsizemap(self.shape, self.wcs)
+            self.map_area = pixell.enmap.area(self.shape,self.wcs)
         else:
             assert shape is None
             assert wcs is None
@@ -149,6 +150,7 @@ class SONoiseSimulator:
             self.nside = nside
             self.ell_max = ell_max if ell_max is not None else 3 * nside
             self.pixarea_map = hp.nside2pixarea(nside)
+            self.map_area = 4. * np.pi
 
         self.rolloff_ell = rolloff_ell
         self.boolean_sky_fraction = boolean_sky_fraction
@@ -411,7 +413,7 @@ class SONoiseSimulator:
             assert imap.ndim == 1
         else:
             assert imap.ndim == 2
-        return (self.pixarea_map * imap).sum() / 4.0 / np.pi
+        return (self.pixarea_map * imap).sum() / (self.map_area)
 
     def _process_hitmaps(self, hitmaps):
         """Internal function to process hitmaps and based on the
@@ -470,7 +472,7 @@ class SONoiseSimulator:
             car_suffix = ""
 
         bands = [ch.band for ch in self.tubes[tube]]
-
+        
         rnames = []
         for band in bands:
             rnames.append(
@@ -550,21 +552,23 @@ class SONoiseSimulator:
         """
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
+        sel = np.s_[:,None] if self.healpix else np.s_[:,None,None]
         power = (
-            self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
-            * fsky
-            * wnoise_scale
+            self.get_white_noise_power(tube, sky_fraction=1, units="sr")[sel]
+            * fsky[sel]
+            * wnoise_scale[:,0][sel]
         )
         """
         We now have the physical white noise power uK^2-sr
         and the hitmap
         ivar = hitmap * pixel_area * fsky / <hitmap> / power
         """
+        avgNhits = np.asarray([self._average(hitmaps[i]) for i in range(2)])
         ret = (
             hitmaps
-            * self.pmap
-            * fsky
-            / np.asarray([self._average(hitmaps[i]) for i in range(2)])
+            * self.pixarea_map
+            * fsky[sel]
+            / avgNhits[sel]
             / power
         )
         # Convert to desired units
@@ -586,7 +590,7 @@ class SONoiseSimulator:
             self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
             * sky_fraction
         )
-        return white_noise_rms / cnoise
+        return (white_noise_rms / cnoise)[:,None]
 
     def _get_requested_hitmaps(self, tube, hitmap):
         if self.homogeneous and (hitmap is None):
@@ -595,9 +599,9 @@ class SONoiseSimulator:
                 if self.healpix
                 else pixell.enmap.ones(self.shape, self.wcs)
             )
-            hitmaps = [ones, ones] if self.full_covariance else ones.reshape((1, -1))
+            hitmaps = np.asarray([ones, ones]) if self.full_covariance else ones.reshape((1, -1))
             fsky = self._sky_fraction if self._sky_fraction is not None else 1
-            sky_fractions = [fsky, fsky] if self.full_covariance else [fsky]
+            sky_fractions = np.asarray([fsky, fsky]) if self.full_covariance else np.asarray([fsky])
         else:
             hitmaps, sky_fractions = self.get_hitmaps(tube, hitmap=hitmap)
 
@@ -612,7 +616,7 @@ class SONoiseSimulator:
             raise ValueError
         return fsky, hitmaps
 
-    def get_noise_properties(self, tube, nsplits=1, hitmap=None, white_noise_rms=None):
+    def get_noise_properties(self, tube, nsplits=1, hitmap=None, white_noise_rms=None,atmosphere=True):
         """Get noise curves scaled with the hitmaps and the hitmaps themselves
 
         Parameters
@@ -627,21 +631,33 @@ class SONoiseSimulator:
             Tube noise spectra for T and P, one row per channel, the 3rd the crosscorrelation
         fsky : np.array
             Array of sky fractions computed as <normalized N_hits>
-        wnoise_scale : np.array
-            White noise scaling, 1 if no input white_noise_rms is provided
+        wnoise_power : np.array
+            White noise power (high-ell limit)
         hitmaps : np.array
             Array of the hitmaps for each channel
         """
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
-        ell, ps_T, ps_P = self.get_fullsky_noise_spectra(
-            tube, ncurve_sky_fraction=1, return_corr=True
+        wnoise_power = (
+            self.get_white_noise_power(tube, sky_fraction=1, units="sr")
+            * nsplits
+            * fsky
+            * wnoise_scale.flatten()
         )
-        ps_T[:2] = ps_T[:2] * fsky[:, None] * nsplits * wnoise_scale
-        ps_T[2] *= np.sqrt(np.prod(ps_T[:2], axis=0))
-        ps_P[:2] = ps_P[:2] * fsky[:, None] * nsplits * wnoise_scale
-        ps_P[2] *= np.sqrt(np.prod(ps_P[:2], axis=0))
-        return ell, ps_T, ps_P, fsky, wnoise_scale, hitmaps
+        if atmosphere:
+            ell, ps_T, ps_P = self.get_fullsky_noise_spectra(
+                tube, ncurve_sky_fraction=1, return_corr=True
+            )
+            ps_T[:2] = ps_T[:2] * fsky[:, None] * nsplits * wnoise_scale
+            ps_T[2] *= np.sqrt(np.prod(ps_T[:2], axis=0))
+            ps_P[:2] = ps_P[:2] * fsky[:, None] * nsplits * wnoise_scale
+            ps_P[2] *= np.sqrt(np.prod(ps_P[:2], axis=0))
+        else:
+            ell = np.arange(self.ell_max)
+            ps_T = np.zeros((3,ell.size))
+            ps_T[:2] = wnoise_power[:,None] * np.ones((2,ell.size))
+            ps_P = 2. * ps_T
+        return ell, ps_T, ps_P, fsky, wnoise_power, hitmaps
 
     def simulate(
         self,
@@ -727,7 +743,7 @@ class SONoiseSimulator:
 
         # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
         # since that can be used straightforwardly when the auto-correlations are re-scaled.
-        ell, ps_T, ps_P, fsky, wnoise_scale, hitmaps = self.get_noise_properties(tube, nsplits=nsplits, hitmap=hitmap, white_noise_rms=white_noise_rms)
+        ell, ps_T, ps_P, fsky, wnoise_power, hitmaps = self.get_noise_properties(tube, nsplits=nsplits, hitmap=hitmap, white_noise_rms=white_noise_rms, atmosphere=atmosphere)
 
         if not (atmosphere):
             if self.apply_beam_correction:
@@ -736,23 +752,17 @@ class SONoiseSimulator:
                 )
             # If no atmosphere is requested, we use a simpler/faster method
             # that generates white noise in real-space.
-            npower = (
-                self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
-                * nsplits
-                * fsky
-                * wnoise_scale.flatten()
-            )
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
                 sel = np.s_[:, None, None, None]
-                pmap = self.pixarea_map * ((180.0 * 60.0 / np.pi) ** 2.0)
+                pmap = self.pixarea_map 
             else:
                 ashape = self.shape[-2:]
                 sel = np.s_[:, None, None, None, None]
-                pmap = pixell.enmap.pixell.enmap(
-                    self.pixarea_map * ((180.0 * 60.0 / np.pi) ** 2.0), self.wcs
+                pmap = pixell.enmap.enmap(
+                    self.pixarea_map , self.wcs
                 )
-            spowr = np.sqrt(npower[sel] / pmap)
+            spowr = np.sqrt(wnoise_power[sel] / pmap)
             output_map = spowr * np.random.standard_normal((2, nsplits, 3) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
         else:
