@@ -30,7 +30,6 @@ def test_noise_simulator(tube):
         assert_quantity_allclose(output_map[i, 0], expected_map)
 
 
-@pytest.mark.xfail(reason="pixell not installing properly on Travis")
 @pytest.mark.parametrize("tube", ["LT0", "ST3"])
 def test_noise_simulator_car(tube):
 
