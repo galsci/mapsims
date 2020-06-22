@@ -19,7 +19,11 @@ Requirements
 Installation
 ============
 
-Install with ``pip`` from Github::
+Install the last packaged release with ``pip`` from PyPI::
+
+    pip install mapsims
+
+Install the development version with ``pip`` from Github::
 
     pip install https://github.com/simonsobs/mapsims/archive/master.zip
 
