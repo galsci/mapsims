@@ -4,6 +4,7 @@ numpy
 toml
 h5py
 so_pysm_models
-so_noise_models
-pixell
+https://github.com/simonsobs/so_pysm_models/archive/master.zip
+https://github.com/simonsobs/so_noise_models/archive/master.zip
+pixell>=0.9.5
 pyyaml
