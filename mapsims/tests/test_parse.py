@@ -1,7 +1,7 @@
 import astropy.units as u
 import pytest
 import h5py
-from mapsims.channel_utils import parse_instrument_parameters
+from mapsims.channel_utils import parse_channels
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def create_test_instrument_parameters(tmp_path):
 def test_parse_instrument_parameters_all(create_test_instrument_parameters):
 
     tmp_filename = create_test_instrument_parameters
-    channels = parse_instrument_parameters(tmp_filename)
+    channels = parse_channels(instrument_parameters=tmp_filename)
     assert len(channels) == 2
     assert channels[0].tag == "ch_1"
     assert channels[1].tag == "ch_2"
@@ -31,7 +31,7 @@ def test_parse_instrument_parameters_all(create_test_instrument_parameters):
 def test_parse_instrument_parameters_subset(create_test_instrument_parameters):
 
     tmp_filename = create_test_instrument_parameters
-    channels = parse_instrument_parameters(tmp_filename, filter="ch_1")
+    channels = parse_channels(instrument_parameters=tmp_filename, filter="ch_1")
     assert len(channels) == 1
     assert channels[0].tag == "ch_1"
     for each in channels:

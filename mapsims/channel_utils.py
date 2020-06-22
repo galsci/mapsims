@@ -6,6 +6,7 @@ from astropy.utils import data
 import numpy as np
 import astropy.units as u
 from pathlib import Path
+from .utils import DEFAULT_INSTRUMENT_PARAMETERS
 
 
 class Channel:
@@ -60,7 +61,7 @@ class Channel:
         return "Channel " + self.tag
 
 
-def parse_instrument_parameters(instrument_parameters, filter="all"):
+def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS):
     """Create a list of Channel objects from a HDF5 and an optional filter
 
     Reads a HDF5 file which contains the instruments parameters and

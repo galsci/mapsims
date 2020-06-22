@@ -18,7 +18,7 @@ try:
 except:
     pixell = None
 
-from .channel_utils import parse_instrument_parameters
+from .channel_utils import parse_channels
 from .utils import DEFAULT_INSTRUMENT_PARAMETERS, RemoteData
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
@@ -38,7 +38,7 @@ class SONoiseSimulator:
         sensitivity_mode="baseline",
         apply_beam_correction=False,
         apply_kludge_correction=True,
-        homogenous=False,
+        homogeneous=False,
         no_power_below_ell=None,
         rolloff_ell=50,
         survey_efficiency=0.2,
@@ -85,7 +85,7 @@ class SONoiseSimulator:
             Include the effect of the beam in the noise angular power spectrum
         apply_kludge_correction : bool
             If True, reduce the hitcount by a factor of 0.85 to account for not-uniformity in the scanning
-        homogenous : bool
+        homogeneous : bool
             Set to True to generate full-sky maps with no hit-count variation, with noise curves
             corresponding to a survey that covers a sky fraction of sky_fraction (defaults to 1).
         no_power_below_ell : int
@@ -115,7 +115,7 @@ class SONoiseSimulator:
         SA_one_over_f_mode : {"pessimistic", "optimistic", "none"}
             Correlated noise performance of the detectors on the Small Aperture telescopes
         sky_fraction : optional,float
-            If homogenous is True, this sky_fraction is used for the noise curves.
+            If homogeneous is True, this sky_fraction is used for the noise curves.
         cache_hitmaps : bool
             If True, caches hitmaps.
         boolean_sky_fraction: bool
@@ -125,7 +125,7 @@ class SONoiseSimulator:
             See the help of MapSims
         """
 
-        channels_list = parse_instrument_parameters(instrument_parameters)
+        channels_list = parse_channels(instrument_parameters=instrument_parameters)
         self.channels = {ch.tag: ch for ch in channels_list}
         self.tubes = defaultdict(list)
         for ch in channels_list:
@@ -167,7 +167,7 @@ class SONoiseSimulator:
         self.elevation = elevation
         self.SA_years = SA_years
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
-        self.homogenous = homogenous
+        self.homogeneous = homogeneous
 
         self.hitmap_version = _hitmap_version
         self._cache = cache_hitmaps
@@ -249,9 +249,11 @@ class SONoiseSimulator:
                 )
         return survey
 
-    def get_noise_spectra(self, tube, ncurve_sky_fraction=1, return_corr=False):
+    def get_fullsky_noise_spectra(self, tube, ncurve_sky_fraction=1, return_corr=False):
         """Get the noise power spectra corresponding to the requested tube
         from the SO noise model code.
+
+        See get_noise_properties to get spectra scaled with the proper hitmap
 
         Parameters
         ----------
@@ -587,7 +589,7 @@ class SONoiseSimulator:
         return white_noise_rms / cnoise
 
     def _get_requested_hitmaps(self, tube, hitmap):
-        if self.homogenous and (hitmap is None):
+        if self.homogeneous and (hitmap is None):
             ones = (
                 np.ones(hp.nside2npix(self.nside))
                 if self.healpix
@@ -609,6 +611,37 @@ class SONoiseSimulator:
         else:
             raise ValueError
         return fsky, hitmaps
+
+    def get_noise_properties(self, tube, nsplits=1, hitmap=None, white_noise_rms=None):
+        """Get noise curves scaled with the hitmaps and the hitmaps themselves
+
+        Parameters
+        ----------
+        see the docstring of simulate
+
+        Returns
+        -------
+        ell : np.array
+            Array of :math:`\ell`
+        ps_T, ps_P : np.array
+            Tube noise spectra for T and P, one row per channel, the 3rd the crosscorrelation
+        fsky : np.array
+            Array of sky fractions computed as <normalized N_hits>
+        wnoise_scale : np.array
+            White noise scaling, 1 if no input white_noise_rms is provided
+        hitmaps : np.array
+            Array of the hitmaps for each channel
+        """
+        fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
+        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
+        ell, ps_T, ps_P = self.get_fullsky_noise_spectra(
+            tube, ncurve_sky_fraction=1, return_corr=True
+        )
+        ps_T[:2] = ps_T[:2] * fsky[:, None] * nsplits * wnoise_scale
+        ps_T[2] *= np.sqrt(np.prod(ps_T[:2], axis=0))
+        ps_P[:2] = ps_P[:2] * fsky[:, None] * nsplits * wnoise_scale
+        ps_P[2] *= np.sqrt(np.prod(ps_P[:2], axis=0))
+        return ell, ps_T, ps_P, fsky, wnoise_scale, hitmaps
 
     def simulate(
         self,
@@ -691,8 +724,10 @@ class SONoiseSimulator:
             seed = (0, 0, 6, tube_id) + seed
             np.random.seed(seed)
 
-        fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
-        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
+
+        # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
+        # since that can be used straightforwardly when the auto-correlations are re-scaled.
+        ell, ps_T, ps_P, fsky, wnoise_scale, hitmaps = self.get_noise_properties(tube, nsplits=nsplits, hitmap=hitmap, white_noise_rms=white_noise_rms)
 
         if not (atmosphere):
             if self.apply_beam_correction:
@@ -705,7 +740,7 @@ class SONoiseSimulator:
                 self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
                 * nsplits
                 * fsky
-                * wnoise_scale
+                * wnoise_scale.flatten()
             )
             if self.healpix:
                 ashape = (hp.nside2npix(self.nside),)
@@ -721,15 +756,6 @@ class SONoiseSimulator:
             output_map = spowr * np.random.standard_normal((2, nsplits, 3) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
         else:
-            # In the third row we return the correlation coefficient P12/sqrt(P11*P22)
-            # since that can be used straightforwardly when the auto-correlations are re-scaled.
-            ls, ps_T, ps_P = self.get_noise_spectra(
-                tube, ncurve_sky_fraction=1, return_corr=True
-            )
-            ps_T[:2] = ps_T[:2] * fsky[:, None] * nsplits * wnoise_scale
-            ps_T[2] *= np.sqrt(np.prod(ps_T[:2], axis=0))
-            ps_P[:2] = ps_P[:2] * fsky[:, None] * nsplits * wnoise_scale
-            ps_P[2] *= np.sqrt(np.prod(ps_P[:2], axis=0))
             if self.healpix:
                 npix = hp.nside2npix(self.nside)
                 output_map = np.zeros((2, nsplits, 3, npix))
@@ -760,7 +786,7 @@ class SONoiseSimulator:
 
         for i in range(2):
             freq = self.tubes[tube][i].center_frequency
-            if not (self.homogenous):
+            if not (self.homogeneous):
                 good = hitmaps[i] != 0
                 # Normalize on the Effective sky fraction, see discussion in:
                 # https://github.com/simonsobs/mapsims/pull/5#discussion_r244939311

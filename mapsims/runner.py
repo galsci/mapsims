@@ -25,7 +25,7 @@ except ImportError:
 
 import warnings
 
-from .channel_utils import parse_instrument_parameters
+from .channel_utils import parse_channels
 
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
@@ -43,9 +43,7 @@ def get_default_so_resolution(ch, field="NSIDE"):
     )
     default_resolution.add_index("channel")
     first_ch = ch if not isinstance(ch, tuple) else ch[0]
-    return default_resolution.loc[
-        first_ch.telescope + "_" + str(int(first_ch.center_frequency.value))
-    ][field]
+    return default_resolution.loc[first_ch.telescope + "_" + str(first_ch.band)][field]
 
 
 def function_accepts_argument(func, arg):
@@ -123,9 +121,7 @@ def from_config(config_file, override=None):
 
     nside = config.get("nside", None)
     if nside is None:
-        channels = parse_instrument_parameters(
-            config["instrument_parameters"], config["channels"]
-        )
+        channels = parse_channels(config["channels"], config["instrument_parameters"])
         nside = get_default_so_resolution(channels[0])
 
     components = {}
@@ -254,7 +250,9 @@ class MapSim:
 
         """
 
-        self.channels = parse_instrument_parameters(instrument_parameters, channels)
+        self.channels = parse_channels(
+            instrument_parameters=instrument_parameters, filter=channels
+        )
 
         if nside is None:
             self.nside = get_default_so_resolution(self.channels[0])
