@@ -1,4 +1,5 @@
 import importlib
+import os
 import os.path
 from astropy.table import Table
 from astropy.utils import data
@@ -17,6 +18,7 @@ from so_pysm_models import get_so_models
 from .utils import DEFAULT_INSTRUMENT_PARAMETERS
 
 try:
+    if os.environ.get('DISABLE_MPI'): raise ImportError
     from mpi4py import MPI
 
     COMM_WORLD = MPI.COMM_WORLD
