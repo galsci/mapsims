@@ -199,6 +199,8 @@ class SONoiseSimulator:
             The beam FWHM in arcminutes either as
             a tuple for the pair of bands in the tube, or just for the specific
             band requested.
+            See the `band_id` attribute of the Channel class
+            to identify which is the index of a Channel in the array.
         """
 
         survey = self._get_survey(tube)
@@ -256,6 +258,9 @@ class SONoiseSimulator:
         from the SO noise model code.
 
         See get_noise_properties to get spectra scaled with the proper hitmap
+
+        See the `band_id` attribute of the Channel class
+        to identify which is the index of a Channel in the returned arrays.
 
         Parameters
         ----------
@@ -450,7 +455,8 @@ class SONoiseSimulator:
         -------
 
         hitmaps : ndarray or ndmap
-            Processed hitmaps.
+            Processed hitmaps. See the `band_id` attribute of the Channel class
+            to identify which is the index of a Channel in the array.
 
         sky_fractions : float
             The sky fraction covered by the survey determined from the hitmaps.
@@ -516,6 +522,8 @@ class SONoiseSimulator:
             The white noise variance in the requested units either as
             a tuple for the pair of bands in the tube, or just for the specific
             band requested.
+            See the `band_id` attribute of the Channel class
+            to identify which is the index of a Channel in the array.
         """
         survey = self._get_survey(tube)
         noise_indices = self.get_noise_indices(tube, band)
@@ -549,6 +557,8 @@ class SONoiseSimulator:
             Numpy array with the HEALPix or CAR map of the inverse variance
             in each pixel. The default units are uK^(-2). This is an extensive
             quantity that depends on the size of pixels.
+            See the `band_id` attribute of the Channel class
+            to identify which is the index of a Channel in the array.
         """
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
@@ -622,6 +632,9 @@ class SONoiseSimulator:
         Parameters
         ----------
         see the docstring of simulate
+
+        See the `band_id` attribute of the Channel class
+        to identify which is the index of a Channel in the returned arrays.
 
         Returns
         -------
@@ -719,6 +732,8 @@ class SONoiseSimulator:
             the three polarization Stokes components I,Q,U and the third
             dimension corresponds to independent split realizations of the
             noise.
+            See the `band_id` attribute of the Channel class
+            to identify which is the index of a Channel in the array.
         """
         assert nsplits >= 1
         if mask_value is None:
