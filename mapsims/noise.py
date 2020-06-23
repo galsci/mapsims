@@ -728,12 +728,17 @@ class SONoiseSimulator:
             The shape of the returned array is (2,3,nsplits,)+oshape, where
             oshape is (npix,) for HEALPix and (Ny,Nx) for CAR.
             The first dimension of size 2 corresponds to the two different
-            bands within a dichroic tube. The second dimension corresponds
-            the three polarization Stokes components I,Q,U and the third
-            dimension corresponds to independent split realizations of the
-            noise.
+            bands within a dichroic tube.
             See the `band_id` attribute of the Channel class
             to identify which is the index of a Channel in the array.
+
+            The second dimension corresponds to independent split realizations
+            of the noise, e.g. it is 1 for full mission.
+
+            The third dimension corresponds to the three polarization
+            Stokes components I,Q,U
+
+            The last dimension is the number of pixels
         """
         assert nsplits >= 1
         if mask_value is None:
