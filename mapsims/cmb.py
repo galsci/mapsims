@@ -138,6 +138,8 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
             Units as defined by `pysm.convert_units`, e.g. uK_CMB or K_RJ
         """
         if isinstance(ch, tuple):
+            if self.nside is None:
+                raise NotImplementedError("Tube simulations for CAR not supported yet")
             output_map = np.zeros(
                 (len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64
             )
