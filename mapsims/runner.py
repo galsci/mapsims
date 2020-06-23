@@ -15,7 +15,7 @@ except ImportError:
 import toml
 
 from so_pysm_models import get_so_models
-from .utils import DEFAULT_INSTRUMENT_PARAMETERS
+from .utils import DEFAULT_INSTRUMENT_PARAMETERS, merge_dict
 
 try:
     if os.environ.get('DISABLE_MPI'): raise ImportError
@@ -114,7 +114,10 @@ def from_config(config_file, override=None):
     if isinstance(config_file, str):
         config_file = [config_file]
 
-    config = toml.load(config_file)
+    config = toml.load(config_file[0])
+    for conf in config_file[1:]:
+        merge_dict(config, toml.load(conf))
+
     if override is not None:
         config.update(override)
 
@@ -360,6 +363,9 @@ class MapSim:
             if self.other_components is not None:
                 for comp in self.other_components.values():
                     kwargs = dict(tube=ch[0].tube, output_units=self.unit)
+                    if function_accepts_argument(comp.simulate, "ch"):
+                        kwargs.pop("tube")
+                        kwargs["ch"] = ch
                     if function_accepts_argument(comp.simulate, "nsplits"):
                         kwargs["nsplits"] = self.nsplits
                     if function_accepts_argument(comp.simulate, "seed"):

@@ -1,5 +1,6 @@
 import healpy as hp
 import so_pysm_models
+import numpy as np
 
 
 class SOPrecomputedCMB(so_pysm_models.PrecomputedAlms):
@@ -136,9 +137,21 @@ class SOStandalonePrecomputedCMB(so_pysm_models.PrecomputedAlms):
         output_units : str
             Units as defined by `pysm.convert_units`, e.g. uK_CMB or K_RJ
         """
-        return self.get_emission(
-            freqs=ch.center_frequency, fwhm=ch.beam, output_units=output_units
-        )
+        if isinstance(ch, tuple):
+            if self.nside is None:
+                raise NotImplementedError("Tube simulations for CAR not supported yet")
+            output_map = np.zeros(
+                (len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64
+            )
+            for i, each in enumerate(ch):
+                output_map[i] = self.get_emission(
+                    freqs=each.center_frequency, fwhm=each.beam, output_units=output_units
+                )
+            return output_map
+        else:
+            return self.get_emission(
+                freqs=ch.center_frequency, fwhm=ch.beam, output_units=output_units
+            )
 
 
 def _get_default_cmb_directory():
