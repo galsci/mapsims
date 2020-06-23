@@ -185,7 +185,7 @@ class SONoiseSimulator:
         ----------
 
         tube : str
-            Specify a tube.
+            Specify a tube (for SO: ST0-ST3, LT0-LT6) see the `tubes` attribute
 
         band : str,optional
             Optionally specify the band name within the tube to get just its
@@ -261,7 +261,7 @@ class SONoiseSimulator:
         ----------
 
         tube : str
-            Specify a tube.
+            Specify a tube (for SO: ST0-ST3, LT0-LT6) see the `tubes` attribute
 
         ncurve_sky_fraction : float,optional
             The sky fraction to report to the noise simulator code.
@@ -439,7 +439,7 @@ class SONoiseSimulator:
         ----------
 
         tube : str
-            Specify a tube.
+            Specify a tube (for SO: ST0-ST3, LT0-LT6) see the `tubes` attribute
 
         hitmap : string or map, optional
             Provide the path to a hitmap to override the default used for
@@ -496,7 +496,7 @@ class SONoiseSimulator:
         ----------
 
         tube : str
-            Specify a tube.
+            Specify a tube (for SO: ST0-ST3, LT0-LT6) see the `tubes` attribute
 
         sky_fraction : float
             The sky fraction covered by the survey.
@@ -530,7 +530,7 @@ class SONoiseSimulator:
         ----------
 
         tube : str
-            Specify a specific tube.
+            Specify a tube (for SO: ST0-ST3, LT0-LT6) see the `tubes` attribute
         output_units : str
             Output unit supported by PySM.units, e.g. uK_CMB or K_RJ
         hitmap : string or map, optional
@@ -676,7 +676,7 @@ class SONoiseSimulator:
         ----------
 
         tube : str
-            Specify a specific tube.
+            Specify a tube (for SO: ST0-ST3, LT0-LT6) see the `tubes` attribute
         output_units : str
             Output unit supported by PySM.units, e.g. uK_CMB or K_RJ
         seed : integer or tuple of integers, optional
