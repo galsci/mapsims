@@ -125,7 +125,6 @@ class BaseNoiseSimulator:
             self.pixarea_map = pixell.enmap.pixsizemap(self.shape, self.wcs)
             self.map_area = pixell.enmap.area(self.shape, self.wcs)
         else:
-            assert shape is None
             assert wcs is None
             self.healpix = True
             self.nside = nside
