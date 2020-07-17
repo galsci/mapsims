@@ -62,6 +62,48 @@ def get_default_so_resolution(ch, field="NSIDE"):
     return output
 
 
+def get_map_shape(ch, nside=None, car_resolution=None, car=False):
+    """Get map shape (and WCS for CAR) for Simons Observatory channels
+
+    If N_side or car_resolution is None, get the default value
+    from: `mapsims/data/default_resolution.csv`
+
+    Parameters
+    ----------
+    ch : string
+        Channel tag, e.g. SA_LF2
+    nside : int
+        Desired healpix N_side
+    car_resolution : astropy.Quantity
+        CAR pixels resolution with angle unit
+    car : bool
+        Set to True for CAR, False for HEALPix
+
+    Returns
+    -------
+    nside : int
+        N_side, either return the input or default
+        None for CAR
+    shape : tuple of int
+        (npix,) for HEALPix, (Nx, Ny) for CAR
+    wcs : astropy.WCS
+        CAR map WCS, None for HEALPix
+    """
+    if car:
+        if car_resolution is None:
+            car_resolution = get_default_so_resolution(ch, field="CAR_resol")
+        shape, wcs = pixell.enmap.fullsky_geometry(
+            res=car_resolution.to_value(u.radian)
+        )
+        nside = None
+    else:
+        if nside is None:
+            nside = get_default_so_resolution(ch)
+        shape = (hp.nside2npix(nside),)
+        wcs = None
+    return nside, shape, wcs
+
+
 def function_accepts_argument(func, arg):
     """Check if a function or class accepts argument arg
 
@@ -141,18 +183,15 @@ def from_config(config_file, override=None):
     nside = config.get("nside", None)
     car = config.get("car", False)
     channels = parse_channels(config["channels"], config["instrument_parameters"])
-    if car:
-        if config.get("car_resolution_arcmin", None) is None:
-            car_resolution = get_default_so_resolution(channels[0], field="CAR_resol")
-        else:
-            car_resolution = config.get("car_resolution_arcmin") * u.arcmin
-        shape, wcs = pixell.enmap.fullsky_geometry(
-            res=car_resolution.to_value(u.radian)
-        )
-    else:
-        if nside is None:
-            nside = get_default_so_resolution(channels[0])
-        shape, wcs = None, None
+    car_resolution = config.get("car_resolution_arcmin", None)
+    if car_resolution is not None:
+        car_resolution = car_resolution * u.arcmin
+    nside, shape, wcs = get_map_shape(
+        ch=channels[0],
+        nside=config.get("nside", None),
+        car_resolution=car_resolution,
+        car=car,
+    )
 
     components = {}
     for component_type in ["pysm_components", "other_components"]:
@@ -253,6 +292,10 @@ class MapSim:
             output HEALPix Nside, if None, automatically pick the default resolution of the
             first channel,
             see https://github.com/simonsobs/mapsims/tree/master/mapsims/data/so_default_resolution.csv
+        car : bool
+            True for CAR, False for HEALPix
+        car_resolution : astropy.Quantity
+            CAR pixels resolution with angle unit
         unit : str
             Unit of output maps
         output_folder : str
@@ -291,24 +334,13 @@ class MapSim:
             instrument_parameters=instrument_parameters, filter=channels
         )
 
-        if nside is None:
-            self.nside = get_default_so_resolution(self.channels[0])
-        else:
-            self.nside = nside
-
         self.car = car
-        if car:
-            if car_resolution is None:
-                self.car_resolution = get_default_so_resolution(
-                    self.channels[0], field="CAR_resol"
-                )
-            else:
-                self.car_resolution = car_resolution
-            self.shape, self.wcs = pixell.enmap.fullsky_geometry(
-                res=self.car_resolution.to_value(u.radian)
-            )
-        else:
-            self.shape = (self.nside,)
+        self.nside, self.shape, self.wcs = get_map_shape(
+            ch=self.channels[0],
+            nside=nside,
+            car_resolution=car_resolution,
+            car=self.car,
+        )
 
         self.unit = unit
         self.num = num
