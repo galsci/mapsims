@@ -134,8 +134,8 @@ e.g. "d7,a1,s2"::
 
 and compute the output map using the ``execute`` method::
 
-    >>> output_map = simulator.execute()
+    output_map = simulator.execute()
 
 write instead directly output FITS maps to disk with::
 
-    >>> simulator.execute(write_outputs=True)
+    simulator.execute(write_outputs=True)
