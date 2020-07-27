@@ -27,7 +27,7 @@ default_mask_value = {"healpix": hp.UNSEEN, "car": np.nan}
 _hitmap_version = "v0.2"
 
 
-class SONoiseSimulator:
+class noiseSimulatorBase:
     def __init__(
         self,
         nside=None,
@@ -35,7 +35,6 @@ class SONoiseSimulator:
         wcs=None,
         ell_max=None,
         return_uK_CMB=True,
-        sensitivity_mode="baseline",
         apply_beam_correction=False,
         apply_kludge_correction=True,
         homogeneous=False,
@@ -43,24 +42,18 @@ class SONoiseSimulator:
         rolloff_ell=50,
         survey_efficiency=0.2,
         full_covariance=True,
-        LA_years=5,
-        LA_noise_model="SOLatV3point1",
-        elevation=50,
-        SA_years=5,
-        SA_one_over_f_mode="pessimistic",
         sky_fraction=None,
         cache_hitmaps=True,
         boolean_sky_fraction=False,
+        channels_list = None,
         instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS,
     ):
-        """Simulate noise maps for Simons Observatory
+        """An abstract base class for simulating noise maps
 
         Simulate the noise power spectrum in spherical harmonics domain and then generate a map
         in microK_CMB or microK_RJ (based on return_uK_CMB)
-
-        In the constructor, this object calls the published 20180822 noise simulator and generates
-        the expected noise power spectra for all channels.
-        Then you need to call the `simulate` method with a channel identifier to create a simulated map.
+        
+        The details of the noise properties need to be defined in the child class.
 
         Parameters
         ----------
@@ -79,8 +72,6 @@ class SONoiseSimulator:
             frequency.
         return_uK_CMB : bool
             True, output is in microK_CMB, False output is in microK_RJ
-        sensitivity_mode : str
-            Value should be threshold, baseline or goal to use predefined sensitivities
         apply_beam_correction : bool
             Include the effect of the beam in the noise angular power spectrum
         apply_kludge_correction : bool
@@ -95,25 +86,12 @@ class SONoiseSimulator:
         rolloff_ell : int
             Low ell power damping, see the docstring of
             `so_noise_models.so_models_v3.SO_Noise_Calculator_Public_v3_1_1.rolloff`
-        survey_efficiency : float
-            Fraction of calendar time that may be used to compute map depth.
         full_covariance : bool
             Whether or not to include the intra-tube covariance between bands.
             If white noise (atmosphere=False) sims are requested, no
             covariance is included regardless of the value of full_covariance.
-        LA_years : int
-            Total number of years for the Large Aperture telescopes survey
-        LA_noise_model : str
-            Noise model among the ones available in `so_noise_model`, "SOLatV3point1" is default, "SOLatV3" is
-            the model released in 2018 which had a bug in the atmosphere contribution
-        elevation : float
-            Elevation of the scans in degrees, the V3.1.1 noise model includes elevation
-            dependence for the LAT. This should reproduced original V3 results at the
-            reference elevation of 50 degrees.
-        SA_years : int
-            Total number of years for the Small Aperture telescopes survey
-        SA_one_over_f_mode : {"pessimistic", "optimistic", "none"}
-            Correlated noise performance of the detectors on the Small Aperture telescopes
+        survey_efficiency : float
+            Fraction of calendar time that may be used to compute map depth.
         sky_fraction : optional,float
             If homogeneous is True, this sky_fraction is used for the noise curves.
         cache_hitmaps : bool
@@ -121,11 +99,12 @@ class SONoiseSimulator:
         boolean_sky_fraction: bool
             If True, determines sky fraction based on fraction of hitmap that is zero. If False,
             determines sky_fraction from <Nhits>.
+        channels_list: a list of channels or pass
         instrument_parameters : Path or str
             See the help of MapSims
         """
-
-        channels_list = parse_channels(instrument_parameters=instrument_parameters)
+        if channels_list is None:
+            channels_list = parse_channels(instrument_parameters=instrument_parameters)
         self.channels = {ch.tag: ch for ch in channels_list}
         self.tubes = defaultdict(list)
         for ch in channels_list:
@@ -155,7 +134,7 @@ class SONoiseSimulator:
         self.rolloff_ell = rolloff_ell
         self.boolean_sky_fraction = boolean_sky_fraction
         self._sky_fraction = sky_fraction
-        self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
+
         self.apply_beam_correction = apply_beam_correction
         self.apply_kludge_correction = apply_kludge_correction
         self.survey_efficiency = survey_efficiency
@@ -164,17 +143,12 @@ class SONoiseSimulator:
         self.full_covariance = full_covariance
         self.return_uK_CMB = return_uK_CMB
         self.no_power_below_ell = no_power_below_ell
-        self.LA_years = LA_years
-        self.LA_noise_model = LA_noise_model
-        self.elevation = elevation
-        self.SA_years = SA_years
-        self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
         self.homogeneous = homogeneous
 
         self.hitmap_version = _hitmap_version
         self._cache = cache_hitmaps
         self._hmap_cache = {}
-        self.remote_data = RemoteData(healpix=self.healpix, version=self.hitmap_version)
+        self.channel_per_tube = 1
 
     def get_beam_fwhm(self, tube, band=None):
         """Get beam FWHMs in arcminutes corresponding to the tueb.
@@ -207,6 +181,9 @@ class SONoiseSimulator:
         noise_indices = self.get_noise_indices(tube, band)
         return survey.get_beams()[noise_indices]
 
+
+
+
     def get_noise_indices(self, tube, band=None):
         """Gets indices in the so_noise_model package of a channel or the 2 channels of a tube
         """
@@ -220,38 +197,7 @@ class SONoiseSimulator:
         """Internal function to get the survey object
         from the SO noise model code.
         """
-        telescope = f"{tube[0]}A"  # get LA or SA from tube name
-        if telescope == "SA":
-            if tube == "ST0":
-                N_tubes = [0, 0, 1]  # the UHF telescope
-            elif tube == "ST1":
-                N_tubes = [0, 1, 0]  # the MF telescope
-            elif tube == "ST2":
-                N_tubes = [0, 0.6, 0]  # the MF/LF telescope
-            elif tube == "ST3":
-                N_tubes = [0.4, 0, 0]  # the MF/LF telescope
-            else:
-                raise ValueError
-
-            with np.errstate(divide="ignore", invalid="ignore"):
-                survey = so_models.SOSatV3point1(
-                    sensitivity_mode=self.sensitivity_mode,
-                    survey_efficiency=self.survey_efficiency,
-                    survey_years=self.SA_years,
-                    N_tubes=N_tubes,
-                    el=None,  # SAT does not support noise elevation function
-                    one_over_f_mode=self.SA_one_over_f_mode,
-                )
-        elif telescope == "LA":
-            with np.errstate(divide="ignore", invalid="ignore"):
-                survey = getattr(so_models, self.LA_noise_model)(
-                    sensitivity_mode=self.sensitivity_mode,
-                    survey_efficiency=self.survey_efficiency,
-                    survey_years=self.LA_years,
-                    N_tubes=[1, 1, 1],
-                    el=self.elevation,
-                )
-        return survey
+        raise AssertionError("Must be overriden: Implement in child class")
 
     def get_fullsky_noise_spectra(self, tube, ncurve_sky_fraction=1, return_corr=False):
         """Get the noise power spectra corresponding to the requested tube
@@ -313,7 +259,7 @@ class SONoiseSimulator:
             # Assume that T is half
             if noise_ell_T is None:
                 noise_ell_T = noise_ell_P / 2
-        elif telescope == "LA":
+        else:
             ell, noise_ell_T, noise_ell_P = survey.get_noise_curves(
                 ncurve_sky_fraction,
                 self.ell_max,
@@ -326,20 +272,87 @@ class SONoiseSimulator:
         assert ell[0] == 2  # make sure the noise code is still returning something
         # that starts at ell=2
         ls = np.arange(ell.size + 2)
-        nells_T = np.zeros((3, ell.size + 2))
-        nells_P = np.zeros((3, ell.size + 2))
-        b1, b2 = [ch.noise_band_index for ch in self.tubes[tube]]
+        nells_T = np.zeros((self.channel_per_tube*(self.channel_per_tube+1)//2, ell.size + 2))
+        nells_P = np.zeros((self.channel_per_tube*(self.channel_per_tube+1)//2, ell.size + 2))
+        b_indices = [ch.noise_band_index for ch in self.tubes[tube]]
         for n_out, n_in in zip([nells_T, nells_P], [noise_ell_T, noise_ell_P]):
-            n_out[0, 2:] = n_in[b1][b1]
-            n_out[1, 2:] = n_in[b2][b2]
+            for i,b1 in enumerate(b_indices):
+                n_out[i, 2:] = n_in[b1][b1]
             # re-scaling if correlation coefficient is requested
-            scale = np.sqrt(n_in[b1][b1] * n_in[b2][b2]) if return_corr else 1
-            n_out[2, 2:] = (n_in[b1][b2] / scale) if self.full_covariance else 0
+            
+            counter = 0
+            for i,b1 in enumerate(b_indices):
+                for b2 in b_indices[:i]:
+                    scale = np.sqrt(n_in[b1][b1] * n_in[b2][b2]) if return_corr else 1
+                    n_out[self.channel_per_tube+counter, 2:] = (n_in[b1][b2] / scale) if self.full_covariance else 0
+                    counter+=1
+
             if self.no_power_below_ell is not None:
                 n_out[:, ls < self.no_power_below_ell] = 0
 
         ell = ls
         return ell, nells_T, nells_P
+
+    def get_noise_properties(
+        self, tube, nsplits=1, hitmap=None, white_noise_rms=None, atmosphere=True
+    ):
+        """Get noise curves scaled with the hitmaps and the hitmaps themselves
+
+        Parameters
+        ----------
+        see the docstring of simulate
+
+        See the `band_id` attribute of the Channel class
+        to identify which is the index of a Channel in the returned arrays.
+
+        Returns
+        -------
+        ell : np.array
+            Array of :math:`\ell`
+        ps_T, ps_P : np.array
+            Tube noise spectra for T and P, one row per channel, the 3rd the crosscorrelation
+        fsky : np.array
+            Array of sky fractions computed as <normalized N_hits>
+        wnoise_power : np.array
+            White noise power (high-ell limit)
+        hitmaps : np.array
+            Array of the hitmaps for each channel
+        """
+        fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
+        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
+
+        wnoise_power = self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
+        if wnoise_power is not None:
+            # raise AssertionError(" Survey white noise level not specified. Cannot generate ivar_map")
+            wnoise_power *= nsplits* fsky* wnoise_scale.flatten()
+        
+        if atmosphere:
+            ell, ps_T, ps_P = self.get_fullsky_noise_spectra(
+                tube, ncurve_sky_fraction=1, return_corr=True
+            )
+            ps_T[:self.channel_per_tube] = ps_T[:self.channel_per_tube] * fsky[:, None] * nsplits * wnoise_scale
+            counter = 0
+            for i in range(self.channel_per_tube):
+                for j in range(i):
+                    ps_T[self.channel_per_tube+counter] =  np.sqrt(np.prod(ps_T[[i,j]], axis=0))
+                    counter+=1
+
+            ps_P[:self.channel_per_tube] = ps_P[:self.channel_per_tube] * fsky[:, None] * nsplits * wnoise_scale
+            counter = 0
+            for i in range(self.channel_per_tube):
+                for j in range(i):
+                    ps_P[self.channel_per_tube+counter] =  np.sqrt(np.prod(ps_P[[i,j]], axis=0))
+                    counter+=1
+
+        else:
+            if wnoise_power is  None:
+                raise AssertionError(" Survey white noise level not specified. Cannot generate a white noise spectrum")
+            ell = np.arange(self.ell_max)
+            ps_T = np.zeros((self.channel_per_tube*(self.channel_per_tube+1)//2, ell.size))
+            ps_T[:self.channel_per_tube] = wnoise_power[:, None] * np.ones((2, ell.size))
+            ps_P = 2.0 * ps_T
+        return ell, ps_T, ps_P, fsky, wnoise_power, hitmaps
+
 
     def _validate_map(self, fmap):
         """Internal function to validate an externally provided map.
@@ -436,6 +449,13 @@ class SONoiseSimulator:
             sky_fractions = [self._average(hitmaps[i]) for i in range(nhitmaps)]
         return hitmaps, sky_fractions
 
+    def _get_hitsmaps_names(self,tube=None):
+        """ Internal function to get the full name of the hitsmaps
+        Returns a lits of file names.
+        Not implemented in base class
+        """
+        return []
+
     def get_hitmaps(self, tube=None, hitmap=None):
         """Get and process hitmaps and sky fractions for the provided tube or provided
         an external one.
@@ -466,26 +486,7 @@ class SONoiseSimulator:
         if hitmap is not None:
             return self._process_hitmaps(self._load_map(hitmap))
 
-        telescope = f"{tube[0]}A"  # get LA or SA from tube name
-
-        if not (self.healpix):
-            npixheight = min(
-                {"LA": [0.5, 2.0], "SA": [4.0, 12.0]}[telescope],
-                key=lambda x: abs(x - self._pixheight),
-            )
-            car_suffix = f"_CAR_{npixheight:.2f}_arcmin"
-        else:
-            car_suffix = ""
-
-        bands = [ch.band for ch in self.tubes[tube]]
-
-        rnames = []
-        for band in bands:
-            rnames.append(
-                f"{tube}_{band}_01_of_20.nominal_telescope_all_time_all_hmap{car_suffix}.fits.gz"
-            )
-
-        hitmap_filenames = [self.remote_data.get(rname) for rname in rnames]
+        hitmap_filenames = self._get_hitsmaps_names(tube)
         hitmaps = []
         for hitmap_filename in hitmap_filenames:
             hitmaps.append(self._load_map(hitmap_filename))
@@ -527,7 +528,34 @@ class SONoiseSimulator:
         """
         survey = self._get_survey(tube)
         noise_indices = self.get_noise_indices(tube, band)
-        return survey.get_white_noise(sky_fraction, units=units)[noise_indices]
+        white_noise = survey.get_white_noise(sky_fraction,units=units)
+        if white_noise is None: return None
+        return white_noise[noise_indices]
+
+
+    def _load_inverse_variance_map(self,tube, output_units="uK_CMB",band=None):
+        """ Internal function to load load an inverse var map from file.
+            By default this just returns None so an inv_var map is computed from a white noise level
+            and a hits map
+        """
+        try:
+            survey = self._get_survey(tube)
+            noise_indices = self.get_noise_indices(tube, band)
+            ivar_map_filenames = survey.get_ivar_map_filenames()
+            if ivar_map_filenames is None: return None
+            ivar_map_filenames = [ivar_map_filenames[i] for i in noise_indices]
+            ivar_maps = []
+            for ivar_map_filename in ivar_map_filenames:
+                ivar_maps.append(self._load_map(ivar_map_filename))
+            ret = np.array(ivar_maps)
+            for i in range(self.channel_per_tube):
+                freq = self.tubes[tube][i].center_frequency
+                unit_conv = (1 * u.uK_CMB).to_value(
+                u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq))
+                ret[i] /= unit_conv ** 2.0  # divide by square since the default is 1/uK^2
+            return ret
+        except AttributeError:
+            return None
 
     def get_inverse_variance(
         self, tube, output_units="uK_CMB", hitmap=None, white_noise_rms=None
@@ -569,11 +597,18 @@ class SONoiseSimulator:
             See the `band_id` attribute of the Channel class
             to identify which is the index of a Channel in the array.
         """
+        ret = self._load_inverse_variance_map(tube, output_units=output_units)
+        if ret is not None:
+            return ret
+
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
         sel = np.s_[:, None] if self.healpix else np.s_[:, None, None]
+        whiteNoise = self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
+        if whiteNoise is None:
+            raise AssertionError(" Survey white noise level not specified. Cannot generate ivar_map")
         power = (
-            self.get_white_noise_power(tube, sky_fraction=1, units="sr")[sel]
+            whiteNoise[sel]
             * fsky[sel]
             * wnoise_scale[:, 0][sel]
         )
@@ -582,10 +617,10 @@ class SONoiseSimulator:
         and the hitmap
         ivar = hitmap * pixel_area * fsky / <hitmap> / power
         """
-        avgNhits = np.asarray([self._average(hitmaps[i]) for i in range(2)])
+        avgNhits = np.asarray([self._average(hitmaps[i]) for i in range(self.channel_per_tube)])
         ret = hitmaps * self.pixarea_map * fsky[sel] / avgNhits[sel] / power
         # Convert to desired units
-        for i in range(2):
+        for i in range(self.channel_per_tube):
             freq = self.tubes[tube][i].center_frequency
             unit_conv = (1 * u.uK_CMB).to_value(
                 u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq)
@@ -598,11 +633,11 @@ class SONoiseSimulator:
         to a new value corresponding to white noise RMS in uK-arcmin.
         """
         if white_noise_rms is None:
-            return np.ones((2, 1))
-        cnoise = np.sqrt(
-            self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
-            * sky_fraction
-        )
+            return np.ones((self.channel_per_tube, 1))
+        whiteNoise = self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
+        if whiteNoise is None:
+            raise AssertionError(" Survey white noise level not specified. Cannot rescale white noise levels")
+        cnoise = np.sqrt(whiteNoise* sky_fraction)
         return (white_noise_rms / cnoise)[:, None]
 
     def _get_requested_hitmaps(self, tube, hitmap):
@@ -619,14 +654,14 @@ class SONoiseSimulator:
             )
             fsky = self._sky_fraction if self._sky_fraction is not None else 1
             sky_fractions = (
-                np.asarray([fsky, fsky]) if self.full_covariance else np.asarray([fsky])
+                np.asarray([fsky]*self.channel_per_tube) if self.full_covariance else np.asarray([fsky])
             )
         else:
             hitmaps, sky_fractions = self.get_hitmaps(tube, hitmap=hitmap)
 
         if len(sky_fractions) == 1:
             assert hitmaps.shape[0] == 1
-            fsky = np.asarray([sky_fractions[0]] * 2)
+            fsky = np.asarray([sky_fractions[0]] *self.channel_per_tube)
             hitmaps = np.repeat(hitmaps, 2, axis=0)
         elif len(sky_fractions) == 2:
             assert len(hitmaps) == 2
@@ -635,53 +670,6 @@ class SONoiseSimulator:
             raise ValueError
         return fsky, hitmaps
 
-    def get_noise_properties(
-        self, tube, nsplits=1, hitmap=None, white_noise_rms=None, atmosphere=True
-    ):
-        """Get noise curves scaled with the hitmaps and the hitmaps themselves
-
-        Parameters
-        ----------
-        see the docstring of simulate
-
-        See the `band_id` attribute of the Channel class
-        to identify which is the index of a Channel in the returned arrays.
-
-        Returns
-        -------
-        ell : np.array
-            Array of :math:`\ell`
-        ps_T, ps_P : np.array
-            Tube noise spectra for T and P, one row per channel, the 3rd the crosscorrelation
-        fsky : np.array
-            Array of sky fractions computed as <normalized N_hits>
-        wnoise_power : np.array
-            White noise power (high-ell limit)
-        hitmaps : np.array
-            Array of the hitmaps for each channel
-        """
-        fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
-        wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
-        wnoise_power = (
-            self.get_white_noise_power(tube, sky_fraction=1, units="sr")
-            * nsplits
-            * fsky
-            * wnoise_scale.flatten()
-        )
-        if atmosphere:
-            ell, ps_T, ps_P = self.get_fullsky_noise_spectra(
-                tube, ncurve_sky_fraction=1, return_corr=True
-            )
-            ps_T[:2] = ps_T[:2] * fsky[:, None] * nsplits * wnoise_scale
-            ps_T[2] *= np.sqrt(np.prod(ps_T[:2], axis=0))
-            ps_P[:2] = ps_P[:2] * fsky[:, None] * nsplits * wnoise_scale
-            ps_P[2] *= np.sqrt(np.prod(ps_P[:2], axis=0))
-        else:
-            ell = np.arange(self.ell_max)
-            ps_T = np.zeros((3, ell.size))
-            ps_T[:2] = wnoise_power[:, None] * np.ones((2, ell.size))
-            ps_P = 2.0 * ps_T
-        return ell, ps_T, ps_P, fsky, wnoise_power, hitmaps
 
     def simulate(
         self,
@@ -797,15 +785,15 @@ class SONoiseSimulator:
                 sel = np.s_[:, None, None, None, None]
                 pmap = pixell.enmap.enmap(self.pixarea_map, self.wcs)
             spowr = np.sqrt(wnoise_power[sel] / pmap)
-            output_map = spowr * np.random.standard_normal((2, nsplits, 3) + ashape)
+            output_map = spowr * np.random.standard_normal((self.channel_per_tube, nsplits, 3) + ashape)
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
         else:
             if self.healpix:
                 npix = hp.nside2npix(self.nside)
-                output_map = np.zeros((2, nsplits, 3, npix))
+                output_map = np.zeros((self.channel_per_tube, nsplits, 3, npix))
                 for i in range(nsplits):
                     for i_pol in range(3):
-                        output_map[0][i][i_pol], output_map[1][i][i_pol] = np.array(
+                        output_map[:,i,i_pol] = np.array(
                             hp.synfast(
                                 ps_T if i_pol == 0 else ps_P,
                                 nside=self.nside,
@@ -822,13 +810,13 @@ class SONoiseSimulator:
                 for i in range(nsplits):
                     for i_pol in range(3):
                         output_map[:, i, i_pol] = pixell.curvedsky.rand_map(
-                            (2,) + self.shape,
+                            (self.channel_per_tube,) + self.shape,
                             self.wcs,
                             ps_T if i_pol == 0 else ps_P,
                             spin=0,
                         )
 
-        for i in range(2):
+        for i in range(self.channel_per_tube):
             freq = self.tubes[tube][i].center_frequency
             if not (self.homogeneous):
                 good = hitmaps[i] != 0
@@ -841,3 +829,239 @@ class SONoiseSimulator:
             )
             output_map[i] *= unit_conv
         return output_map
+
+
+
+
+class ExternalNoiseSimulator(noiseSimulatorBase):
+    def __init__(
+        self,
+        nside=None,
+        shape=None,
+        wcs=None,
+        ell_max=None,
+        return_uK_CMB=True,
+        sensitivity_mode="baseline",
+        apply_beam_correction=False,
+        apply_kludge_correction=True,
+        homogeneous=False,
+        no_power_below_ell=None,
+        rolloff_ell=50,
+        survey_efficiency=0.2,
+        full_covariance=True,
+        channels_list = None,
+        sky_fraction=None,
+        cache_hitmaps=True,
+        boolean_sky_fraction=False,
+        survey = None
+        ):
+
+        super(ExternalNoiseSimulator,self).__init__(
+            nside=nside,shape=shape,wcs=wcs,ell_max=ell_max,
+            return_uK_CMB=return_uK_CMB,apply_beam_correction=apply_beam_correction, 
+            apply_kludge_correction=apply_kludge_correction,homogeneous=homogeneous,
+            no_power_below_ell=no_power_below_ell,rolloff_ell=rolloff_ell,survey_efficiency=survey_efficiency,
+            full_covariance=full_covariance,sky_fraction=sky_fraction,cache_hitmaps=cache_hitmaps,
+            boolean_sky_fraction=boolean_sky_fraction,channels_list=channels_list)
+        self._survey = survey
+
+    def _get_survey(self, tube):
+        """Internal function to get the survey object
+        return the inputted survey
+        """
+        
+        return self._survey
+
+    def _get_hitsmaps_names(self,tube=None,band=None):
+        """ Internal function to get the full name of the hitsmaps
+        """
+        survey = self._get_survey(tube)
+        noise_indices = self.get_noise_indices(tube, band)
+        hitsmap_names = survey.get_hitsmap_filenames()
+        return [hitsmap_names[i] for i in list(noise_indices)]
+
+        # return [ch.hitsmap_name for ch in self.tubes[tube]]
+
+
+
+class SONoiseSimulator(noiseSimulatorBase):
+    def __init__(
+        self,
+        nside=None,
+        shape=None,
+        wcs=None,
+        ell_max=None,
+        return_uK_CMB=True,
+        sensitivity_mode="baseline",
+        apply_beam_correction=False,
+        apply_kludge_correction=True,
+        homogeneous=False,
+        no_power_below_ell=None,
+        rolloff_ell=50,
+        survey_efficiency=0.2,
+        full_covariance=True,
+        LA_years=5,
+        LA_noise_model="SOLatV3point1",
+        elevation=50,
+        SA_years=5,
+        SA_one_over_f_mode="pessimistic",
+        sky_fraction=None,
+        cache_hitmaps=True,
+        boolean_sky_fraction=False,
+
+    ):
+        """Simulate noise maps for Simons Observatory
+
+        Simulate the noise power spectrum in spherical harmonics domain and then generate a map
+        in microK_CMB or microK_RJ (based on return_uK_CMB)
+
+        In the constructor, this object calls the published 20180822 noise simulator and generates
+        the expected noise power spectra for all channels.
+        Then you need to call the `simulate` method with a channel identifier to create a simulated map.
+
+        Parameters
+        ----------
+
+        nside : int
+            nside of HEALPix map. If None, uses
+            rectangular pixel geometry specified through shape and wcs.
+        shape : tuple of ints
+            shape of ndmap array (see pixell.pixell.enmap). Must also specify wcs.
+        wcs : astropy.wcs.wcs.WCS instance
+            World Coordinate System for geometry of map (see pixell.pixell.enmap). Must
+            also specify shape.
+        ell_max : int
+            Maximum ell for the angular power spectrum, if not provided set to 3 * nside when using healpix
+            or 10000 * (1.0 / pixel_height_arcmin) when using CAR, corresponding roughly to the Nyquist
+            frequency.
+        return_uK_CMB : bool
+            True, output is in microK_CMB, False output is in microK_RJ
+        sensitivity_mode : str
+            Value should be threshold, baseline or goal to use predefined sensitivities
+        apply_beam_correction : bool
+            Include the effect of the beam in the noise angular power spectrum
+        apply_kludge_correction : bool
+            If True, reduce the hitcount by a factor of 0.85 to account for not-uniformity in the scanning
+        homogeneous : bool
+            Set to True to generate full-sky maps with no hit-count variation, with noise curves
+            corresponding to a survey that covers a sky fraction of sky_fraction (defaults to 1).
+        no_power_below_ell : int
+            The input spectra have significant power at low :math:`\ell`,
+            we can zero that power specifying an integer :math:`\ell` value here.
+            The power spectra at :math:`\ell < \ell_0` are set to zero.
+        rolloff_ell : int
+            Low ell power damping, see the docstring of
+            `so_noise_models.so_models_v3.SO_Noise_Calculator_Public_v3_1_1.rolloff`
+        survey_efficiency : float
+            Fraction of calendar time that may be used to compute map depth.
+        full_covariance : bool
+            Whether or not to include the intra-tube covariance between bands.
+            If white noise (atmosphere=False) sims are requested, no
+            covariance is included regardless of the value of full_covariance.
+        LA_years : int
+            Total number of years for the Large Aperture telescopes survey
+        LA_noise_model : str
+            Noise model among the ones available in `so_noise_model`, "SOLatV3point1" is default, "SOLatV3" is
+            the model released in 2018 which had a bug in the atmosphere contribution
+        elevation : float
+            Elevation of the scans in degrees, the V3.1.1 noise model includes elevation
+            dependence for the LAT. This should reproduced original V3 results at the
+            reference elevation of 50 degrees.
+        SA_years : int
+            Total number of years for the Small Aperture telescopes survey
+        SA_one_over_f_mode : {"pessimistic", "optimistic", "none"}
+            Correlated noise performance of the detectors on the Small Aperture telescopes
+        sky_fraction : optional,float
+            If homogeneous is True, this sky_fraction is used for the noise curves.
+        cache_hitmaps : bool
+            If True, caches hitmaps.
+        boolean_sky_fraction: bool
+            If True, determines sky fraction based on fraction of hitmap that is zero. If False,
+            determines sky_fraction from <Nhits>.
+        instrument_parameters : Path or str
+            See the help of MapSims
+        """
+ 
+        super(SONoiseSimulator,self).__init__(
+            nside=nside,shape=shape,wcs=wcs,ell_max=ell_max,
+            return_uK_CMB=return_uK_CMB,apply_beam_correction=apply_beam_correction, 
+            apply_kludge_correction=apply_kludge_correction,homogeneous=homogeneous,
+            no_power_below_ell=no_power_below_ell,rolloff_ell=rolloff_ell,survey_efficiency=survey_efficiency,
+            full_covariance=full_covariance,sky_fraction=sky_fraction,cache_hitmaps=cache_hitmaps,
+            boolean_sky_fraction=boolean_sky_fraction,instrument_parameters=instrument_parameters)
+
+        self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
+
+        self.LA_years = LA_years
+        self.LA_noise_model = LA_noise_model
+        self.elevation = elevation
+        self.SA_years = SA_years
+        self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
+        
+        self.remote_data = RemoteData(healpix=self.healpix, version=self.hitmap_version)
+
+        self.channel_per_tube = 2
+
+
+
+    def _get_survey(self, tube):
+        """Internal function to get the survey object
+        from the SO noise model code.
+        """
+        telescope = f"{tube[0]}A"  # get LA or SA from tube name
+        if telescope == "SA":
+            if tube == "ST0":
+                N_tubes = [0, 0, 1]  # the UHF telescope
+            elif tube == "ST1":
+                N_tubes = [0, 1, 0]  # the MF telescope
+            elif tube == "ST2":
+                N_tubes = [0, 0.6, 0]  # the MF/LF telescope
+            elif tube == "ST3":
+                N_tubes = [0.4, 0, 0]  # the MF/LF telescope
+            else:
+                raise ValueError
+
+            with np.errstate(divide="ignore", invalid="ignore"):
+                survey = so_models.SOSatV3point1(
+                    sensitivity_mode=self.sensitivity_mode,
+                    survey_efficiency=self.survey_efficiency,
+                    survey_years=self.SA_years,
+                    N_tubes=N_tubes,
+                    el=None,  # SAT does not support noise elevation function
+                    one_over_f_mode=self.SA_one_over_f_mode,
+                )
+        elif telescope == "LA":
+            with np.errstate(divide="ignore", invalid="ignore"):
+                survey = getattr(so_models, self.LA_noise_model)(
+                    sensitivity_mode=self.sensitivity_mode,
+                    survey_efficiency=self.survey_efficiency,
+                    survey_years=self.LA_years,
+                    N_tubes=[1, 1, 1],
+                    el=self.elevation,
+                )
+        return survey
+
+    def _get_hitsmaps_names(self,tube=None):
+        """ Internal function to get the full name of the hitsmaps
+        """
+        telescope = f"{tube[0]}A"  # get LA or SA from tube name
+
+        if not (self.healpix):
+            npixheight = min(
+                {"LA": [0.5, 2.0], "SA": [4.0, 12.0]}[telescope],
+                key=lambda x: abs(x - self._pixheight),
+            )
+            car_suffix = f"_CAR_{npixheight:.2f}_arcmin"
+        else:
+            car_suffix = ""
+
+        bands = [ch.band for ch in self.tubes[tube]]
+
+        rnames = []
+        for band in bands:
+            rnames.append(
+                f"{tube}_{band}_01_of_20.nominal_telescope_all_time_all_hmap{car_suffix}.fits.gz"
+            )
+
+        hitmap_filenames = [self.remote_data.get(rname) for rname in rnames]
+        return hitmap_filenames
