@@ -110,6 +110,8 @@ class noiseSimulatorBase:
         for ch in channels_list:
             self.tubes[ch.tube].append(ch)
 
+        self.channel_per_tube = len(self.tubes[channels_list[0].tube])
+
         if nside is None:
             assert shape is not None
             assert wcs is not None
@@ -148,7 +150,6 @@ class noiseSimulatorBase:
         self.hitmap_version = _hitmap_version
         self._cache = cache_hitmaps
         self._hmap_cache = {}
-        self.channel_per_tube = 1
 
     def get_beam_fwhm(self, tube, band=None):
         """Get beam FWHMs in arcminutes corresponding to the tueb.
@@ -486,10 +487,16 @@ class noiseSimulatorBase:
         if hitmap is not None:
             return self._process_hitmaps(self._load_map(hitmap))
 
-        hitmap_filenames = self._get_hitsmaps_names(tube)
-        hitmaps = []
-        for hitmap_filename in hitmap_filenames:
-            hitmaps.append(self._load_map(hitmap_filename))
+        # If the survey object has preloaded hitsmaps. Use them. Otherwise load form files.
+        survey = self._get_survey(tube)
+        if hasattr(survey,'get_hitsmaps') and survey.get_hitsmaps() is not None:
+            noise_indices = self.get_noise_indices(tube, None)
+            hitmaps = survey.get_hitsmaps()[noise_indices]
+        else:
+            hitmap_filenames = self._get_hitsmaps_names(tube)
+            hitmaps = []
+            for hitmap_filename in hitmap_filenames:
+                hitmaps.append(self._load_map(hitmap_filename))
 
         return self._process_hitmaps(np.asarray(hitmaps))
 
@@ -534,28 +541,33 @@ class noiseSimulatorBase:
 
 
     def _load_inverse_variance_map(self,tube, output_units="uK_CMB",band=None):
-        """ Internal function to load load an inverse var map from file.
+        """ Internal function to return a preloaded inverse var map or load one from a from file.
             By default this just returns None so an inv_var map is computed from a white noise level
             and a hits map
         """
-        try:
-            survey = self._get_survey(tube)
-            noise_indices = self.get_noise_indices(tube, band)
+        survey = self._get_survey(tube)
+        noise_indices = self.get_noise_indices(tube, band)
+        #If the survey has a set of preloaded invariance maps use them
+        if hasattr(survey,'get_ivar_maps') and survey.get_ivar_maps() is not None:
+            ret = np.array(survey.get_ivar_maps())[noise_indices]
+        elif hasattr(survey,'get_ivar_map_filenames')  and survey.get_ivar_map_filenames() is not None:
+
             ivar_map_filenames = survey.get_ivar_map_filenames()
             if ivar_map_filenames is None: return None
             ivar_map_filenames = [ivar_map_filenames[i] for i in noise_indices]
             ivar_maps = []
             for ivar_map_filename in ivar_map_filenames:
                 ivar_maps.append(self._load_map(ivar_map_filename))
-            ret = np.array(ivar_maps)
-            for i in range(self.channel_per_tube):
-                freq = self.tubes[tube][i].center_frequency
-                unit_conv = (1 * u.uK_CMB).to_value(
-                u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq))
-                ret[i] /= unit_conv ** 2.0  # divide by square since the default is 1/uK^2
-            return ret
-        except AttributeError:
+        else:
             return None
+
+        ret = np.array(ivar_maps)
+        for i in range(self.channel_per_tube):
+            freq = self.tubes[tube][i].center_frequency
+            unit_conv = (1 * u.uK_CMB).to_value(
+            u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq))
+            ret[i] /= unit_conv ** 2.0  # divide by square since the default is 1/uK^2
+        return ret
 
     def get_inverse_variance(
         self, tube, output_units="uK_CMB", hitmap=None, white_noise_rms=None
@@ -908,6 +920,7 @@ class SONoiseSimulator(noiseSimulatorBase):
         sky_fraction=None,
         cache_hitmaps=True,
         boolean_sky_fraction=False,
+        instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS
 
     ):
         """Simulate noise maps for Simons Observatory
@@ -1000,8 +1013,7 @@ class SONoiseSimulator(noiseSimulatorBase):
         
         self.remote_data = RemoteData(healpix=self.healpix, version=self.hitmap_version)
 
-        self.channel_per_tube = 2
-
+    
 
 
     def _get_survey(self, tube):
