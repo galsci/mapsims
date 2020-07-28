@@ -45,7 +45,7 @@ class BaseNoiseSimulator:
         sky_fraction=None,
         cache_hitmaps=True,
         boolean_sky_fraction=False,
-        channels_list = None,
+        channels_list=None,
         instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS,
     ):
         """An abstract base class for simulating noise maps
@@ -182,9 +182,6 @@ class BaseNoiseSimulator:
         noise_indices = self.get_noise_indices(tube, band)
         return survey.get_beams()[noise_indices]
 
-
-
-
     def get_noise_indices(self, tube, band=None):
         """Gets indices in the so_noise_model package of a channel or the 2 channels of a tube
         """
@@ -273,20 +270,26 @@ class BaseNoiseSimulator:
         assert ell[0] == 2  # make sure the noise code is still returning something
         # that starts at ell=2
         ls = np.arange(ell.size + 2)
-        nells_T = np.zeros((self.channel_per_tube*(self.channel_per_tube+1)//2, ell.size + 2))
-        nells_P = np.zeros((self.channel_per_tube*(self.channel_per_tube+1)//2, ell.size + 2))
+        nells_T = np.zeros(
+            (self.channel_per_tube * (self.channel_per_tube + 1) // 2, ell.size + 2)
+        )
+        nells_P = np.zeros(
+            (self.channel_per_tube * (self.channel_per_tube + 1) // 2, ell.size + 2)
+        )
         b_indices = [ch.noise_band_index for ch in self.tubes[tube]]
         for n_out, n_in in zip([nells_T, nells_P], [noise_ell_T, noise_ell_P]):
-            for i,b1 in enumerate(b_indices):
+            for i, b1 in enumerate(b_indices):
                 n_out[i, 2:] = n_in[b1][b1]
             # re-scaling if correlation coefficient is requested
-            
+
             counter = 0
-            for i,b1 in enumerate(b_indices):
+            for i, b1 in enumerate(b_indices):
                 for b2 in b_indices[:i]:
                     scale = np.sqrt(n_in[b1][b1] * n_in[b2][b2]) if return_corr else 1
-                    n_out[self.channel_per_tube+counter, 2:] = (n_in[b1][b2] / scale) if self.full_covariance else 0
-                    counter+=1
+                    n_out[self.channel_per_tube + counter, 2:] = (
+                        (n_in[b1][b2] / scale) if self.full_covariance else 0
+                    )
+                    counter += 1
 
             if self.no_power_below_ell is not None:
                 n_out[:, ls < self.no_power_below_ell] = 0
@@ -325,35 +328,48 @@ class BaseNoiseSimulator:
         wnoise_power = self.get_white_noise_power(tube, sky_fraction=1, units="sr")
         if wnoise_power is not None:
             # raise AssertionError(" Survey white noise level not specified. Cannot generate ivar_map")
-            wnoise_power *= nsplits* fsky* wnoise_scale.flatten()
-        
+            wnoise_power *= nsplits * fsky * wnoise_scale.flatten()
+
         if atmosphere:
             ell, ps_T, ps_P = self.get_fullsky_noise_spectra(
                 tube, ncurve_sky_fraction=1, return_corr=True
             )
-            ps_T[:self.channel_per_tube] = ps_T[:self.channel_per_tube] * fsky[:, None] * nsplits * wnoise_scale
+            ps_T[: self.channel_per_tube] = (
+                ps_T[: self.channel_per_tube] * fsky[:, None] * nsplits * wnoise_scale
+            )
             counter = 0
             for i in range(self.channel_per_tube):
                 for j in range(i):
-                    ps_T[self.channel_per_tube+counter] *=  np.sqrt(np.prod(ps_T[[i,j]], axis=0))
-                    counter+=1
+                    ps_T[self.channel_per_tube + counter] *= np.sqrt(
+                        np.prod(ps_T[[i, j]], axis=0)
+                    )
+                    counter += 1
 
-            ps_P[:self.channel_per_tube] = ps_P[:self.channel_per_tube] * fsky[:, None] * nsplits * wnoise_scale
+            ps_P[: self.channel_per_tube] = (
+                ps_P[: self.channel_per_tube] * fsky[:, None] * nsplits * wnoise_scale
+            )
             counter = 0
             for i in range(self.channel_per_tube):
                 for j in range(i):
-                    ps_P[self.channel_per_tube+counter] *=  np.sqrt(np.prod(ps_P[[i,j]], axis=0))
-                    counter+=1
+                    ps_P[self.channel_per_tube + counter] *= np.sqrt(
+                        np.prod(ps_P[[i, j]], axis=0)
+                    )
+                    counter += 1
 
         else:
-            if wnoise_power is  None:
-                raise AssertionError(" Survey white noise level not specified. Cannot generate a white noise spectrum")
+            if wnoise_power is None:
+                raise AssertionError(
+                    " Survey white noise level not specified. Cannot generate a white noise spectrum"
+                )
             ell = np.arange(self.ell_max)
-            ps_T = np.zeros((self.channel_per_tube*(self.channel_per_tube+1)//2, ell.size))
-            ps_T[:self.channel_per_tube] = wnoise_power[:, None] * np.ones((2, ell.size))
+            ps_T = np.zeros(
+                (self.channel_per_tube * (self.channel_per_tube + 1) // 2, ell.size)
+            )
+            ps_T[: self.channel_per_tube] = wnoise_power[:, None] * np.ones(
+                (2, ell.size)
+            )
             ps_P = 2.0 * ps_T
         return ell, ps_T, ps_P, fsky, wnoise_power, hitmaps
-
 
     def _validate_map(self, fmap):
         """Internal function to validate an externally provided map.
@@ -450,7 +466,7 @@ class BaseNoiseSimulator:
             sky_fractions = [self._average(hitmaps[i]) for i in range(nhitmaps)]
         return hitmaps, sky_fractions
 
-    def _get_hitsmaps_names(self,tube=None):
+    def _get_hitsmaps_names(self, tube=None):
         """ Internal function to get the full name of the hitsmaps
         Returns a lits of file names.
         Not implemented in base class
@@ -489,7 +505,7 @@ class BaseNoiseSimulator:
 
         # If the survey object has preloaded hitsmaps. Use them. Otherwise load form files.
         survey = self._get_survey(tube)
-        if hasattr(survey,'get_hitsmaps') and survey.get_hitsmaps() is not None:
+        if hasattr(survey, "get_hitsmaps") and survey.get_hitsmaps() is not None:
             noise_indices = self.get_noise_indices(tube, None)
             hitmaps = survey.get_hitsmaps()[noise_indices]
         else:
@@ -535,25 +551,29 @@ class BaseNoiseSimulator:
         """
         survey = self._get_survey(tube)
         noise_indices = self.get_noise_indices(tube, band)
-        white_noise = survey.get_white_noise(sky_fraction,units=units)
-        if white_noise is None: return None
+        white_noise = survey.get_white_noise(sky_fraction, units=units)
+        if white_noise is None:
+            return None
         return white_noise[noise_indices]
 
-
-    def _load_inverse_variance_map(self,tube, output_units="uK_CMB",band=None):
+    def _load_inverse_variance_map(self, tube, output_units="uK_CMB", band=None):
         """ Internal function to return a preloaded inverse var map or load one from a from file.
             By default this just returns None so an inv_var map is computed from a white noise level
             and a hits map
         """
         survey = self._get_survey(tube)
         noise_indices = self.get_noise_indices(tube, band)
-        #If the survey has a set of preloaded invariance maps use them
-        if hasattr(survey,'get_ivar_maps') and survey.get_ivar_maps() is not None:
+        # If the survey has a set of preloaded invariance maps use them
+        if hasattr(survey, "get_ivar_maps") and survey.get_ivar_maps() is not None:
             ret = np.array(survey.get_ivar_maps())[noise_indices]
-        elif hasattr(survey,'get_ivar_map_filenames')  and survey.get_ivar_map_filenames() is not None:
+        elif (
+            hasattr(survey, "get_ivar_map_filenames")
+            and survey.get_ivar_map_filenames() is not None
+        ):
 
             ivar_map_filenames = survey.get_ivar_map_filenames()
-            if ivar_map_filenames is None: return None
+            if ivar_map_filenames is None:
+                return None
             ivar_map_filenames = [ivar_map_filenames[i] for i in noise_indices]
             ivar_maps = []
             for ivar_map_filename in ivar_map_filenames:
@@ -565,7 +585,8 @@ class BaseNoiseSimulator:
         for i in range(self.channel_per_tube):
             freq = self.tubes[tube][i].center_frequency
             unit_conv = (1 * u.uK_CMB).to_value(
-            u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq))
+                u.Unit(output_units), equivalencies=u.cmb_equivalencies(freq)
+            )
             ret[i] /= unit_conv ** 2.0  # divide by square since the default is 1/uK^2
         return ret
 
@@ -618,18 +639,18 @@ class BaseNoiseSimulator:
         sel = np.s_[:, None] if self.healpix else np.s_[:, None, None]
         whiteNoise = self.get_white_noise_power(tube, sky_fraction=1, units="sr")
         if whiteNoise is None:
-            raise AssertionError(" Survey white noise level not specified. Cannot generate ivar_map")
-        power = (
-            whiteNoise[sel]
-            * fsky[sel]
-            * wnoise_scale[:, 0][sel]
-        )
+            raise AssertionError(
+                " Survey white noise level not specified. Cannot generate ivar_map"
+            )
+        power = whiteNoise[sel] * fsky[sel] * wnoise_scale[:, 0][sel]
         """
         We now have the physical white noise power uK^2-sr
         and the hitmap
         ivar = hitmap * pixel_area * fsky / <hitmap> / power
         """
-        avgNhits = np.asarray([self._average(hitmaps[i]) for i in range(self.channel_per_tube)])
+        avgNhits = np.asarray(
+            [self._average(hitmaps[i]) for i in range(self.channel_per_tube)]
+        )
         ret = hitmaps * self.pixarea_map * fsky[sel] / avgNhits[sel] / power
         # Convert to desired units
         for i in range(self.channel_per_tube):
@@ -648,8 +669,10 @@ class BaseNoiseSimulator:
             return np.ones((self.channel_per_tube, 1))
         whiteNoise = self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
         if whiteNoise is None:
-            raise AssertionError(" Survey white noise level not specified. Cannot rescale white noise levels")
-        cnoise = np.sqrt(whiteNoise* sky_fraction)
+            raise AssertionError(
+                " Survey white noise level not specified. Cannot rescale white noise levels"
+            )
+        cnoise = np.sqrt(whiteNoise * sky_fraction)
         return (white_noise_rms / cnoise)[:, None]
 
     def _get_requested_hitmaps(self, tube, hitmap):
@@ -666,14 +689,16 @@ class BaseNoiseSimulator:
             )
             fsky = self._sky_fraction if self._sky_fraction is not None else 1
             sky_fractions = (
-                np.asarray([fsky]*self.channel_per_tube) if self.full_covariance else np.asarray([fsky])
+                np.asarray([fsky] * self.channel_per_tube)
+                if self.full_covariance
+                else np.asarray([fsky])
             )
         else:
             hitmaps, sky_fractions = self.get_hitmaps(tube, hitmap=hitmap)
 
         if len(sky_fractions) == 1:
             assert hitmaps.shape[0] == 1
-            fsky = np.asarray([sky_fractions[0]] *self.channel_per_tube)
+            fsky = np.asarray([sky_fractions[0]] * self.channel_per_tube)
             hitmaps = np.repeat(hitmaps, 2, axis=0)
         elif len(sky_fractions) == 2:
             assert len(hitmaps) == 2
@@ -681,7 +706,6 @@ class BaseNoiseSimulator:
         else:
             raise ValueError
         return fsky, hitmaps
-
 
     def simulate(
         self,
@@ -797,7 +821,9 @@ class BaseNoiseSimulator:
                 sel = np.s_[:, None, None, None, None]
                 pmap = pixell.enmap.enmap(self.pixarea_map, self.wcs)
             spowr = np.sqrt(wnoise_power[sel] / pmap)
-            output_map = spowr * np.random.standard_normal((self.channel_per_tube, nsplits, 3) + ashape)
+            output_map = spowr * np.random.standard_normal(
+                (self.channel_per_tube, nsplits, 3) + ashape
+            )
             output_map[:, :, 1:, :] = output_map[:, :, 1:, :] * np.sqrt(2.0)
         else:
             if self.healpix:
@@ -805,7 +831,7 @@ class BaseNoiseSimulator:
                 output_map = np.zeros((self.channel_per_tube, nsplits, 3, npix))
                 for i in range(nsplits):
                     for i_pol in range(3):
-                        output_map[:,i,i_pol] = np.array(
+                        output_map[:, i, i_pol] = np.array(
                             hp.synfast(
                                 ps_T if i_pol == 0 else ps_P,
                                 nside=self.nside,
@@ -843,8 +869,6 @@ class BaseNoiseSimulator:
         return output_map
 
 
-
-
 class ExternalNoiseSimulator(BaseNoiseSimulator):
     def __init__(
         self,
@@ -861,30 +885,41 @@ class ExternalNoiseSimulator(BaseNoiseSimulator):
         rolloff_ell=50,
         survey_efficiency=0.2,
         full_covariance=True,
-        channels_list = None,
+        channels_list=None,
         sky_fraction=None,
         cache_hitmaps=True,
         boolean_sky_fraction=False,
-        survey = None
-        ):
+        survey=None,
+    ):
 
-        super(ExternalNoiseSimulator,self).__init__(
-            nside=nside,shape=shape,wcs=wcs,ell_max=ell_max,
-            return_uK_CMB=return_uK_CMB,apply_beam_correction=apply_beam_correction, 
-            apply_kludge_correction=apply_kludge_correction,homogeneous=homogeneous,
-            no_power_below_ell=no_power_below_ell,rolloff_ell=rolloff_ell,survey_efficiency=survey_efficiency,
-            full_covariance=full_covariance,sky_fraction=sky_fraction,cache_hitmaps=cache_hitmaps,
-            boolean_sky_fraction=boolean_sky_fraction,channels_list=channels_list)
+        super(ExternalNoiseSimulator, self).__init__(
+            nside=nside,
+            shape=shape,
+            wcs=wcs,
+            ell_max=ell_max,
+            return_uK_CMB=return_uK_CMB,
+            apply_beam_correction=apply_beam_correction,
+            apply_kludge_correction=apply_kludge_correction,
+            homogeneous=homogeneous,
+            no_power_below_ell=no_power_below_ell,
+            rolloff_ell=rolloff_ell,
+            survey_efficiency=survey_efficiency,
+            full_covariance=full_covariance,
+            sky_fraction=sky_fraction,
+            cache_hitmaps=cache_hitmaps,
+            boolean_sky_fraction=boolean_sky_fraction,
+            channels_list=channels_list,
+        )
         self._survey = survey
 
     def _get_survey(self, tube):
         """Internal function to get the survey object
         return the inputted survey
         """
-        
+
         return self._survey
 
-    def _get_hitsmaps_names(self,tube=None,band=None):
+    def _get_hitsmaps_names(self, tube=None, band=None):
         """ Internal function to get the full name of the hitsmaps
         """
         survey = self._get_survey(tube)
@@ -893,7 +928,6 @@ class ExternalNoiseSimulator(BaseNoiseSimulator):
         return [hitsmap_names[i] for i in list(noise_indices)]
 
         # return [ch.hitsmap_name for ch in self.tubes[tube]]
-
 
 
 class SONoiseSimulator(BaseNoiseSimulator):
@@ -920,8 +954,7 @@ class SONoiseSimulator(BaseNoiseSimulator):
         sky_fraction=None,
         cache_hitmaps=True,
         boolean_sky_fraction=False,
-        instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS
-
+        instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS,
     ):
         """Simulate noise maps for Simons Observatory
 
@@ -994,14 +1027,25 @@ class SONoiseSimulator(BaseNoiseSimulator):
         instrument_parameters : Path or str
             See the help of MapSims
         """
- 
-        super(SONoiseSimulator,self).__init__(
-            nside=nside,shape=shape,wcs=wcs,ell_max=ell_max,
-            return_uK_CMB=return_uK_CMB,apply_beam_correction=apply_beam_correction, 
-            apply_kludge_correction=apply_kludge_correction,homogeneous=homogeneous,
-            no_power_below_ell=no_power_below_ell,rolloff_ell=rolloff_ell,survey_efficiency=survey_efficiency,
-            full_covariance=full_covariance,sky_fraction=sky_fraction,cache_hitmaps=cache_hitmaps,
-            boolean_sky_fraction=boolean_sky_fraction,instrument_parameters=instrument_parameters)
+
+        super(SONoiseSimulator, self).__init__(
+            nside=nside,
+            shape=shape,
+            wcs=wcs,
+            ell_max=ell_max,
+            return_uK_CMB=return_uK_CMB,
+            apply_beam_correction=apply_beam_correction,
+            apply_kludge_correction=apply_kludge_correction,
+            homogeneous=homogeneous,
+            no_power_below_ell=no_power_below_ell,
+            rolloff_ell=rolloff_ell,
+            survey_efficiency=survey_efficiency,
+            full_covariance=full_covariance,
+            sky_fraction=sky_fraction,
+            cache_hitmaps=cache_hitmaps,
+            boolean_sky_fraction=boolean_sky_fraction,
+            instrument_parameters=instrument_parameters,
+        )
 
         self.sensitivity_mode = sensitivity_modes[sensitivity_mode]
 
@@ -1010,7 +1054,7 @@ class SONoiseSimulator(BaseNoiseSimulator):
         self.elevation = elevation
         self.SA_years = SA_years
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
-        
+
         self.remote_data = RemoteData(healpix=self.healpix, version=self.hitmap_version)
 
     def _get_survey(self, tube):
@@ -1050,7 +1094,7 @@ class SONoiseSimulator(BaseNoiseSimulator):
                 )
         return survey
 
-    def _get_hitsmaps_names(self,tube=None):
+    def _get_hitsmaps_names(self, tube=None):
         """ Internal function to get the full name of the hitsmaps
         """
         telescope = f"{tube[0]}A"  # get LA or SA from tube name
