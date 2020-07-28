@@ -27,7 +27,7 @@ default_mask_value = {"healpix": hp.UNSEEN, "car": np.nan}
 _hitmap_version = "v0.2"
 
 
-class noiseSimulatorBase:
+class BaseNoiseSimulator:
     def __init__(
         self,
         nside=None,
@@ -845,7 +845,7 @@ class noiseSimulatorBase:
 
 
 
-class ExternalNoiseSimulator(noiseSimulatorBase):
+class ExternalNoiseSimulator(BaseNoiseSimulator):
     def __init__(
         self,
         nside=None,
@@ -896,7 +896,7 @@ class ExternalNoiseSimulator(noiseSimulatorBase):
 
 
 
-class SONoiseSimulator(noiseSimulatorBase):
+class SONoiseSimulator(BaseNoiseSimulator):
     def __init__(
         self,
         nside=None,
@@ -1012,9 +1012,6 @@ class SONoiseSimulator(noiseSimulatorBase):
         self.SA_one_over_f_mode = one_over_f_modes[SA_one_over_f_mode]
         
         self.remote_data = RemoteData(healpix=self.healpix, version=self.hitmap_version)
-
-    
-
 
     def _get_survey(self, tube):
         """Internal function to get the survey object
