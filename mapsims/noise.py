@@ -322,7 +322,7 @@ class noiseSimulatorBase:
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
 
-        wnoise_power = self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
+        wnoise_power = self.get_white_noise_power(tube, sky_fraction=1, units="sr")
         if wnoise_power is not None:
             # raise AssertionError(" Survey white noise level not specified. Cannot generate ivar_map")
             wnoise_power *= nsplits* fsky* wnoise_scale.flatten()
@@ -335,14 +335,14 @@ class noiseSimulatorBase:
             counter = 0
             for i in range(self.channel_per_tube):
                 for j in range(i):
-                    ps_T[self.channel_per_tube+counter] =  np.sqrt(np.prod(ps_T[[i,j]], axis=0))
+                    ps_T[self.channel_per_tube+counter] *=  np.sqrt(np.prod(ps_T[[i,j]], axis=0))
                     counter+=1
 
             ps_P[:self.channel_per_tube] = ps_P[:self.channel_per_tube] * fsky[:, None] * nsplits * wnoise_scale
             counter = 0
             for i in range(self.channel_per_tube):
                 for j in range(i):
-                    ps_P[self.channel_per_tube+counter] =  np.sqrt(np.prod(ps_P[[i,j]], axis=0))
+                    ps_P[self.channel_per_tube+counter] *=  np.sqrt(np.prod(ps_P[[i,j]], axis=0))
                     counter+=1
 
         else:
@@ -616,7 +616,7 @@ class noiseSimulatorBase:
         fsky, hitmaps = self._get_requested_hitmaps(tube, hitmap)
         wnoise_scale = self._get_wscale_factor(white_noise_rms, tube, fsky)
         sel = np.s_[:, None] if self.healpix else np.s_[:, None, None]
-        whiteNoise = self.get_white_noise_power(tube, sky_fraction=1, units="arcmin2")
+        whiteNoise = self.get_white_noise_power(tube, sky_fraction=1, units="sr")
         if whiteNoise is None:
             raise AssertionError(" Survey white noise level not specified. Cannot generate ivar_map")
         power = (
