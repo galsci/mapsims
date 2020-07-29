@@ -143,7 +143,7 @@ class surveyFromExternalData:
         return (ell, T_out, P_out)
 
 
-if __name__=='__main)_':
+if __name__=='__main_':
     
     # Test that this code and the SONoiseSimulator agree if the above used the same noise curves and hitsmap.
     nside = 16
@@ -189,5 +189,4 @@ if __name__=='__main)_':
     noiseSim_test = mapsims.noise.ExternalNoiseSimulator(nside= 16,channels_list=chs,survey=externSurvey)
 
     simMaps = noiseSim_test.simulate('PA1',seed=1)
-
 
