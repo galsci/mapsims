@@ -509,7 +509,7 @@ class BaseNoiseSimulator:
             noise_indices = self.get_noise_indices(tube, None)
             hitmaps = survey.get_hitmaps()[noise_indices]
         else:
-            hitmap_filenames = self._get_hitsmaps_names(tube)
+            hitmap_filenames = self._get_hitmaps_names(tube)
             hitmaps = []
             for hitmap_filename in hitmap_filenames:
                 hitmaps.append(self._load_map(hitmap_filename))
