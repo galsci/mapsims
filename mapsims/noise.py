@@ -466,7 +466,7 @@ class BaseNoiseSimulator:
             sky_fractions = [self._average(hitmaps[i]) for i in range(nhitmaps)]
         return hitmaps, sky_fractions
 
-    def _get_hitsmaps_names(self, tube=None):
+    def _get_hitmaps_names(self, tube=None):
         """ Internal function to get the full name of the hitsmaps
         Returns a lits of file names.
         Not implemented in base class
