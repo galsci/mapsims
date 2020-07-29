@@ -10,7 +10,7 @@ except ImportError:
 import mapsims.noise
 
 # An example simple survey with external noise curves and hitsmaps.
-class surveyFromExternalData:
+class SurveyFromExternalData:
     def __init__(self,nbands,fwhms,noise_ell=None,noise_TT=None,noise_PP=None,noise_files=None,hitsmaps=None,hitsmap_filenames=None,ivar_maps=None,ivar_map_filenames=None,white_noises=None):
         """[summary]
         
