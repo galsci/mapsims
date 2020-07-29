@@ -92,7 +92,7 @@ class surveyFromExternalData:
     def get_hitsmaps(self):
         return self.hitsmaps
     
-    def get_hitsmap_filenames(self):
+    def get_hitmap_filenames(self):
         return self.hitsmap_filenames
     
     def get_ivar_maps(self):
@@ -189,4 +189,3 @@ if __name__=='__main_':
     noiseSim_test = mapsims.noise.ExternalNoiseSimulator(nside= 16,channels_list=chs,survey=externSurvey)
 
     simMaps = noiseSim_test.simulate('PA1',seed=1)
-
