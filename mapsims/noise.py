@@ -919,7 +919,7 @@ class ExternalNoiseSimulator(BaseNoiseSimulator):
 
         return self._survey
 
-    def _get_hitsmaps_names(self, tube=None, band=None):
+    def _get_hitmaps_names(self, tube=None, band=None):
         """ Internal function to get the full name of the hitsmaps
         """
         survey = self._get_survey(tube)
