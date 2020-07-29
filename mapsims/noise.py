@@ -505,7 +505,7 @@ class BaseNoiseSimulator:
 
         # If the survey object has preloaded hitsmaps. Use them. Otherwise load form files.
         survey = self._get_survey(tube)
-        if hasattr(survey, "get_hitsmaps") and survey.get_hitsmaps() is not None:
+        if hasattr(survey, "get_hitmaps") and survey.get_hitmaps() is not None:
             noise_indices = self.get_noise_indices(tube, None)
             hitmaps = survey.get_hitsmaps()[noise_indices]
         else:
