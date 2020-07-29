@@ -89,7 +89,7 @@ class surveyFromExternalData:
     def get_beams(self):
         return self.fwhms
 
-    def get_hitsmaps(self):
+    def get_hitmaps(self):
         return self.hitsmaps
     
     def get_hitmap_filenames(self):
