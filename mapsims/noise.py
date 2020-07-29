@@ -507,7 +507,7 @@ class BaseNoiseSimulator:
         survey = self._get_survey(tube)
         if hasattr(survey, "get_hitmaps") and survey.get_hitmaps() is not None:
             noise_indices = self.get_noise_indices(tube, None)
-            hitmaps = survey.get_hitsmaps()[noise_indices]
+            hitmaps = survey.get_hitmaps()[noise_indices]
         else:
             hitmap_filenames = self._get_hitsmaps_names(tube)
             hitmaps = []
