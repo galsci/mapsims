@@ -25,6 +25,7 @@ class SurveyFromExternalData:
         ivar_map_filenames=None,
         white_noises=None,
     ):
+
         """[summary]
         
         [description]
@@ -290,3 +291,4 @@ if __name__ == "__main__":
     simMaps_example_ivar = noise_sim_extern_ivar.simulate("PA1", seed=1)
 
     assert np.all(np.isclose(simMaps_example_ivar / simMaps_example, 1))
+
