@@ -1094,7 +1094,7 @@ class SONoiseSimulator(BaseNoiseSimulator):
                 )
         return survey
 
-    def _get_hitsmaps_names(self, tube=None):
+    def _get_hitmaps_names(self, tube=None):
         """ Internal function to get the full name of the hitsmaps
         """
         telescope = f"{tube[0]}A"  # get LA or SA from tube name
