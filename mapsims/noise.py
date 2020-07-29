@@ -924,7 +924,7 @@ class ExternalNoiseSimulator(BaseNoiseSimulator):
         """
         survey = self._get_survey(tube)
         noise_indices = self.get_noise_indices(tube, band)
-        hitsmap_names = survey.get_hitsmap_filenames()
+        hitsmap_names = survey.get_hitmap_filenames()
         return [hitsmap_names[i] for i in list(noise_indices)]
 
         # return [ch.hitsmap_name for ch in self.tubes[tube]]
