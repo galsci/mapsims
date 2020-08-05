@@ -343,7 +343,9 @@ class MapSim:
                             bandpass_integrated_map,
                             fwhm=beam_width_arcmin,
                             lmax=3 * self.nside - 1,
-                            rot=hp.Rotator(
+                            rot=None
+                            if input_reference_frame == self.pysm_output_reference_frame
+                            else hp.Rotator(
                                 coord=(
                                     input_reference_frame,
                                     self.pysm_output_reference_frame,
