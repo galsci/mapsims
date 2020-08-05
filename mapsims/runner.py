@@ -338,7 +338,7 @@ class MapSim:
                     ).value
                     beam_width_arcmin = each.beam
                     # smoothing and coordinate rotation with 1 spherical harmonics transform
-                    channel_map += hp.ma(
+                    smoothed_map = hp.ma(
                         pysm.apply_smoothing_and_coord_transform(
                             bandpass_integrated_map,
                             fwhm=beam_width_arcmin,
@@ -360,6 +360,12 @@ class MapSim:
                             ),
                         )
                     )
+
+                    assert smoothed_map.ndim == 2
+                    if smoothed_map.shape[0] == 1:
+                        channel_map[0] += smoothed_map
+                    else:
+                        channel_map += smoothed_map
 
             output_map = output_map.reshape((len(ch), 1, 3, -1))
 
