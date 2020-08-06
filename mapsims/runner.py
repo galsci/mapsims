@@ -403,6 +403,9 @@ class MapSim:
                             np.isnan(each_split_channel_map)
                         ] = hp.UNSEEN
                         warnings.warn("Writing output map " + filename)
+                        each_split_channel_map = hp.reorder(
+                            each_split_channel_map, r2n=True
+                        )
                         hp.write_map(
                             os.path.join(self.output_folder, filename),
                             each_split_channel_map,
