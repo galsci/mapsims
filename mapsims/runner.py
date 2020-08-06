@@ -14,6 +14,14 @@ except ImportError:
     import pysm
 import toml
 
+# pixell is optional and needed when CAR simulations are requested
+try:
+    import pixell
+    import pixell.curvedsky
+    import pixell.powspec
+except:
+    pixell = None
+
 from so_pysm_models import get_so_models
 from .utils import DEFAULT_INSTRUMENT_PARAMETERS, merge_dict
 
@@ -46,7 +54,54 @@ def get_default_so_resolution(ch, field="NSIDE"):
     )
     default_resolution.add_index("channel")
     first_ch = ch if not isinstance(ch, tuple) else ch[0]
-    return default_resolution.loc[first_ch.telescope + "_" + str(first_ch.band)][field]
+    output = default_resolution.loc[first_ch.telescope + "_" + str(first_ch.band)][
+        field
+    ]
+    if field == "CAR_resol":
+        output *= u.arcmin
+    return output
+
+
+def get_map_shape(ch, nside=None, car_resolution=None, car=False):
+    """Get map shape (and WCS for CAR) for Simons Observatory channels
+
+    If N_side or car_resolution is None, get the default value
+    from: `mapsims/data/default_resolution.csv`
+
+    Parameters
+    ----------
+    ch : string
+        Channel tag, e.g. SA_LF2
+    nside : int
+        Desired healpix N_side
+    car_resolution : astropy.Quantity
+        CAR pixels resolution with angle unit
+    car : bool
+        Set to True for CAR, False for HEALPix
+
+    Returns
+    -------
+    nside : int
+        N_side, either return the input or default
+        None for CAR
+    shape : tuple of int
+        (npix,) for HEALPix, (Nx, Ny) for CAR
+    wcs : astropy.WCS
+        CAR map WCS, None for HEALPix
+    """
+    if car:
+        if car_resolution is None:
+            car_resolution = get_default_so_resolution(ch, field="CAR_resol")
+        shape, wcs = pixell.enmap.fullsky_geometry(
+            res=car_resolution.to_value(u.radian)
+        )
+        nside = None
+    else:
+        if nside is None:
+            nside = get_default_so_resolution(ch)
+        shape = (hp.nside2npix(nside),)
+        wcs = None
+    return nside, shape, wcs
 
 
 def function_accepts_argument(func, arg):
@@ -126,9 +181,17 @@ def from_config(config_file, override=None):
     pysm_output_reference_frame = None
 
     nside = config.get("nside", None)
-    if nside is None:
-        channels = parse_channels(config["channels"], config["instrument_parameters"])
-        nside = get_default_so_resolution(channels[0])
+    car = config.get("car", False)
+    channels = parse_channels(config["channels"], config["instrument_parameters"])
+    car_resolution = config.get("car_resolution_arcmin", None)
+    if car_resolution is not None:
+        car_resolution = car_resolution * u.arcmin
+    nside, shape, wcs = get_map_shape(
+        ch=channels[0],
+        nside=config.get("nside", None),
+        car_resolution=car_resolution,
+        car=car,
+    )
 
     components = {}
     for component_type in ["pysm_components", "other_components"]:
@@ -155,6 +218,9 @@ def from_config(config_file, override=None):
                     # it can be overridden by the actual component config
                     # This is used for example by `SOStandalonePrecomputedCMB`
                     comp_config["num"] = config["num"]
+                if function_accepts_argument(comp_class, "shape") and shape is not None:
+                    comp_config["shape"] = shape
+                    comp_config["wcs"] = wcs
                 components[component_type][comp_name] = comp_class(
                     nside=nside, **comp_config
                 )
@@ -162,6 +228,8 @@ def from_config(config_file, override=None):
     map_sim = MapSim(
         channels=config["channels"],
         nside=nside,
+        car=car,
+        car_resolution=car_resolution,
         num=config["num"],
         nsplits=config.get("nsplits", 1),
         unit=config["unit"],
@@ -184,6 +252,8 @@ class MapSim:
         self,
         channels,
         nside=None,
+        car=False,
+        car_resolution=None,
         num=0,
         nsplits=1,
         unit="uK_CMB",
@@ -222,6 +292,10 @@ class MapSim:
             output HEALPix Nside, if None, automatically pick the default resolution of the
             first channel,
             see https://github.com/simonsobs/mapsims/tree/master/mapsims/data/so_default_resolution.csv
+        car : bool
+            True for CAR, False for HEALPix
+        car_resolution : astropy.Quantity
+            CAR pixels resolution with angle unit
         unit : str
             Unit of output maps
         output_folder : str
@@ -260,10 +334,13 @@ class MapSim:
             instrument_parameters=instrument_parameters, filter=channels
         )
 
-        if nside is None:
-            self.nside = get_default_so_resolution(self.channels[0])
-        else:
-            self.nside = nside
+        self.car = car
+        self.nside, self.shape, self.wcs = get_map_shape(
+            ch=self.channels[0],
+            nside=nside,
+            car_resolution=car_resolution,
+            car=self.car,
+        )
 
         self.unit = unit
         self.num = num
@@ -328,9 +405,8 @@ class MapSim:
         for ch in self.channels:
             if not isinstance(ch, tuple):
                 ch = [ch]
-            output_map = np.zeros(
-                (len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64
-            )
+            output_map_shape = (len(ch), 3) + self.shape
+            output_map = np.zeros(output_map_shape, dtype=np.float64)
             if self.run_pysm:
                 for each, channel_map in zip(ch, output_map):
                     bandpass_integrated_map = self.pysm_sky.get_emission(
@@ -361,13 +437,12 @@ class MapSim:
                         )
                     )
 
-                    assert smoothed_map.ndim == 2
                     if smoothed_map.shape[0] == 1:
                         channel_map[0] += smoothed_map
                     else:
                         channel_map += smoothed_map
 
-            output_map = output_map.reshape((len(ch), 1, 3, -1))
+            output_map = output_map.reshape((len(ch), 1, 3) + self.shape)
 
             if self.other_components is not None:
                 for comp in self.other_components.values():
@@ -381,7 +456,9 @@ class MapSim:
                         kwargs["seed"] = self.num
                     component_map = comp.simulate(**kwargs)
                     if self.nsplits == 1:
-                        component_map = component_map.reshape((len(ch), 1, 3, -1))
+                        component_map = component_map.reshape(
+                            (len(ch), 1, 3) + self.shape
+                        )
                     component_map[hp.mask_bad(component_map)] = np.nan
                     output_map = output_map + component_map
 
@@ -399,26 +476,34 @@ class MapSim:
                             nsplits=self.nsplits,
                             split=split + 1,
                         )
-                        each_split_channel_map[
-                            np.isnan(each_split_channel_map)
-                        ] = hp.UNSEEN
                         warnings.warn("Writing output map " + filename)
-                        each_split_channel_map = hp.reorder(
-                            each_split_channel_map, r2n=True
-                        )
-                        hp.write_map(
-                            os.path.join(self.output_folder, filename),
-                            each_split_channel_map,
-                            coord=self.pysm_output_reference_frame,
-                            column_units=self.unit,
-                            dtype=np.float32,
-                            overwrite=True,
-                            nest=True,
-                        )
+                        if self.car:
+                            pixell.enmap.write_map(
+                                os.path.join(self.output_folder, filename),
+                                each_split_channel_map,
+                                extra=dict(units=self.unit),
+                            )
+                        else:
+                            each_split_channel_map[
+                                np.isnan(each_split_channel_map)
+                            ] = hp.UNSEEN
+                            each_split_channel_map = hp.reorder(
+                                each_split_channel_map, r2n=True
+                            )
+                            hp.write_map(
+                                os.path.join(self.output_folder, filename),
+                                each_split_channel_map,
+                                coord=self.pysm_output_reference_frame,
+                                column_units=self.unit,
+                                dtype=np.float32,
+                                overwrite=True,
+                                nest=True,
+                            )
                 else:
                     if self.nsplits == 1:
                         channel_map = channel_map[0]
-                    channel_map[np.isnan(channel_map)] = hp.UNSEEN
+                    if not self.car:
+                        channel_map[np.isnan(channel_map)] = hp.UNSEEN
                     output[each.tag] = channel_map
         if not write_outputs:
             return output

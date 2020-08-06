@@ -123,7 +123,7 @@ simulator as dictionaries, we can also specify any default model from PySM as a 
 e.g. "d7,a1,s2"::
 
     >>> simulator = mapsims.MapSim(
-    ...     channels="ST0",
+    ...     channels="tube:ST0",
     ...     nside=NSIDE,
     ...     unit="uK_CMB",
     ...     pysm_output_reference_frame="G",
@@ -134,8 +134,8 @@ e.g. "d7,a1,s2"::
 
 and compute the output map using the ``execute`` method::
 
-    >>> output_map = simulator.execute()
+    output_map = simulator.execute()
 
 write instead directly output FITS maps to disk with::
 
-    >>> simulator.execute(write_outputs=True)
+    simulator.execute(write_outputs=True)
