@@ -1,5 +1,6 @@
 from mpi4py import MPI
 from astropy.tests.helper import assert_quantity_allclose
+import pytest
 
 try:  # PySM >= 3.2.1
     import pysm3 as pysm
@@ -14,6 +15,7 @@ import so_pysm_models
 NSIDE = 16
 
 
+@pytest.mark.skip(reason="cannot run without mpi")
 def test_from_classes_custominstrument():
 
     cmb = mapsims.SOPrecomputedCMB(
