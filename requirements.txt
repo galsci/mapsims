@@ -6,5 +6,5 @@ h5py
 pixell>=0.9.5
 git+git://github.com/simonsobs/so_noise_models.git@1ef1236134fe9d275761454e406834bebc6d7646
 https://github.com/simonsobs/so_pysm_models/archive/master.zip
-pixell>=0.9.5
 pyyaml
+mpi4py
