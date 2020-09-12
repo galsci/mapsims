@@ -1,3 +1,4 @@
+wheel
 pysm3
 astropy>=3.2.1
 numpy
