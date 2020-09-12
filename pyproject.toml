@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "mapsims"
+version = "2.4.dev"
+description = "Map based simulations package for Cosmic Microwave Background experiments"
+authors = ["Andrea Zonca <code@andreazonca.com>"]
+readme = "README.md"
+repository = "https://github.com/simonsobs/mapsims"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry.scripts]
+mapsims_run = 'mapsims.runner:command_line_script'
