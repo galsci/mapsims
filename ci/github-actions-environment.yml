@@ -1,0 +1,9 @@
+name: githubactions
+channels:
+    - conda-forge
+dependencies:
+    - healpy
+    - numba==0.49.1
+    - mpi4py
+    - pip
+    - libsharp=*=*openmpi*

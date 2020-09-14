@@ -1,9 +1,0 @@
-pysm3
-astropy>=3.2.1
-numpy
-toml
-h5py
-so_pysm_models
-pixell>=0.9.5
-git+git://github.com/simonsobs/so_noise_models.git@1ef1236134fe9d275761454e406834bebc6d7646
-pyyaml
