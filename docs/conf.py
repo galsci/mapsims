@@ -38,13 +38,9 @@ except ImportError:
     )
     sys.exit(1)
 
-# Get configuration information from setup.cfg
-from configparser import ConfigParser
+import toml
 
-conf = ConfigParser()
-
-conf.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
-setup_cfg = dict(conf.items("metadata"))
+setup_cfg = toml.load(os.path.join(os.path.dirname(__file__), "..", "pyproject.toml"))
 
 # -- General configuration ----------------------------------------------------
 
@@ -70,16 +66,16 @@ rst_epilog += """
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = setup_cfg["name"]
-author = setup_cfg["author"]
-copyright = "{0}, {1}".format(datetime.datetime.now().year, setup_cfg["author"])
+project = setup_cfg["tool"]["poetry"]["name"]
+author = ", ".join(setup_cfg["tool"]["poetry"]["authors"])
+copyright = "{0}, {1}".format(datetime.datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-import_module(setup_cfg["name"])
-package = sys.modules[setup_cfg["name"]]
+import_module(project)
+package = sys.modules[project]
 
 # The short X.Y version.
 version = package.__version__.split("-", 1)[0]
@@ -156,21 +152,16 @@ man_pages = [("index", project.lower(), project + u" Documentation", [author], 1
 
 # -- Options for the edit_on_github extension ---------------------------------
 
-if eval(setup_cfg.get("edit_on_github")):
-    extensions += ["sphinx_astropy.ext.edit_on_github"]
+extensions += ["sphinx_astropy.ext.edit_on_github"]
 
-    versionmod = __import__(setup_cfg["name"] + ".version")
-    edit_on_github_project = setup_cfg["github_project"]
-    if versionmod.version.release:
-        edit_on_github_branch = "v" + versionmod.version.version
-    else:
-        edit_on_github_branch = "master"
+edit_on_github_project = setup_cfg["tool"]["poetry"]["repository"].replace("https://github.com/","")
+edit_on_github_branch = "master"
 
-    edit_on_github_source_root = ""
-    edit_on_github_doc_root = "docs"
+edit_on_github_source_root = ""
+edit_on_github_doc_root = "docs"
 
 # -- Resolving issue number to links in changelog -----------------------------
-github_issues_url = "https://github.com/{0}/issues/".format(setup_cfg["github_project"])
+github_issues_url = "https://github.com/{0}/issues/".format(edit_on_github_project)
 
 # -- Turn on nitpicky mode for sphinx (to warn about references not found) ----
 #
