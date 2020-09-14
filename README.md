@@ -1,7 +1,7 @@
 Map based simulations package
 -----------------------------
 
-[![Build Status](https://travis-ci.org/simonsobs/mapsims.svg?branch=master)](https://travis-ci.org/simonsobs/mapsims)
+![Build status](https://github.com/simonsobs/mapsims/workflows/Python%20package/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/mapsims/badge/?version=latest)](https://mapsims.readthedocs.io/en/latest/?badge=latest)
 
 Map based simulations package for Simons Observatory,
