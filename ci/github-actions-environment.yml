@@ -1,0 +1,8 @@
+name: githubactions
+channels:
+    - conda-forge
+dependencies:
+    - healpy
+    - numba
+    - mpi4py
+    - pip
