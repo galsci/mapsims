@@ -3,7 +3,7 @@ channels:
     - conda-forge
 dependencies:
     - healpy
-    - numba==0.49.1
+    - numba
     - mpi4py
     - pip
     - libsharp=*=*openmpi*
