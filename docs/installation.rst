@@ -30,15 +30,24 @@ Install the development version with ``pip`` from Github::
 Development installation
 ========================
 
-Development install::
+Unfortunately, a "editable" installation is not supported anymore.
+I recommend to run tests from the repository base folder.
+
+Clone the repository::
 
     git clone https://github.com/simonsobs/mapsims
     cd mapsims
-    pip install -e .
 
-Run unit tests::
+Make sure you have the requirements installed, easiest is
+to install the last version of the package from PyPI
+and then uninstall it::
 
-    python setup.py test -V
+    pip install mapsims
+    pip uninstall mapsims
+
+Make edits and run unit tests::
+
+    pytest -v
 
 Run Jupyter notebook tests (requires ``nbval``)::
 
@@ -46,4 +55,7 @@ Run Jupyter notebook tests (requires ``nbval``)::
 
 Build documentation::
 
-    python setup.py build_docs
+    cd docs
+    make html
+
+In case you need to modify dependencies, you will need to `install poetry <https://python-poetry.org/docs/#installation>`_
