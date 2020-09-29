@@ -16,7 +16,10 @@ def test_from_config_v02():
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0][0].tag]
 
     expected_map = hp.read_map(
-        data.get_pkg_data_filename("data/simonsobs_ST0_UHF1_nside16.fits.gz"), (0, 1, 2)
+        data.get_pkg_data_filename(
+            "data/simonsobs_ST0_UHF1_nside16.fits.gz", package="mapsims.tests"
+        ),
+        (0, 1, 2),
     )
     assert_quantity_allclose(output_map, expected_map, rtol=1e-6)
 
