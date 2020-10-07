@@ -35,6 +35,9 @@ def test_from_classes():
         SA_one_over_f_mode="pessimistic",
     )
 
+    # Test CMB alms from Planck generated with
+    # https://zonca.dev/2020/09/planck-spectra-healpy.html
+
     cmb = mapsims.SOPrecomputedCMB(
         num=0,
         nside=NSIDE,
