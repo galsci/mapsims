@@ -26,7 +26,7 @@ from so_pysm_models import get_so_models
 from .utils import DEFAULT_INSTRUMENT_PARAMETERS, merge_dict
 
 try:
-    if os.environ.get("DISABLE_MPI"):
+    if "DISABLE_MPI" in os.environ:
         raise ImportError
     from mpi4py import MPI
 
