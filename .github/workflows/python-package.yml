@@ -33,9 +33,13 @@ jobs:
         pip install ".[test]"
     - name: Test with pytest
       shell: bash -l {0} # needed by conda
+      env:
+          DISABLE_MPI: TRUE
       run: |
         pytest -v
     - name: Test notebooks
       shell: bash -l {0} # needed by conda
+      env:
+          DISABLE_MPI: TRUE
       run: |
         bash run_notebook_tests.sh
