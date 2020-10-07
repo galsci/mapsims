@@ -15,11 +15,15 @@ from astropy.tests.helper import assert_quantity_allclose
 
 
 def test_load_sim():
-    save_name = get_pkg_data_filename("data/test_map.fits")
-    cmb_dir = os.path.dirname(save_name)
+    """
+    mapsims/tests/data/fullskyUnlensedUnabberatedCMB_alm_set00_00000.fits
+    is actually Planck_bestfit_alm_seed_583_lmax_95_K_CMB.fits from
+    so_pysm_models
+    """
+    alm_filename = get_pkg_data_filename("data/fullskyUnlensedUnabberatedCMB_alm_set00_00000.fits")
+    cmb_dir = os.path.dirname(alm_filename)
     nside = 32
-    # Make an IQU sim
-    imap = cmb.SOPrecomputedCMB(
+    cmb_map = cmb.SOPrecomputedCMB(
         num=0,
         nside=nside,
         cmb_dir=cmb_dir,
@@ -28,37 +32,25 @@ def test_load_sim():
         input_reference_frequency=148 * u.GHz,
         input_units="uK_RJ",
     ).get_emission(148 * u.GHz)
-    imap_test = hp.read_map(save_name, field=(0, 1, 2)) << u.uK_RJ
-    assert_quantity_allclose(imap, imap_test)
-    assert imap.shape[0] == 3
-    # Make an I only sim
-    imap = cmb.SOPrecomputedCMB(
-        num=0,
-        nside=nside,
-        has_polarization=False,
-        cmb_dir=cmb_dir,
-        lensed=False,
-        aberrated=False,
-        input_units="uK_RJ",
-        input_reference_frequency=148 * u.GHz,
-    ).get_emission(148 * u.GHz)
-
+    input_alm = hp.read_alm(alm_filename, (1,2,3))
+    expected_cmb_map = hp.alm2map(input_alm, nside=nside) << u.uK_RJ
+    assert cmb_map.shape[0] == 3
+    assert_quantity_allclose(expected_cmb_map, cmb_map)
 
 def test_standalone_cmb():
-
-    save_name = get_pkg_data_filename("data/test_map.fits")
-    cmb_dir = os.path.dirname(save_name)
+    alm_filename = get_pkg_data_filename("data/fullskyUnlensedUnabberatedCMB_alm_set00_00000.fits")
+    cmb_dir = os.path.dirname(alm_filename)
     nside = 32
-    freq = 145 * u.GHz
-    # Make an IQU sim
-    imap = cmb.SOStandalonePrecomputedCMB(
+    cmb_map = cmb.SOStandalonePrecomputedCMB(
         num=0,
         nside=nside,
         cmb_dir=cmb_dir,
         lensed=False,
         aberrated=False,
+        input_reference_frequency=148 * u.GHz,
         input_units="uK_RJ",
-        input_reference_frequency=freq,
-    ).get_emission(freq, fwhm=1e-5 * u.arcmin)
-    imap_test = hp.read_map(save_name, field=(0, 1, 2)) << u.uK_RJ
-    assert_quantity_allclose(imap, imap_test)
+    ).get_emission(148 * u.GHz, fwhm=1e-5 * u.arcmin)
+    input_alm = hp.read_alm(alm_filename, (1,2,3))
+    expected_cmb_map = hp.alm2map(input_alm, nside=nside) << u.uK_RJ
+    assert cmb_map.shape[0] == 3
+    assert_quantity_allclose(expected_cmb_map, cmb_map)
