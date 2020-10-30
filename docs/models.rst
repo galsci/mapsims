@@ -29,6 +29,7 @@ The noise simulator accepts a number of parameters to configure the simulation, 
 in the `so_noise_models repository <https://github.com/simonsobs/so_noise_models>`_.
 
 It also includes simulated relative hitmaps simulated in time domain with TOAST.
+We currently have 1 hitmap per tube and they are the first split of the `MSS-0001` Mission Scale simulation (~18 days of data), see `the wiki (restricted to members of Simons Observatory) for more documentation <http://simonsobservatory.wikidot.com/mss-0001>`_.
 
 As an example::
 
