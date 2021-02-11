@@ -18,7 +18,7 @@ def create_test_instrument_parameters(tmp_path):
         ch["band"] = tag
         ch["fwhm"] = 12 * u.arcmin
         ch["center_frequency"] = 70 * u.GHz
-        ch["tube"] = "tube_" + tag[-1]
+        ch["telescope"] = "telescope_" + tag[-1]
         instrument_model.append(ch)
         QTable(bandpass).write(tmp_path / f"bandpass_{tag}.tbl", format="ascii.ipac")
     QTable(instrument_model).write(tmp_filename, format="ascii.ipac")
@@ -55,7 +55,7 @@ def test_parse_instrument_parameters_subset(create_test_instrument_parameters):
 def test_parse_instrument_parameters_filtertube(create_test_instrument_parameters):
 
     tmp_filename = create_test_instrument_parameters
-    channels = parse_channels(instrument_parameters=tmp_filename, filter="tube:tube_2")
+    channels = parse_channels(instrument_parameters=tmp_filename, filter="telescope:telescope_2")
     assert len(channels) == 1
     assert channels[0].tag == "ch_2"
     for each in channels:

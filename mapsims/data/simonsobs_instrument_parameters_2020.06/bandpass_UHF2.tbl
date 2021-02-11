@@ -1,0 +1,14 @@
+|bandpass_frequency|bandpass_weight|
+|            double|         double|
+|               GHz|               |
+|              null|           null|
+              258.4             1.0 
+              264.4             1.0 
+              270.4             1.0 
+              276.4             1.0 
+              282.4             1.0 
+              288.4             1.0 
+              294.4             1.0 
+              300.4             1.0 
+              306.4             1.0 
+              312.4             1.0 

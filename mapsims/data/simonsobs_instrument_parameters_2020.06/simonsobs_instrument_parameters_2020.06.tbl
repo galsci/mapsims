@@ -1,0 +1,30 @@
+\ sotodlib_version:0+untagged.224.g0c64e07
+\ Text file in IPAC table format, read with astropy
+\ from astropy.table import QTable
+\ QTable.read('filename.tbl', format='ascii.ipac')
+|telescope|     tag|band|tube|tube_id|band_id|noise_band_index|  fwhm|center_frequency|
+|     char|    char|char|char|   long|   long|            long|double|          double|
+|         |        |    |    |       |       |                |arcmin|             GHz|
+|     null|    null|null|null|   null|   null|            null|  null|            null|
+        LA LT0_UHF1 UHF1  LT0       0       0                4    1.0            225.7 
+        LA LT0_UHF2 UHF2  LT0       0       1                5    0.9            285.4 
+        LA LT1_UHF1 UHF1  LT1       1       0                4    1.0            225.7 
+        LA LT1_UHF2 UHF2  LT1       1       1                5    0.9            285.4 
+        LA LT2_MFF1 MFF1  LT2       2       0                2    2.2             92.0 
+        LA LT2_MFF2 MFF2  LT2       2       1                3    1.4            147.5 
+        LA LT3_MFF1 MFF1  LT3       3       0                2    2.2             92.0 
+        LA LT3_MFF2 MFF2  LT3       3       1                3    1.4            147.5 
+        LA LT4_MFS1 MFS1  LT4       4       0                2    2.2             88.6 
+        LA LT4_MFS2 MFS2  LT4       4       1                3    1.4            146.5 
+        LA LT5_MFS1 MFS1  LT5       5       0                2    2.2             88.6 
+        LA LT5_MFS2 MFS2  LT5       5       1                3    1.4            146.5 
+        LA  LT6_LF1  LF1  LT6       6       0                0    7.4             25.7 
+        LA  LT6_LF2  LF2  LT6       6       1                1    5.1             38.9 
+        SA ST0_UHF1 UHF1  ST0       7       0                4   19.0            225.7 
+        SA ST0_UHF2 UHF2  ST0       7       1                5   17.0            285.4 
+        SA ST1_MFF1 MFF1  ST1       8       0                2   42.0             92.0 
+        SA ST1_MFF2 MFF2  ST1       8       1                3   27.0            147.5 
+        SA ST2_MFS1 MFS1  ST2       9       0                2   42.0             88.6 
+        SA ST2_MFS2 MFS2  ST2       9       1                3   27.0            146.5 
+        SA  ST3_LF1  LF1  ST3      10       0                0  144.0             25.7 
+        SA  ST3_LF2  LF2  ST3      10       1                1   99.0             38.9 

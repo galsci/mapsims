@@ -85,9 +85,9 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
     """
     if not isinstance(
         instrument_parameters, Path
-    ) and not instrument_parameters.endswith("h5"):
+    ) and not instrument_parameters.endswith("tbl"):
         instrument_parameters = data.get_pkg_data_filename(
-            "data/{}.h5".format(instrument_parameters)
+            "data/{i}/{i}.tbl".format(i=instrument_parameters)
         )
     instrument_parameters = Path(instrument_parameters)
     if h5py is None:
@@ -106,9 +106,11 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
     table = QTable.read(instrument_parameters, format="ascii.ipac")
 
     for row in table:
-        if filter == "all" or (
-            row["band"] in filter_values or row[filter_key] in filter_values
-        ):
+        try:
+            tag = row["tag"]
+        except KeyError:
+            tag = row["band"]
+        if filter == "all" or (tag in filter_values) or (row[filter_key] in filter_values) :
             try:
                 telescope = row["telescope"]
             except KeyError:
@@ -128,19 +130,26 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
                     "bandpass_frequency": row["center_frequency"],
                     "bandpass_weight": np.ones(1),
                 }
+            other_metadata = {name:row[name] for name in row.colnames if name not in ["band", "tag", "fwhm", "telescope", "tube"]}
             channel_objects_list.append(
                 Channel(
-                    tag=row["band"],
+                    tag=tag,
                     band=row["band"],
                     bandpass=(
                         bandpass["bandpass_frequency"],
                         bandpass["bandpass_weight"],
                     ),
                     beam=row["fwhm"],
-                    center_frequency=row["center_frequency"],
                     telescope=telescope,
                     tube=tube,
+                    **other_metadata
                 )
             )
+    # just for tubes, return tuples of channel pairs
+    if filter_key == "tube":
+        out = []
+        for tube in filter_values:
+            out.append(tuple([ch for ch in channel_objects_list if ch.tube == tube]))
+        channel_objects_list = out
 
     return channel_objects_list
