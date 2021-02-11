@@ -7,3 +7,4 @@ dependencies:
     - mpi4py
     - pip
     - libsharp=*=*openmpi*
+    - importlib_metadata
