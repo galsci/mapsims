@@ -33,6 +33,8 @@ Development installation
 Unfortunately, a "editable" installation is not supported anymore.
 I recommend to run tests from the repository base folder.
 
+Or if you are testing in a notebook, add the package root to `sys.path`.
+
 Clone the repository::
 
     git clone https://github.com/simonsobs/mapsims
@@ -58,4 +60,21 @@ Build documentation::
     cd docs
     make html
 
+Manage dependencies
+===================
+
 In case you need to modify dependencies, you will need to `install poetry <https://python-poetry.org/docs/#installation>`_
+
+In case you are using an anaconda environment, `poetry` will try to use that to install the requirements of `mapsims`,
+instead if you want to keep it isolated, better create a dedicated virtualenv::
+
+    python -m venv venv
+    poetry use venv/bin/python
+
+Setup the dedicated virtual environment for the project and include the requirements for testing::
+
+    poetry install --extras test
+
+Then run the tests within that environment::
+
+    poetry run pytest
