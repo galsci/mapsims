@@ -3,6 +3,7 @@ try:
 except ImportError:
     h5py = None
 from astropy.utils import data
+from astropy.table import QTable
 import numpy as np
 import astropy.units as u
 from pathlib import Path
@@ -20,7 +21,7 @@ class Channel:
         beam: u.arcmin,
         center_frequency: u.GHz,
         bandpass=None,
-        **kwargs
+        **kwargs,
     ):
         """Base class of a channel
 
@@ -93,7 +94,7 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
         raise ImportError("h5py is needed to parse instrument parameter files")
 
     # Need a valid filter_key to avoid errors below
-    filter_key = "fwhm_arcmin"
+    filter_key = "fwhm"
     if filter != "all":
         if ":" not in filter:
             filter_values = filter
@@ -102,43 +103,44 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
         filter_values = filter_values.split(",")
 
     channel_objects_list = []
-    with h5py.File(instrument_parameters, "r") as f:
+    table = QTable.read(instrument_parameters, format="ascii.ipac")
 
-        for ch in f.keys():
-            if filter == "all" or (
-                ch in filter_values or f[ch].attrs[filter_key] in filter_values
-            ):
-                properties = dict(f[ch].attrs)
-                if "telescope" not in properties:
-                    properties["telescope"] = instrument_parameters.name.split(".")[
-                        0
-                    ].split("_")[0]
-                properties["beam"] = properties.pop("fwhm_arcmin") * u.arcmin
-                properties["center_frequency"] = (
-                    properties.pop("center_frequency_GHz") * u.GHz
+    for row in table:
+        if filter == "all" or (
+            row["band"] in filter_values or row[filter_key] in filter_values
+        ):
+            try:
+                telescope = row["telescope"]
+            except KeyError:
+                telescope = instrument_parameters.name.split(".")[0].split("_")[0]
+            try:
+                tube = row["tube"]
+            except KeyError:
+                tube = telescope
+
+            bandpass_filename = (
+                instrument_parameters.parent / f"bandpass_{row['band']}.tbl"
+            )
+            if bandpass_filename.is_file():
+                bandpass = QTable.read(bandpass_filename, format="ascii.ipac")
+            else:
+                bandpass = {
+                    "bandpass_frequency": row["center_frequency"],
+                    "bandpass_weight": np.ones(1),
+                }
+            channel_objects_list.append(
+                Channel(
+                    tag=row["band"],
+                    band=row["band"],
+                    bandpass=(
+                        bandpass["bandpass_frequency"],
+                        bandpass["bandpass_weight"],
+                    ),
+                    beam=row["fwhm"],
+                    center_frequency=row["center_frequency"],
+                    telescope=telescope,
+                    tube=tube,
                 )
-                if "tube" not in properties:
-                    properties["tube"] = properties["telescope"]
-                channel_objects_list.append(
-                    Channel(
-                        tag=ch,
-                        bandpass=(
-                            np.array(
-                                f[ch].get(
-                                    "bandpass_frequency_GHz",
-                                    default=properties["center_frequency"].value,
-                                )
-                            )
-                            * u.GHz,
-                            np.array(f[ch].get("bandpass_weight")),
-                        ),
-                        **properties
-                    )
-                )
-    if filter_key == "tube":
-        out = []
-        for tube in filter_values:
-            out.append(tuple([ch for ch in channel_objects_list if ch.tube == tube]))
-        channel_objects_list = out
+            )
 
     return channel_objects_list
