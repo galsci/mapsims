@@ -319,13 +319,16 @@ class MapSim:
         other_components : dict
             Dictionary of component name, component class pairs, the output of these are **not** rotated,
             they should already be in the same reference frame specified in pysm_output_reference_frame.
-        instrument_parameters : HDF5 file path or str
-            A string (without .h5 extension) specifies an instrument parameters file
+        instrument_parameters : ascii file in IPAC table format path or str
+            A string specifies an instrument parameters file
             included in the package `data/` folder
-            A path or a string containing a path to an externally provided HDF5 file with
+            A path or a string containing a path to an externally provided IPAC table file with
             the expected format. By default the latest Simons Observatory parameters
-            Instrument parameters in HDF5 format, each channel tag is a group, each group has attributes
-            band, center_frequency_GHz, fwhm_arcmin, bandpass_frequency_GHz, bandpass_weight
+            Instrument parameters in IPAC ascii format, one channel per row, with columns (with units):
+                tag, band, center_frequency, fwhm
+            It also assumes that in the same folder there are IPAC table files named bandpass_{tag}.tbl
+            with columns:
+                bandpass_frequency, bandpass_weight
 
 
         """

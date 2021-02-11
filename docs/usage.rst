@@ -40,26 +40,43 @@ You are allowed to override this by also setting the ``num`` parameter separatel
 Simulate other instruments
 ==========================
 
-A custom instrument can be defined by providing instrument parameters via a HDF5 file in a specified format, see :py:class:`MapSim` for details on the format.
-Planck channels at single frequencies are embedded in the package, pass ``instrument_parameters="planck_deltabandpass"`` to select it. See also ``planck_deltabandpass.h5`` in the ``mapsims/data`` folder as an example of the format.
+A custom instrument can be defined by providing instrument parameters via a IPAC text table file in a specified format, see :py:class:`MapSim` for details on the format.
+Planck channels at single frequencies are embedded in the package, pass ``instrument_parameters="planck_deltabandpass"`` to select it. See also ``planck_deltabandpass.tbl`` in the ``mapsims/data/planck_deltabandpass`` folder as an example of the format.
 
 Example of accessing the file::
 
-    In [1]: import h5py
+	In [1]: from astropy.table import QTable
 
-    In [2]: f = h5py.File("planck_deltabandpass.h5")
+	In [2]: f = QTable.read("planck_deltabandpass/planck_deltabandpass.tbl", format="ascii.ipac")
 
-    In [3]: f.keys()
-    Out[3]: <KeysViewHDF5 ['030', '044', '070', '100', '143', '217', '353', '545', '857']>
+	In [3]: f.colnames
+	Out[3]: ['band', 'center_frequency', 'fwhm']
 
-    In [4]: f["143"].attrs
-    Out[4]: <Attributes of HDF5 object at 46913457708992>
+	In [4]: f
+	Out[4]: 
+	<QTable length=9>
+	band center_frequency     fwhm    
+			   GHz           arcmin   
+	str3     float64        float64   
+	---- ---------------- ------------
+	  30             28.4 33.102652125
+	  44             44.1  27.94348615
+	  70             70.4  13.07645961
+	 100           100.89        9.682
+	 143          142.876        7.303
+	 217          221.156        5.021
+	 353            357.5        4.944
+	 545            555.2        4.831
+	 857            866.8        4.638
 
-    In [5]: list(f["143"].attrs)
-    Out[5]: ['band', 'center_frequency_GHz', 'fwhm_arcmin']
+	In [10]: f[0]["fwhm"] # access by row index
+	Out[10]: <Quantity 33.10265212 arcmin>
 
-    In [6]: f["143"].attrs["center_frequency_GHz"]
-    Out[6]: 142.876
+	In [11]: f.add_index("band")
+
+	In [12]: f.loc["70"]["center_frequency"] # access by tag (str not integer)
+	Out[12]: <Quantity 70.4 GHz>
+
 
 mapsims_run
 ===========

@@ -1,7 +1,3 @@
-try:
-    import h5py
-except ImportError:
-    h5py = None
 from astropy.utils import data
 from astropy.table import QTable
 import numpy as np
@@ -90,9 +86,6 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
             "data/{i}/{i}.tbl".format(i=instrument_parameters)
         )
     instrument_parameters = Path(instrument_parameters)
-    if h5py is None:
-        raise ImportError("h5py is needed to parse instrument parameter files")
-
     # Need a valid filter_key to avoid errors below
     filter_key = "fwhm"
     if filter != "all":
