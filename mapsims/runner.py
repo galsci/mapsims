@@ -25,8 +25,11 @@ except:
 from so_pysm_models import get_so_models
 from .utils import DEFAULT_INSTRUMENT_PARAMETERS, merge_dict
 
+import socket
+on_cori_login = socket.gethostname().startswith("cori")
+
 try:
-    if "DISABLE_MPI" in os.environ:
+    if "DISABLE_MPI" in os.environ or on_cori_login:
         raise ImportError
     from mpi4py import MPI
 
