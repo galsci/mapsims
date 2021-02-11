@@ -27,6 +27,7 @@ nbval = {version = "^0.9.6", optional = true}
 jupyter_client = {version = "^6.1.7", optional = true}
 ipykernel = {version = "^5.3.4", optional = true}
 nbformat = {version = "^5.0.7", optional = true}
+importlib-metadata = {version = "^3.4.0", python = "<3.8"}
 
 [tool.poetry.extras]
 test = ["pytest", "pytest-astropy", "mpi4py", "jupyter_client", "nbformat", "ipykernel", "nbval"]
