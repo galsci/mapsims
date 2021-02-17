@@ -17,8 +17,8 @@ pixell = "^0.10.3"
 healpy = "^1.14.0"
 numpy = "^1.18.0"
 astropy = "^4"
-so_noise_models = {url = "https://github.com/zonca/so_noise_models/archive/3.1.1.tar.gz"}
-so-pysm-models = {url = "https://github.com/simonsobs/so_pysm_models/archive/master.zip"}
+so_noise_models = "3.1.1"
+so-pysm-models = "^2.4.0"
 pysm3 = "^3.3.0"
 pytest = {version = "^5.4.3", optional = true}
 pytest-astropy = {version = "^0.8.0", optional = true}
