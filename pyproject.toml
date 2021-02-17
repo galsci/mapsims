@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mapsims"
-version = "2.4.dev"
+version = "2.4.0"
 description = "Map based simulations package for Cosmic Microwave Background experiments"
 authors = ["Andrea Zonca <code@andreazonca.com>"]
 readme = "README.md"

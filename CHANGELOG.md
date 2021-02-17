@@ -1,5 +1,5 @@
 ## 2.4.0
-> Unreleased
+> Released 16 February 2021
 
 * Use instrument model in IPAC table format instead of HDF5
 * Run tests on Github actions, built the package with `poetry` (#74)
