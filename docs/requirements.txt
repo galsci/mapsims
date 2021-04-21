@@ -4,7 +4,6 @@ numba
 numpy
 sphinx-astropy
 healpy
-quaternionarray
 pysm3
 pyyaml
 h5py
