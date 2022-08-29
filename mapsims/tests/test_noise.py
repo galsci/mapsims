@@ -25,6 +25,7 @@ def test_noise_simulator(tube):
                 f"data/noise_{tube}_{ch.band}_uKCMB_classical_nside16_seed1234_healpix.fits.gz"
             ),
             (0, 1, 2),
+            dtype=np.float64,
             verbose=False,
         )
         assert_quantity_allclose(output_map[i, 0], expected_map)
