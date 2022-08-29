@@ -436,7 +436,7 @@ class BaseNoiseSimulator:
         # else load
         if self.healpix:
             hitmap = hp.ud_grade(
-                hp.read_map(fname, verbose=False), nside_out=self.nside
+                hp.read_map(fname, verbose=False, dtype=np.float64), nside_out=self.nside
             )
         else:
 
@@ -471,12 +471,11 @@ class BaseNoiseSimulator:
         if self.boolean_sky_fraction:
             raise NotImplementedError
         else:
-            for i in range(nhitmaps):
-                hitmaps[i] /= hitmaps[i].max()
 
+            output_hitmaps =[ (hitmaps[i] / hitmaps[i].max()) for i in range(nhitmaps)]
             # We define sky fraction as <Nhits>
-            sky_fractions = [self._average(hitmaps[i]) for i in range(nhitmaps)]
-        return hitmaps, sky_fractions
+            sky_fractions = [self._average(output_hitmaps[i]) for i in range(nhitmaps)]
+        return output_hitmaps, sky_fractions
 
     def _get_hitmaps_names(self,tube=None):
         """ Internal function to get the full name of the hitmaps
