@@ -45,9 +45,7 @@ from .channel_utils import parse_channels
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
-default_output_filename_template = (
-    "simonsobs_{tag}_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
-)
+default_output_filename_template = "mapsims_{tag}_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}_{pixelization}.fits"
 
 
 def get_default_so_resolution(ch, field="NSIDE"):
@@ -273,7 +271,7 @@ class MapSim:
         nsplits=1,
         unit="uK_CMB",
         output_folder="output",
-        tag="mapsim",
+        tag="sky",
         output_filename_template=default_output_filename_template,
         pysm_components_string=None,
         pysm_output_reference_frame="C",
@@ -388,9 +386,12 @@ class MapSim:
         )
         self.other_components = other_components
         self.tag = tag
-        self.output_folder = output_folder.format(
-            nside=self.nside, tag=self.tag, num=self.num
-        )
+        try:
+            self.output_folder = output_folder.format(
+                nside=self.nside, tag=self.tag, num=self.num
+            )
+        except AttributeError:
+            self.output_folder = output_folder
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
         self.output_filename_template = output_filename_template
@@ -401,6 +402,7 @@ class MapSim:
         """Run map simulations
 
         Execute simulations for all channels and write to disk the maps,
+        and return their filenames (relative to output folder)
         unless `write_outputs` is False, then return them.
         """
 
@@ -433,8 +435,7 @@ class MapSim:
                 for comp_name, comp in self.pysm_custom_components.items():
                     self.pysm_sky.components.append(comp)
 
-        if not write_outputs:
-            output = {}
+        output = {}
 
         # ch can be single channel or tuple of 2 channels (tube dichroic)
         for ch in self.channels:
@@ -514,7 +515,8 @@ class MapSim:
 
             for ch_index, each in enumerate(ch):
                 if write_outputs:
-                    for split_index in range(self.nsplits):
+                    output[each.tag] = []
+                    for split in range(self.nsplits):
                         for pix_index, p in enumerate(self.pixelizations):
                             filename = self.output_filename_template.format(
                                 telescope=each.telescope
@@ -528,9 +530,10 @@ class MapSim:
                                 split=split + 1,
                                 pixelization=p,
                             )
+                            output[each.tag].append(filename)
                             warnings.warn("Writing output map " + filename)
                             each_split_channel_map = output_map[pix_index][ch_index][
-                                split_index
+                                split
                             ]
                             if p == "car":
                                 pixell.enmap.write_map(
@@ -566,5 +569,4 @@ class MapSim:
                     if len(output[each.tag]) == 1:
                         output[each.tag] = output[each.tag][0]
 
-        if not write_outputs:
-            return output
+        return output
