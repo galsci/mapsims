@@ -97,7 +97,6 @@ def get_map_shape(ch, nside=None, car_resolution=None, car=False, healpix=True):
     car_wcs : astropy.WCS or None
         CAR map WCS
     """
-    assert not (healpix and car), "Currently only supporting either HEALPix or CAR"
     if car:
         if car_resolution is None:
             car_resolution = get_default_so_resolution(ch, field="CAR_resol")
@@ -357,16 +356,25 @@ class MapSim:
 
         self.car = car
         self.healpix = healpix
-        self.nside, self.healpix_shape, self.car_shape, self.car_wcs = get_map_shape(
+        self.pixelizations = []
+        if healpix:
+            self.pixelizations.append("healpix")
+        if car:
+            self.pixelizations.append("car")
+
+        self.shape = {}
+        (
+            self.nside,
+            self.shape["healpix"],
+            self.shape["car"],
+            self.car_wcs,
+        ) = get_map_shape(
             ch=self.channels[0],
             nside=nside,
             car_resolution=car_resolution,
             car=self.car,
             healpix=self.healpix,
         )
-
-        self.shape = self.healpix_shape if healpix else self.car_shape
-        self.wcs = self.car_wcs
 
         self.unit = unit
         self.num = num
@@ -431,47 +439,60 @@ class MapSim:
         for ch in self.channels:
             if not isinstance(ch, tuple):
                 ch = [ch]
-            output_map_shape = (len(ch), 3) + self.shape
-            output_map = np.zeros(output_map_shape, dtype=np.float64)
+            output_map = []
+            for p in self.pixelizations:
+                output_map_shape = (len(ch), 3) + self.shape[p]
+                output_map.append(np.zeros(output_map_shape, dtype=np.float64))
+
             if self.run_pysm:
-                for each, channel_map in zip(ch, output_map):
+                for ch_index, each in enumerate(ch):
                     bandpass_integrated_map = self.pysm_sky.get_emission(
                         *each.bandpass
                     ).value
                     beam_width_arcmin = each.beam
                     # smoothing and coordinate rotation with 1 spherical harmonics transform
-                    smoothed_map = hp.ma(
-                        pysm.apply_smoothing_and_coord_transform(
-                            bandpass_integrated_map,
-                            fwhm=beam_width_arcmin,
-                            lmax=3 * self.nside - 1,
-                            rot=None
-                            if input_reference_frame == self.pysm_output_reference_frame
-                            else hp.Rotator(
-                                coord=(
-                                    input_reference_frame,
-                                    self.pysm_output_reference_frame,
-                                )
-                            ),
-                            map_dist=None
-                            if COMM_WORLD is None
-                            else pysm.MapDistribution(
-                                nside=self.nside,
-                                smoothing_lmax=3 * self.nside - 1,
-                                mpi_comm=COMM_WORLD,
-                            ),
-                        )
+                    smoothed_maps = pysm.apply_smoothing_and_coord_transform(
+                        bandpass_integrated_map,
+                        fwhm=beam_width_arcmin,
+                        lmax=3 * self.nside - 1,
+                        return_healpix=self.healpix,
+                        return_car=self.car,
+                        rot=None
+                        if input_reference_frame == self.pysm_output_reference_frame
+                        else hp.Rotator(
+                            coord=(
+                                input_reference_frame,
+                                self.pysm_output_reference_frame,
+                            )
+                        ),
+                        map_dist=None
+                        if COMM_WORLD is None
+                        else pysm.MapDistribution(
+                            nside=self.nside,
+                            smoothing_lmax=3 * self.nside - 1,
+                            mpi_comm=COMM_WORLD,
+                        ),
                     )
+                    if len(self.pixelizations) == 1:
+                        smoothed_maps = [smoothed_maps]
 
-                    if smoothed_map.shape[0] == 1:
-                        channel_map[0] += smoothed_map
-                    else:
-                        channel_map += smoothed_map
+                    # turn UNSEEN into NaN
+                    if self.healpix:
+                        smoothed_maps[0][hp.mask_bad(smoothed_maps[0])] = np.nan
 
-            output_map = output_map.reshape((len(ch), 1, 3) + self.shape)
+                    for pix_index, smoothed_map in enumerate(smoothed_maps):
+                        output_map[pix_index][ch_index] += smoothed_map
+
+            for pix_index, p in enumerate(self.pixelizations):
+                output_map[pix_index] = output_map[pix_index].reshape(
+                    (len(ch), 1, 3) + self.shape[p]
+                )
 
             if self.other_components is not None:
                 for comp in self.other_components.values():
+                    assert (
+                        len(self.pixelizations) == 1
+                    ), "Other components do not support multiple pixelizations"
                     kwargs = dict(tube=ch[0].tube, output_units=self.unit)
                     if function_accepts_argument(comp.simulate, "ch"):
                         kwargs.pop("tube")
@@ -482,54 +503,66 @@ class MapSim:
                         kwargs["seed"] = self.num
                     component_map = comp.simulate(**kwargs)
                     if self.nsplits == 1:
-                        component_map = component_map.reshape(
-                            (len(ch), 1, 3) + self.shape
-                        )
+                        for p in self.pixelizations:
+                            component_map = component_map.reshape(
+                                (len(ch), 1, 3) + self.shape[p]
+                            )
                     component_map[hp.mask_bad(component_map)] = np.nan
-                    output_map = output_map + component_map
+                    output_map[0] += component_map
 
-            for each, channel_map in zip(ch, output_map):
+            for ch_index, each in enumerate(ch):
                 if write_outputs:
-                    for split, each_split_channel_map in enumerate(channel_map):
-                        filename = self.output_filename_template.format(
-                            telescope=each.telescope
-                            if each.tube is None
-                            else each.tube,
-                            band=each.band,
-                            nside=self.nside,
-                            tag=self.tag,
-                            num=self.num,
-                            nsplits=self.nsplits,
-                            split=split + 1,
-                        )
-                        warnings.warn("Writing output map " + filename)
-                        if self.car:
-                            pixell.enmap.write_map(
-                                os.path.join(self.output_folder, filename),
-                                each_split_channel_map,
-                                extra=dict(units=self.unit),
+                    for split_index in range(self.nsplits):
+                        for pix_index, p in enumerate(self.pixelizations):
+                            filename = self.output_filename_template.format(
+                                telescope=each.telescope
+                                if each.tube is None
+                                else each.tube,
+                                band=each.band,
+                                nside=self.nside,
+                                tag=self.tag,
+                                num=self.num,
+                                nsplits=self.nsplits,
+                                split=split + 1,
+                                pixelization=p,
                             )
-                        else:
-                            each_split_channel_map[
-                                np.isnan(each_split_channel_map)
-                            ] = hp.UNSEEN
-                            each_split_channel_map = hp.reorder(
-                                each_split_channel_map, r2n=True
-                            )
-                            hp.write_map(
-                                os.path.join(self.output_folder, filename),
-                                each_split_channel_map,
-                                coord=self.pysm_output_reference_frame,
-                                column_units=self.unit,
-                                dtype=np.float32,
-                                overwrite=True,
-                                nest=True,
-                            )
+                            warnings.warn("Writing output map " + filename)
+                            each_split_channel_map = output_map[pix_index][ch_index][
+                                split_index
+                            ]
+                            if p == "car":
+                                pixell.enmap.write_map(
+                                    os.path.join(self.output_folder, filename),
+                                    each_split_channel_map,
+                                    extra=dict(units=self.unit),
+                                )
+                            elif p == "healpix":
+                                each_split_channel_map[
+                                    np.isnan(each_split_channel_map)
+                                ] = hp.UNSEEN
+                                each_split_channel_map = hp.reorder(
+                                    each_split_channel_map, r2n=True
+                                )
+                                hp.write_map(
+                                    os.path.join(self.output_folder, filename),
+                                    each_split_channel_map,
+                                    coord=self.pysm_output_reference_frame,
+                                    column_units=self.unit,
+                                    dtype=np.float32,
+                                    overwrite=True,
+                                    nest=True,
+                                )
                 else:
-                    if self.nsplits == 1:
-                        channel_map = channel_map[0]
-                    if not self.car:
-                        channel_map[np.isnan(channel_map)] = hp.UNSEEN
-                    output[each.tag] = channel_map
+                    output[each.tag] = []
+                    for pix_index, p in enumerate(self.pixelizations):
+                        channel_map = output_map[pix_index][ch_index]
+                        if p == "healpix":
+                            channel_map[np.isnan(channel_map)] = hp.UNSEEN
+                        if self.nsplits == 1:
+                            channel_map = channel_map[0]
+                        output[each.tag].append(channel_map)
+                    if len(output[each.tag]) == 1:
+                        output[each.tag] = output[each.tag][0]
+
         if not write_outputs:
             return output
