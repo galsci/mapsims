@@ -264,6 +264,7 @@ class MapSim:
         self,
         channels,
         nside=None,
+        modeling_nside=None,
         car=False,
         healpix=True,
         car_resolution=None,
@@ -301,6 +302,10 @@ class MapSim:
             * comma separated list of desider values
             e.g. all SAT channels = "telescope:SA"
             LT1 and LT2 tubes = "tube:LT1,LT2"
+        modeling_nside : int
+            Run PySM at higher Nside to increase the accuracy of the results,
+            it is recommended to set modeling Nside twice of nside
+            If None, modeling is done using `nside`
         nside : int
             output HEALPix Nside, if None, automatically pick the default resolution of the
             first channel,
@@ -374,6 +379,8 @@ class MapSim:
             car=self.car,
             healpix=self.healpix,
         )
+        self.modeling_nside = modeling_nside if modeling_nside is not None else nside
+        assert self.modeling_nside is not None, "Please set modeling_nside"
 
         self.unit = unit
         self.num = num
@@ -425,7 +432,7 @@ class MapSim:
                 input_reference_frame = "C"
 
             self.pysm_sky = pysm.Sky(
-                nside=self.nside,
+                nside=self.modeling_nside,
                 preset_strings=preset_strings,
                 component_objects=sky_config,
                 output_unit=u.Unit(self.unit),
@@ -459,6 +466,7 @@ class MapSim:
                         lmax=3 * self.nside - 1,
                         return_healpix=self.healpix,
                         return_car=self.car,
+                        output_nside=self.nside,
                         output_car_resol=self.car_resolution,
                         rot=None
                         if input_reference_frame == self.pysm_output_reference_frame
