@@ -355,6 +355,7 @@ class MapSim:
         )
 
         self.car = car
+        self.car_resolution = car_resolution
         self.healpix = healpix
         self.pixelizations = []
         if healpix:
@@ -457,6 +458,7 @@ class MapSim:
                         lmax=3 * self.nside - 1,
                         return_healpix=self.healpix,
                         return_car=self.car,
+                        output_car_resol=self.car_resolution,
                         rot=None
                         if input_reference_frame == self.pysm_output_reference_frame
                         else hp.Rotator(
