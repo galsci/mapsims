@@ -547,11 +547,23 @@ class MapSim:
                             each_split_channel_map = output_map[pix_index][ch_index][
                                 split
                             ]
+                            extra_metadata = dict(
+                                telescope=each.telescope
+                                if each.tube is None
+                                else each.tube,
+                                band=each.band,
+                                tag=self.tag,
+                                num=self.num,
+                                ell_max=self.lmax,
+                                nsplits=self.nsplits,
+                                split=split + 1,
+                            )
                             if p == "car":
+                                extra_metadata["units"] = self.unit
                                 pixell.enmap.write_map(
                                     os.path.join(self.output_folder, filename),
                                     each_split_channel_map,
-                                    extra=dict(units=self.unit),
+                                    extra=extra_metadata,
                                 )
                             elif p == "healpix":
                                 each_split_channel_map[
@@ -567,6 +579,9 @@ class MapSim:
                                     column_units=self.unit,
                                     dtype=np.float32,
                                     overwrite=True,
+                                    extra_header=[
+                                        (k, v) for k, v in extra_metadata.items()
+                                    ],
                                     nest=True,
                                 )
                 else:
