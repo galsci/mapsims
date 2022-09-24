@@ -265,6 +265,7 @@ class MapSim:
         channels,
         nside=None,
         modeling_nside=None,
+        lmax_over_modeling_nside=1.25,
         car=False,
         healpix=True,
         car_resolution=None,
@@ -310,6 +311,8 @@ class MapSim:
             output HEALPix Nside, if None, automatically pick the default resolution of the
             first channel,
             see https://github.com/simonsobs/mapsims/tree/master/mapsims/data/so_default_resolution.csv
+        lmax_over_modeling_nside : float
+            used to compute Ell_max used in the smoothing process
         car : bool
             True for CAR output
         healpix : bool
@@ -381,6 +384,7 @@ class MapSim:
         )
         self.modeling_nside = modeling_nside if modeling_nside is not None else nside
         assert self.modeling_nside is not None, "Please set modeling_nside"
+        self.lmax = self.modeling_nside * lmax_over_modeling_nside
 
         self.unit = unit
         self.num = num
@@ -463,7 +467,7 @@ class MapSim:
                     smoothed_maps = pysm.apply_smoothing_and_coord_transform(
                         bandpass_integrated_map,
                         fwhm=beam_width_arcmin,
-                        lmax=3 * self.nside - 1,
+                        lmax=self.lmax,
                         return_healpix=self.healpix,
                         return_car=self.car,
                         output_nside=self.nside,
@@ -480,7 +484,7 @@ class MapSim:
                         if COMM_WORLD is None
                         else pysm.MapDistribution(
                             nside=self.nside,
-                            smoothing_lmax=3 * self.nside - 1,
+                            smoothing_lmax=self.lmax,
                             mpi_comm=COMM_WORLD,
                         ),
                     )
