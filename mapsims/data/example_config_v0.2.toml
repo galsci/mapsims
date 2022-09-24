@@ -11,7 +11,7 @@ num = 0
 [ pysm_components ]
 
     # Remove this if no default PySM components are needed
-    pysm_components_string = "SO_d0"
+    pysm_components_string = "d0"
     pysm_output_reference_frame = "C"
 
     [ pysm_components.cmb ]

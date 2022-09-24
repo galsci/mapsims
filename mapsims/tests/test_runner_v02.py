@@ -1,4 +1,5 @@
 from astropy.tests.helper import assert_quantity_allclose
+import numpy as np
 import healpy as hp
 
 from astropy.utils import data
@@ -20,6 +21,7 @@ def test_from_config_v02():
             "data/simonsobs_ST0_UHF1_nside16.fits.gz", package="mapsims.tests"
         ),
         (0, 1, 2),
+        dtype=np.float64,
     )
     assert_quantity_allclose(output_map, expected_map, rtol=1e-6)
 
@@ -53,7 +55,7 @@ def test_from_classes():
         channels="tube:ST0",
         nside=NSIDE,
         unit="uK_CMB",
-        pysm_components_string="SO_d0",
+        pysm_components_string="d0",
         pysm_custom_components={"cmb": cmb},
         pysm_output_reference_frame="C",
         other_components={"noise": noise},
