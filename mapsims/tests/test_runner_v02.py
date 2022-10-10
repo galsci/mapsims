@@ -6,10 +6,15 @@ from astropy.utils import data
 
 import mapsims
 
-NSIDE = 16
+NSIDE = 256
 
 
 def test_from_config_v02():
+    # Really strange behaviour with this test:
+    # If instead of running under pytest I run in Jupyter Notebook,
+    # the output map is slightly different, on 0.4% of the pixels,
+    # and the assertion check does not pass.
+    # Could not understand the reason of this behaviour
 
     simulator = mapsims.from_config(
         data.get_pkg_data_filename("data/example_config_v0.2.toml", package="mapsims")
@@ -18,7 +23,7 @@ def test_from_config_v02():
 
     expected_map = hp.read_map(
         data.get_pkg_data_filename(
-            "data/simonsobs_ST0_UHF1_nside16.fits.gz", package="mapsims.tests"
+            f"data/simonsobs_ST0_UHF1_nside{NSIDE}.fits.gz", package="mapsims.tests"
         ),
         (0, 1, 2),
         dtype=np.float64,
@@ -64,6 +69,9 @@ def test_from_classes():
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0][0].tag]
 
     expected_map = hp.read_map(
-        data.get_pkg_data_filename("data/simonsobs_ST0_UHF1_nside16.fits.gz"), (0, 1, 2)
+        data.get_pkg_data_filename(
+            f"data/simonsobs_ST0_UHF1_nside{NSIDE}.fits.gz", package="mapsims.tests"
+        ),
+        (0, 1, 2),
     )
     assert_quantity_allclose(output_map, expected_map, rtol=1e-6)
