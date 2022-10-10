@@ -1,5 +1,5 @@
 
-nside = 16
+nside = 256
 channels = "tube:ST0"
 unit = "uK_CMB"
 mapsims_version = "2.0.dev"
