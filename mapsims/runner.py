@@ -189,6 +189,8 @@ def from_config(config_file, override=None):
     pysm_output_reference_frame = None
 
     nside = config.get("nside", None)
+    modeling_nside = config.get("modeling_nside", nside)
+    lmax_over_modeling_nside = config.get("lmax_over_modeling_nside", None)
     car = config.get("car", False)
     healpix = config.get("healpix", True)
     channels = parse_channels(config["channels"], config["instrument_parameters"])
