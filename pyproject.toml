@@ -31,6 +31,7 @@ mapsims_run = 'mapsims.runner:command_line_script'
 
 [project.urls]
 Home = "https://github.com/galsci/mapsims"
+Documentation = "https://mapsims.readthedocs.io"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-astropy", "mpi4py", "jupyter_client", "nbformat", "ipykernel", "nbval"]
