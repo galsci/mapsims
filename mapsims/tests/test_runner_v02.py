@@ -10,12 +10,6 @@ NSIDE = 256
 
 
 def test_from_config_v02():
-    # Really strange behaviour with this test:
-    # If instead of running under pytest I run in Jupyter Notebook,
-    # the output map is slightly different, on 0.4% of the pixels,
-    # and the assertion check does not pass.
-    # Could not understand the reason of this behaviour
-
     simulator = mapsims.from_config(
         data.get_pkg_data_filename("data/example_config_v0.2.toml", package="mapsims")
     )
