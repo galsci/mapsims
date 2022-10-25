@@ -1,15 +1,15 @@
 from astropy.tests.helper import assert_quantity_allclose
+import numpy as np
 import healpy as hp
 
 from astropy.utils import data
 
 import mapsims
 
-NSIDE = 16
+NSIDE = 256
 
 
 def test_from_config_v02():
-
     simulator = mapsims.from_config(
         data.get_pkg_data_filename("data/example_config_v0.2.toml", package="mapsims")
     )
@@ -17,9 +17,10 @@ def test_from_config_v02():
 
     expected_map = hp.read_map(
         data.get_pkg_data_filename(
-            "data/simonsobs_ST0_UHF1_nside16.fits.gz", package="mapsims.tests"
+            f"data/simonsobs_ST0_UHF1_nside{NSIDE}.fits.gz", package="mapsims.tests"
         ),
         (0, 1, 2),
+        dtype=np.float64,
     )
     assert_quantity_allclose(output_map, expected_map, rtol=1e-6)
 
@@ -53,7 +54,7 @@ def test_from_classes():
         channels="tube:ST0",
         nside=NSIDE,
         unit="uK_CMB",
-        pysm_components_string="SO_d0",
+        pysm_components_string="d0",
         pysm_custom_components={"cmb": cmb},
         pysm_output_reference_frame="C",
         other_components={"noise": noise},
@@ -62,6 +63,9 @@ def test_from_classes():
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0][0].tag]
 
     expected_map = hp.read_map(
-        data.get_pkg_data_filename("data/simonsobs_ST0_UHF1_nside16.fits.gz"), (0, 1, 2)
+        data.get_pkg_data_filename(
+            f"data/simonsobs_ST0_UHF1_nside{NSIDE}.fits.gz", package="mapsims.tests"
+        ),
+        (0, 1, 2),
     )
     assert_quantity_allclose(output_map, expected_map, rtol=1e-6)

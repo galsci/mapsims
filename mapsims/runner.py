@@ -26,6 +26,7 @@ from so_pysm_models import get_so_models
 from .utils import DEFAULT_INSTRUMENT_PARAMETERS, merge_dict
 
 import socket
+
 on_cori_login = socket.gethostname().startswith("cori")
 
 try:
@@ -44,9 +45,7 @@ from .channel_utils import parse_channels
 PYSM_COMPONENTS = {
     comp[0]: comp for comp in ["synchrotron", "dust", "freefree", "cmb", "ame"]
 }
-default_output_filename_template = (
-    "simonsobs_{tag}_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}.fits"
-)
+default_output_filename_template = "mapsims_{tag}_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}_{pixelization}.fits"
 
 
 def get_default_so_resolution(ch, field="NSIDE"):
@@ -65,7 +64,7 @@ def get_default_so_resolution(ch, field="NSIDE"):
     return output
 
 
-def get_map_shape(ch, nside=None, car_resolution=None, car=False):
+def get_map_shape(ch, nside=None, car_resolution=None, car=False, healpix=True):
     """Get map shape (and WCS for CAR) for Simons Observatory channels
 
     If N_side or car_resolution is None, get the default value
@@ -80,31 +79,37 @@ def get_map_shape(ch, nside=None, car_resolution=None, car=False):
     car_resolution : astropy.Quantity
         CAR pixels resolution with angle unit
     car : bool
-        Set to True for CAR, False for HEALPix
+        Set to True for CAR
+    healpix : bool
+        Set to True for HEALPix
 
     Returns
     -------
     nside : int
         N_side, either return the input or default
         None for CAR
-    shape : tuple of int
-        (npix,) for HEALPix, (Nx, Ny) for CAR
-    wcs : astropy.WCS
-        CAR map WCS, None for HEALPix
+    healpix_shape : tuple of int or None
+        (npix,) for HEALPix
+    car_shape : tuple of int or None
+        (Nx, Ny) for CAR
+    car_wcs : astropy.WCS or None
+        CAR map WCS
     """
     if car:
         if car_resolution is None:
             car_resolution = get_default_so_resolution(ch, field="CAR_resol")
-        shape, wcs = pixell.enmap.fullsky_geometry(
+        car_shape, car_wcs = pixell.enmap.fullsky_geometry(
             res=car_resolution.to_value(u.radian)
         )
-        nside = None
     else:
+        car_shape, car_wcs = None, None
+    if healpix:
         if nside is None:
-            nside = get_default_so_resolution(ch)
-        shape = (hp.nside2npix(nside),)
-        wcs = None
-    return nside, shape, wcs
+            nside = get_default_so_resolution(channels[0])
+        healpix_shape = (hp.nside2npix(nside),)
+    else:
+        healpix_shape = None
+    return nside, healpix_shape, car_shape, car_wcs
 
 
 def function_accepts_argument(func, arg):
@@ -184,17 +189,23 @@ def from_config(config_file, override=None):
     pysm_output_reference_frame = None
 
     nside = config.get("nside", None)
+    modeling_nside = config.get("modeling_nside", nside)
+    lmax_over_modeling_nside = config.get("lmax_over_modeling_nside", None)
     car = config.get("car", False)
+    healpix = config.get("healpix", True)
     channels = parse_channels(config["channels"], config["instrument_parameters"])
     car_resolution = config.get("car_resolution_arcmin", None)
     if car_resolution is not None:
         car_resolution = car_resolution * u.arcmin
-    nside, shape, wcs = get_map_shape(
+    nside, healpix_shape, car_shape, car_wcs = get_map_shape(
         ch=channels[0],
         nside=config.get("nside", None),
         car_resolution=car_resolution,
         car=car,
+        healpix=healpix,
     )
+    shape = healpix_shape if healpix else car_shape
+    wcs = car_wcs
 
     components = {}
     for component_type in ["pysm_components", "other_components"]:
@@ -222,8 +233,8 @@ def from_config(config_file, override=None):
                     # This is used for example by `SOStandalonePrecomputedCMB`
                     comp_config["num"] = config["num"]
                 if function_accepts_argument(comp_class, "shape") and shape is not None:
-                    comp_config["shape"] = shape
-                    comp_config["wcs"] = wcs
+                    comp_config["shape"] = car_shape
+                    comp_config["wcs"] = car_wcs
                 components[component_type][comp_name] = comp_class(
                     nside=nside, **comp_config
                 )
@@ -255,13 +266,16 @@ class MapSim:
         self,
         channels,
         nside=None,
+        modeling_nside=None,
+        lmax_over_modeling_nside=1.25,
         car=False,
+        healpix=True,
         car_resolution=None,
         num=0,
         nsplits=1,
         unit="uK_CMB",
         output_folder="output",
-        tag="mapsim",
+        tag="sky",
         output_filename_template=default_output_filename_template,
         pysm_components_string=None,
         pysm_output_reference_frame="C",
@@ -291,12 +305,20 @@ class MapSim:
             * comma separated list of desider values
             e.g. all SAT channels = "telescope:SA"
             LT1 and LT2 tubes = "tube:LT1,LT2"
+        modeling_nside : int
+            Run PySM at higher Nside to increase the accuracy of the results,
+            it is recommended to set modeling Nside twice of nside
+            If None, modeling is done using `nside`
         nside : int
             output HEALPix Nside, if None, automatically pick the default resolution of the
             first channel,
             see https://github.com/simonsobs/mapsims/tree/master/mapsims/data/so_default_resolution.csv
+        lmax_over_modeling_nside : float
+            used to compute Ell_max used in the smoothing process
         car : bool
-            True for CAR, False for HEALPix
+            True for CAR output
+        healpix : bool
+            True for HEALPix output
         car_resolution : astropy.Quantity
             CAR pixels resolution with angle unit
         unit : str
@@ -341,12 +363,30 @@ class MapSim:
         )
 
         self.car = car
-        self.nside, self.shape, self.wcs = get_map_shape(
+        self.car_resolution = car_resolution
+        self.healpix = healpix
+        self.pixelizations = []
+        if healpix:
+            self.pixelizations.append("healpix")
+        if car:
+            self.pixelizations.append("car")
+
+        self.shape = {}
+        (
+            self.nside,
+            self.shape["healpix"],
+            self.shape["car"],
+            self.car_wcs,
+        ) = get_map_shape(
             ch=self.channels[0],
             nside=nside,
             car_resolution=car_resolution,
             car=self.car,
+            healpix=self.healpix,
         )
+        self.modeling_nside = modeling_nside if modeling_nside is not None else nside
+        assert self.modeling_nside is not None, "Please set modeling_nside"
+        self.lmax = self.modeling_nside * lmax_over_modeling_nside
 
         self.unit = unit
         self.num = num
@@ -359,9 +399,12 @@ class MapSim:
         )
         self.other_components = other_components
         self.tag = tag
-        self.output_folder = output_folder.format(
-            nside=self.nside, tag=self.tag, num=self.num
-        )
+        try:
+            self.output_folder = output_folder.format(
+                nside=self.nside, tag=self.tag, num=self.num
+            )
+        except AttributeError:
+            self.output_folder = output_folder
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
         self.output_filename_template = output_filename_template
@@ -372,6 +415,7 @@ class MapSim:
         """Run map simulations
 
         Execute simulations for all channels and write to disk the maps,
+        and return their filenames (relative to output folder)
         unless `write_outputs` is False, then return them.
         """
 
@@ -394,7 +438,7 @@ class MapSim:
                 input_reference_frame = "C"
 
             self.pysm_sky = pysm.Sky(
-                nside=self.nside,
+                nside=self.modeling_nside,
                 preset_strings=preset_strings,
                 component_objects=sky_config,
                 output_unit=u.Unit(self.unit),
@@ -404,54 +448,68 @@ class MapSim:
                 for comp_name, comp in self.pysm_custom_components.items():
                     self.pysm_sky.components.append(comp)
 
-        if not write_outputs:
-            output = {}
+        output = {}
 
         # ch can be single channel or tuple of 2 channels (tube dichroic)
         for ch in self.channels:
             if not isinstance(ch, tuple):
                 ch = [ch]
-            output_map_shape = (len(ch), 3) + self.shape
-            output_map = np.zeros(output_map_shape, dtype=np.float64)
+            output_map = []
+            for p in self.pixelizations:
+                output_map_shape = (len(ch), 3) + self.shape[p]
+                output_map.append(np.zeros(output_map_shape, dtype=np.float64))
+
             if self.run_pysm:
-                for each, channel_map in zip(ch, output_map):
+                for ch_index, each in enumerate(ch):
                     bandpass_integrated_map = self.pysm_sky.get_emission(
                         *each.bandpass
                     ).value
                     beam_width_arcmin = each.beam
                     # smoothing and coordinate rotation with 1 spherical harmonics transform
-                    smoothed_map = hp.ma(
-                        pysm.apply_smoothing_and_coord_transform(
-                            bandpass_integrated_map,
-                            fwhm=beam_width_arcmin,
-                            lmax=3 * self.nside - 1,
-                            rot=None
-                            if input_reference_frame == self.pysm_output_reference_frame
-                            else hp.Rotator(
-                                coord=(
-                                    input_reference_frame,
-                                    self.pysm_output_reference_frame,
-                                )
-                            ),
-                            map_dist=None
-                            if COMM_WORLD is None
-                            else pysm.MapDistribution(
-                                nside=self.nside,
-                                smoothing_lmax=3 * self.nside - 1,
-                                mpi_comm=COMM_WORLD,
-                            ),
-                        )
+                    smoothed_maps = pysm.apply_smoothing_and_coord_transform(
+                        bandpass_integrated_map,
+                        fwhm=beam_width_arcmin,
+                        lmax=self.lmax,
+                        return_healpix=self.healpix,
+                        return_car=self.car,
+                        output_nside=self.nside,
+                        output_car_resol=self.car_resolution,
+                        rot=None
+                        if input_reference_frame == self.pysm_output_reference_frame
+                        else hp.Rotator(
+                            coord=(
+                                input_reference_frame,
+                                self.pysm_output_reference_frame,
+                            )
+                        ),
+                        map_dist=None
+                        if COMM_WORLD is None
+                        else pysm.MapDistribution(
+                            nside=self.nside,
+                            smoothing_lmax=self.lmax,
+                            mpi_comm=COMM_WORLD,
+                        ),
                     )
+                    if len(self.pixelizations) == 1:
+                        smoothed_maps = [smoothed_maps]
 
-                    if smoothed_map.shape[0] == 1:
-                        channel_map[0] += smoothed_map
-                    else:
-                        channel_map += smoothed_map
+                    # turn UNSEEN into NaN
+                    if self.healpix:
+                        smoothed_maps[0][hp.mask_bad(smoothed_maps[0])] = np.nan
 
-            output_map = output_map.reshape((len(ch), 1, 3) + self.shape)
+                    for pix_index, smoothed_map in enumerate(smoothed_maps):
+                        output_map[pix_index][ch_index] += smoothed_map
+
+            for pix_index, p in enumerate(self.pixelizations):
+                output_map[pix_index] = output_map[pix_index].reshape(
+                    (len(ch), 1, 3) + self.shape[p]
+                )
 
             if self.other_components is not None:
                 for comp in self.other_components.values():
+                    assert (
+                        len(self.pixelizations) == 1
+                    ), "Other components do not support multiple pixelizations"
                     kwargs = dict(tube=ch[0].tube, output_units=self.unit)
                     if function_accepts_argument(comp.simulate, "ch"):
                         kwargs.pop("tube")
@@ -462,54 +520,82 @@ class MapSim:
                         kwargs["seed"] = self.num
                     component_map = comp.simulate(**kwargs)
                     if self.nsplits == 1:
-                        component_map = component_map.reshape(
-                            (len(ch), 1, 3) + self.shape
-                        )
+                        for p in self.pixelizations:
+                            component_map = component_map.reshape(
+                                (len(ch), 1, 3) + self.shape[p]
+                            )
                     component_map[hp.mask_bad(component_map)] = np.nan
-                    output_map = output_map + component_map
+                    output_map[0] += component_map
 
-            for each, channel_map in zip(ch, output_map):
+            for ch_index, each in enumerate(ch):
                 if write_outputs:
-                    for split, each_split_channel_map in enumerate(channel_map):
-                        filename = self.output_filename_template.format(
-                            telescope=each.telescope
-                            if each.tube is None
-                            else each.tube,
-                            band=each.band,
-                            nside=self.nside,
-                            tag=self.tag,
-                            num=self.num,
-                            nsplits=self.nsplits,
-                            split=split + 1,
-                        )
-                        warnings.warn("Writing output map " + filename)
-                        if self.car:
-                            pixell.enmap.write_map(
-                                os.path.join(self.output_folder, filename),
-                                each_split_channel_map,
-                                extra=dict(units=self.unit),
+                    output[each.tag] = []
+                    for split in range(self.nsplits):
+                        for pix_index, p in enumerate(self.pixelizations):
+                            filename = self.output_filename_template.format(
+                                telescope=each.telescope
+                                if each.tube is None
+                                else each.tube,
+                                band=each.band,
+                                nside=self.nside,
+                                tag=self.tag,
+                                num=self.num,
+                                nsplits=self.nsplits,
+                                split=split + 1,
+                                pixelization=p,
                             )
-                        else:
-                            each_split_channel_map[
-                                np.isnan(each_split_channel_map)
-                            ] = hp.UNSEEN
-                            each_split_channel_map = hp.reorder(
-                                each_split_channel_map, r2n=True
+                            output[each.tag].append(filename)
+                            warnings.warn("Writing output map " + filename)
+                            each_split_channel_map = output_map[pix_index][ch_index][
+                                split
+                            ]
+                            extra_metadata = dict(
+                                telescope=each.telescope
+                                if each.tube is None
+                                else each.tube,
+                                band=each.band,
+                                tag=self.tag,
+                                num=self.num,
+                                ell_max=self.lmax,
+                                nsplits=self.nsplits,
+                                split=split + 1,
                             )
-                            hp.write_map(
-                                os.path.join(self.output_folder, filename),
-                                each_split_channel_map,
-                                coord=self.pysm_output_reference_frame,
-                                column_units=self.unit,
-                                dtype=np.float32,
-                                overwrite=True,
-                                nest=True,
-                            )
+                            if p == "car":
+                                extra_metadata["units"] = self.unit
+                                pixell.enmap.write_map(
+                                    os.path.join(self.output_folder, filename),
+                                    each_split_channel_map,
+                                    extra=extra_metadata,
+                                )
+                            elif p == "healpix":
+                                each_split_channel_map[
+                                    np.isnan(each_split_channel_map)
+                                ] = hp.UNSEEN
+                                each_split_channel_map = hp.reorder(
+                                    each_split_channel_map, r2n=True
+                                )
+                                hp.write_map(
+                                    os.path.join(self.output_folder, filename),
+                                    each_split_channel_map,
+                                    coord=self.pysm_output_reference_frame,
+                                    column_units=self.unit,
+                                    dtype=np.float32,
+                                    overwrite=True,
+                                    extra_header=[
+                                        (k, v) for k, v in extra_metadata.items()
+                                    ],
+                                    nest=True,
+                                )
                 else:
-                    if self.nsplits == 1:
-                        channel_map = channel_map[0]
-                    if not self.car:
-                        channel_map[np.isnan(channel_map)] = hp.UNSEEN
-                    output[each.tag] = channel_map
-        if not write_outputs:
-            return output
+                    output[each.tag] = []
+                    for pix_index, p in enumerate(self.pixelizations):
+                        channel_map = output_map[pix_index][ch_index]
+                        if p == "healpix":
+                            channel_map[np.isnan(channel_map)] = hp.UNSEEN
+                        if self.nsplits == 1:
+                            channel_map = channel_map[0]
+                        output[each.tag].append(channel_map)
+                    if len(output[each.tag]) == 1:
+                        output[each.tag] = output[each.tag][0]
+
+        return output
