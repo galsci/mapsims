@@ -7,7 +7,7 @@ from .runner import MapSim, from_config, get_default_so_resolution
 # Enforce Python version check during package import.
 import sys
 
-__minimum_python_version__ = "3.8"
+__minimum_python_version__ = "3.7"
 
 
 class UnsupportedPythonError(Exception):
