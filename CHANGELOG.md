@@ -1,3 +1,7 @@
+## Unreleased
+
+* Removed support for inputs in C frame (#85)
+
 ## 2.4.0
 > Released 16 February 2021
 
