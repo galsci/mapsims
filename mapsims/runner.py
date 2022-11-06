@@ -542,7 +542,7 @@ class MapSim:
                                 split
                             ]
                             extra_metadata = dict(
-                                telescope=each.telescope
+                                telescop=each.telescope
                                 if each.tube is None
                                 else each.tube,
                                 band=each.band,
