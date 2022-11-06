@@ -56,7 +56,7 @@ def test_from_classes():
         unit="uK_CMB",
         pysm_components_string="d0",
         pysm_custom_components={"cmb": cmb},
-        pysm_output_reference_frame="C",
+        output_reference_frame="C",
         other_components={"noise": noise},
     )
 
