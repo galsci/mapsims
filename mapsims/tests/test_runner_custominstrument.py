@@ -9,7 +9,6 @@ except ImportError:
     import pysm.units as u
 
 import mapsims
-import so_pysm_models
 
 NSIDE = 16
 
@@ -29,7 +28,7 @@ def test_from_classes_custominstrument():
     )
 
     # CIB is only at NSIDE 4096, too much memory for testing
-    # cib = so_pysm_models.WebSkyCIB(
+    # cib = WebSkyCIB(
     #    websky_version="0.3", nside=NSIDE, interpolation_kind="linear"
     # )
 
@@ -45,9 +44,7 @@ def test_from_classes_custominstrument():
     output_map = simulator.execute(write_outputs=False)["100"]
 
     freq = 100.89 * u.GHz
-    expected_map = cmb.get_emission(freq) + so_pysm_models.get_so_models(
-        "SO_d0", nside=NSIDE
-    ).get_emission(freq)
+    expected_map = cmb.get_emission(freq)
     fwhm = 9.682 * u.arcmin
 
     from mpi4py import MPI

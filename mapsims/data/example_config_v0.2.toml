@@ -15,7 +15,7 @@ output_reference_frame = "C"
     pysm_components_string = "d0"
 
     [ pysm_components.cmb ]
-    class  =  "mapsims.SOPrecomputedCMB"
+    class  =  "mapsims.PrecomputedCMB"
     num = 0 # if not provided, it will be set to global num configuration
     lensed = false
     # At NERSC use:

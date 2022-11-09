@@ -23,7 +23,7 @@ def test_load_sim():
     alm_filename = get_pkg_data_filename("data/fullskyUnlensedUnabberatedCMB_alm_set00_00000.fits")
     cmb_dir = os.path.dirname(alm_filename)
     nside = 32
-    cmb_map = cmb.SOPrecomputedCMB(
+    cmb_map = cmb.PrecomputedCMB(
         num=0,
         nside=nside,
         cmb_dir=cmb_dir,
@@ -41,7 +41,7 @@ def test_standalone_cmb():
     alm_filename = get_pkg_data_filename("data/fullskyUnlensedUnabberatedCMB_alm_set00_00000.fits")
     cmb_dir = os.path.dirname(alm_filename)
     nside = 32
-    cmb_map = cmb.SOStandalonePrecomputedCMB(
+    cmb_map = cmb.StandalonePrecomputedCMB(
         num=0,
         nside=nside,
         cmb_dir=cmb_dir,

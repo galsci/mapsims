@@ -22,7 +22,6 @@ try:
 except:
     pixell = None
 
-from so_pysm_models import get_so_models
 from .utils import DEFAULT_INSTRUMENT_PARAMETERS, merge_dict
 
 import socket
@@ -422,10 +421,7 @@ class MapSim:
             preset_strings = []
             if self.pysm_components_string is not None:
                 for model in self.pysm_components_string.split(","):
-                    if model.startswith("SO"):
-                        sky_config.append(get_so_models(model, self.nside))
-                    else:
-                        preset_strings.append(model)
+                    preset_strings.append(model)
 
             input_reference_frame = "G"
 

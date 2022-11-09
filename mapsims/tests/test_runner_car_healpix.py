@@ -20,7 +20,7 @@ def test_from_classes_car_healpix(tmp_path):
         nside=NSIDE,
         unit="uK_CMB",
         pysm_components_string="d1",
-        pysm_output_reference_frame="G",
+        output_reference_frame="G",
         car=True,
         car_resolution=1 * u.deg,
         healpix=True,

@@ -39,7 +39,7 @@ def test_from_classes():
     # Test CMB alms from Planck generated with
     # https://zonca.dev/2020/09/planck-spectra-healpy.html
 
-    cmb = mapsims.SOPrecomputedCMB(
+    cmb = mapsims.PrecomputedCMB(
         num=0,
         nside=NSIDE,
         lensed=False,
