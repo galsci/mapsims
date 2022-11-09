@@ -48,6 +48,7 @@ def test_from_classes_custominstrument():
     fwhm = 9.682 * u.arcmin
 
     from mpi4py import MPI
+
     map_dist = pysm.MapDistribution(
         nside=NSIDE, smoothing_lmax=3 * NSIDE - 1, mpi_comm=MPI.COMM_WORLD
     )

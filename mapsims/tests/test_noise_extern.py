@@ -27,9 +27,9 @@ class SurveyFromExternalData:
     ):
 
         """[summary]
-        
+
         [description]
-        
+
         Arguments:
             nbands {[int]} -- the number of bands to be passed
             fwhms {[float]} -- a list of the fwhms for each band
@@ -38,14 +38,14 @@ class SurveyFromExternalData:
             Supply either:
             noise_files {[type]} -- a list of the noise files for each band. The noise will then be loaded from files
             or
-            noise_ell,noise_TT and noise_PP -- noise_ell is a 1d array of the noise power spectra ells. 
+            noise_ell,noise_TT and noise_PP -- noise_ell is a 1d array of the noise power spectra ells.
                     noise_TT and noise_PP are the arrays of noise for each band. They should have shape
                     either [nband,len(noise_ell)] or [nband,nband,len(noise_ell)] if band covariances are desired.
 
 
             Supply either
             hitmaps {array} -- an array of [nbands,map dimensions] containing the hitmaps for each band
-            or 
+            or
             hitmap_filenames {[type]} -- a list of files to load the hitmap for each band
 
             Supply either:
@@ -55,7 +55,7 @@ class SurveyFromExternalData:
 
             ivar_map_filenames {[type]} -- a list of filenames for the ivar_maps for each band(default: {None})
 
-             
+
             white_noises {[type]} -- a list of the white noise levels for each band. Note this is not necessary for basic functionality
                                     However if not passed some functions of the noise class will not work. E.g. rescaling the white noise level
                                     of generating an ivar_map (if neither of the previous two arguments are supplied.
@@ -122,7 +122,7 @@ class SurveyFromExternalData:
     def get_white_noise(self, f_sky, units="arcmin2", *args, **kwargs):
         if self.white_noises is None:
             return None
-        A = self.white_noises ** 2
+        A = self.white_noises**2
         if units == "arcmin2":
             A *= (60 * 180 / np.pi) ** 2
         elif units != "sr":
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     hitsMaps, sky_fractions = noise_sim_so.get_hitmaps("LT3")
 
     noise_indices = noise_sim_so.get_noise_indices("LT3")
-    hitsMaps_all = np.zeros([6, 12 * nside ** 2])
+    hitsMaps_all = np.zeros([6, 12 * nside**2])
     hitsMaps_all[noise_indices] = hitsMaps
     soNoiseSim = noise_sim_so.simulate("LT3", seed=1)
 
@@ -291,4 +291,3 @@ if __name__ == "__main__":
     simMaps_example_ivar = noise_sim_extern_ivar.simulate("PA1", seed=1)
 
     assert np.all(np.isclose(simMaps_example_ivar / simMaps_example, 1))
-

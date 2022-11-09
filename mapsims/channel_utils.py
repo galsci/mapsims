@@ -103,7 +103,11 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
             tag = row["tag"]
         except KeyError:
             tag = row["band"]
-        if filter == "all" or (tag in filter_values) or (row[filter_key] in filter_values) :
+        if (
+            filter == "all"
+            or (tag in filter_values)
+            or (row[filter_key] in filter_values)
+        ):
             try:
                 telescope = row["telescope"]
             except KeyError:
@@ -123,7 +127,11 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
                     "bandpass_frequency": row["center_frequency"],
                     "bandpass_weight": np.ones(1),
                 }
-            other_metadata = {name:row[name] for name in row.colnames if name not in ["band", "tag", "fwhm", "telescope", "tube"]}
+            other_metadata = {
+                name: row[name]
+                for name in row.colnames
+                if name not in ["band", "tag", "fwhm", "telescope", "tube"]
+            }
             channel_objects_list.append(
                 Channel(
                     tag=tag,
@@ -135,7 +143,7 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
                     beam=row["fwhm"],
                     telescope=telescope,
                     tube=tube,
-                    **other_metadata
+                    **other_metadata,
                 )
             )
     # just for tubes, return tuples of channel pairs

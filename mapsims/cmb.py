@@ -123,8 +123,7 @@ class StandalonePrecomputedCMB(PrecomputedAlms):
         )
 
     def get_phi_alm(self):
-        """Return the lensing potential (phi) alms corresponding to this sim
-        """
+        """Return the lensing potential (phi) alms corresponding to this sim"""
         return hp.read_alm(_get_phi_map_string(self.cmb_dir, self.iteration_num))
 
     def simulate(self, ch, output_units="uK_CMB"):
@@ -141,7 +140,8 @@ class StandalonePrecomputedCMB(PrecomputedAlms):
         def _wrap_wcs(x):
             if self.wcs is not None:
                 from pixell import enmap
-                return enmap.enmap(x,self.wcs)
+
+                return enmap.enmap(x, self.wcs)
             else:
                 return x
 
@@ -152,14 +152,20 @@ class StandalonePrecomputedCMB(PrecomputedAlms):
                 (len(ch), 3, hp.nside2npix(self.nside)), dtype=np.float64
             )
             for i, each in enumerate(ch):
-                output_map[i] = _wrap_wcs(self.get_emission(
-                    freqs=each.center_frequency, fwhm=each.beam, output_units=output_units
-                ))
+                output_map[i] = _wrap_wcs(
+                    self.get_emission(
+                        freqs=each.center_frequency,
+                        fwhm=each.beam,
+                        output_units=output_units,
+                    )
+                )
             return output_map
         else:
-            return _wrap_wcs(self.get_emission(
-                freqs=ch.center_frequency, fwhm=ch.beam, output_units=output_units
-            ))
+            return _wrap_wcs(
+                self.get_emission(
+                    freqs=ch.center_frequency, fwhm=ch.beam, output_units=output_units
+                )
+            )
 
 
 def _get_default_cmb_directory():

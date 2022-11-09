@@ -55,7 +55,9 @@ def test_parse_instrument_parameters_subset(create_test_instrument_parameters):
 def test_parse_instrument_parameters_filtertube(create_test_instrument_parameters):
 
     tmp_filename = create_test_instrument_parameters
-    channels = parse_channels(instrument_parameters=tmp_filename, filter="telescope:telescope_2")
+    channels = parse_channels(
+        instrument_parameters=tmp_filename, filter="telescope:telescope_2"
+    )
     assert len(channels) == 1
     assert channels[0].tag == "ch_2"
     for each in channels:
