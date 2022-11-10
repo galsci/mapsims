@@ -351,8 +351,6 @@ class MapSim:
             It also assumes that in the same folder there are IPAC table files named bandpass_{tag}.tbl
             with columns:
                 bandpass_frequency, bandpass_weight
-
-
         """
 
         self.channels = parse_channels(

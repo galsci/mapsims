@@ -66,8 +66,8 @@ rst_epilog += """
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = setup_cfg["tool"]["poetry"]["name"]
-author = ", ".join(setup_cfg["tool"]["poetry"]["authors"])
+project = setup_cfg["project"]["name"]
+author = ", ".join([a["name"] for a in setup_cfg["project"]["authors"]])
 copyright = "{0}, {1}".format(datetime.datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
@@ -154,8 +154,8 @@ man_pages = [("index", project.lower(), project + u" Documentation", [author], 1
 
 extensions += ["sphinx_astropy.ext.edit_on_github"]
 
-edit_on_github_project = setup_cfg["tool"]["poetry"]["repository"].replace("https://github.com/","")
-edit_on_github_branch = "master"
+edit_on_github_project = setup_cfg["project"]["urls"]["Home"].replace("https://github.com/","")
+edit_on_github_branch = "main"
 
 edit_on_github_source_root = ""
 edit_on_github_doc_root = "docs"
