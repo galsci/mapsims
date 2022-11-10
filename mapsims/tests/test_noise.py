@@ -65,17 +65,20 @@ def test_homogeneous_noise():
     assert hp.mask_bad(output_map).sum() == 0
     assert output_map[0][0][1].std() < 4
 
+
 def test_no_atmosphere():
     """Disabling atmosphere reduces power in the map"""
 
     seed = 1234
     tube = "ST3"
 
-    simulator = mapsims.SONoiseSimulator(nside=nside, homogeneous=True, rolloff_ell=None)
+    simulator = mapsims.SONoiseSimulator(
+        nside=nside, homogeneous=True, rolloff_ell=None
+    )
     output_map = simulator.simulate(tube, seed=seed, atmosphere=True)
 
-    assert output_map[0][0][0].std() > .5
+    assert output_map[0][0][0].std() > 0.5
 
     output_map = simulator.simulate(tube, seed=seed, atmosphere=False)
 
-    assert output_map[0][0][0].std() < .5
+    assert output_map[0][0][0].std() < 0.5

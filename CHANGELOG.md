@@ -1,3 +1,11 @@
+## Unreleased
+
+* Removed support for inputs in C frame (#85)
+* Removed imports from `so_pysm_models` (#85)
+* Switch packaging from `poetry` to `flit` (#84)
+* Support generating both HEALPix and CAR in 1 pass (#83)
+* Bug fix for new `numpy` (#81)
+
 ## 2.4.0
 > Released 16 February 2021
 
