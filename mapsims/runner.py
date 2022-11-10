@@ -246,6 +246,8 @@ def from_config(config_file, override=None):
     map_sim = MapSim(
         channels=config["channels"],
         nside=nside,
+        modeling_nside=modeling_nside,
+        lmax_over_modeling_nside=lmax_over_modeling_nside,
         car=car,
         car_resolution=car_resolution,
         num=config["num"],
@@ -271,7 +273,7 @@ class MapSim:
         channels,
         nside=None,
         modeling_nside=None,
-        lmax_over_modeling_nside=1.25,
+        lmax_over_modeling_nside=None,
         car=False,
         healpix=True,
         car_resolution=None,
