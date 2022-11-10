@@ -5,7 +5,9 @@
 
 import os
 from astropy.utils import data
-import warnings
+import logging
+log = logging.getLogger("mapsims")
+
 try:
     from collections import Mapping
 except ImportError: # Python 3.10
@@ -72,12 +74,12 @@ class RemoteData:
         for folder in self.data_folders:
             full_path = os.path.join(folder, filename)
             if os.path.exists(full_path):
-                warnings.warn(f"Access data from {full_path}")
+                log.warn(f"Access data from {full_path}")
                 return full_path
         with data.conf.set_temp("dataurl", self.data_url), data.conf.set_temp(
             "remote_timeout", 90
         ):
-            warnings.warn(f"Retrieve data for {filename} (if not cached already)")
+            log.warn(f"Retrieve data for {filename} (if not cached already)")
             map_out = data.get_pkg_data_filename(filename, show_progress=True)
         return map_out
 

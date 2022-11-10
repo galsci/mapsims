@@ -1,7 +1,8 @@
 from collections import defaultdict
 import numpy as np
 import healpy as hp
-import warnings
+import logging
+log = logging.getLogger("mapsims")
 
 try:  # PySM >= 3.2.1
     import pysm3.units as u
@@ -444,7 +445,7 @@ class BaseNoiseSimulator:
             if pixell.wcsutils.is_compatible(hitmap.wcs, self.wcs):
                 hitmap = pixell.enmap.extract(hitmap, self.shape, self.wcs)
             else:
-                warnings.warn(
+                log.warning(
                     "WCS of hitmap with nearest pixel-size is not compatible, so interpolating hitmap"
                 )
                 hitmap = pixell.enmap.project(hitmap, self.shape, self.wcs, order=0)

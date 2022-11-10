@@ -1,10 +1,12 @@
 import importlib
+import logging
 import os
 import os.path
 from astropy.table import Table
 from astropy.utils import data
 import healpy as hp
 import numpy as np
+log = logging.getLogger("mapsims")
 
 try:  # PySM >= 3.2.1
     import pysm3.units as u
@@ -36,8 +38,6 @@ try:
     COMM_WORLD = MPI.COMM_WORLD
 except ImportError:
     COMM_WORLD = None
-
-import warnings
 
 from .channel_utils import parse_channels
 
@@ -142,6 +142,7 @@ def command_line_script(args=None):
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
     parser.add_argument("--nside", type=int, required=False, help="NSIDE")
+    parser.add_argument("--verbose", required=False, action="store_true", help="Set logging to INFO")
     parser.add_argument(
         "--num",
         type=int,
@@ -164,6 +165,11 @@ def command_line_script(args=None):
         if getattr(res, key) is not None
     }
 
+    logging.basicConfig()
+    if res.verbose:
+        log.setLevel(logging.INFO)
+
+    log.info("Parsing configuration from %s", ", ".join(res.config))
     simulator = from_config(res.config, override=override)
     simulator.execute(write_outputs=True)
 
@@ -219,6 +225,7 @@ def from_config(config_file, override=None):
             for comp_name in component_type_config:
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
+                log.info("Creating component %s", comp_class)
                 if (
                     function_accepts_argument(comp_class, "num")
                     and "num" in config
@@ -380,8 +387,9 @@ class MapSim:
             healpix=self.healpix,
         )
         self.modeling_nside = modeling_nside if modeling_nside is not None else nside
-        assert self.modeling_nside is not None, "Please set modeling_nside"
-        self.lmax = self.modeling_nside * lmax_over_modeling_nside
+        self.lmax = int(self.modeling_nside * lmax_over_modeling_nside)
+        log.info("Nside: %d, Modeling Nside: %d, Ellmax: %d", self.nside, self.modeling_nside, self.lmax)
+
 
         self.unit = unit
         self.num = num
@@ -423,6 +431,7 @@ class MapSim:
 
             input_reference_frame = "G"
 
+            log.info("Initializing the PySM Sky object")
             self.pysm_sky = pysm.Sky(
                 nside=self.modeling_nside,
                 preset_strings=preset_strings,
@@ -438,6 +447,7 @@ class MapSim:
 
         # ch can be single channel or tuple of 2 channels (tube dichroic)
         for ch in self.channels:
+            log.info("Processing channel %s", str(ch))
             if not isinstance(ch, tuple):
                 ch = [ch]
             output_map = []
@@ -447,11 +457,13 @@ class MapSim:
 
             if self.run_pysm:
                 for ch_index, each in enumerate(ch):
+                    log.info("Bandpass integration for %s", str(each))
                     bandpass_integrated_map = self.pysm_sky.get_emission(
                         *each.bandpass
                     ).value
                     beam_width_arcmin = each.beam
                     # smoothing and coordinate rotation with 1 spherical harmonics transform
+                    log.info("Smoothing and coord-transform for %s", str(each))
                     smoothed_maps = pysm.apply_smoothing_and_coord_transform(
                         bandpass_integrated_map,
                         fwhm=beam_width_arcmin,
@@ -493,6 +505,7 @@ class MapSim:
 
             if self.other_components is not None:
                 for comp in self.other_components.values():
+                    log.info("Additional component %s for %s", str(comp), str(ch))
                     assert (
                         len(self.pixelizations) == 1
                     ), "Other components do not support multiple pixelizations"
@@ -531,7 +544,7 @@ class MapSim:
                                 pixelization=p,
                             )
                             output[each.tag].append(filename)
-                            warnings.warn("Writing output map " + filename)
+                            log.info("Writing output map " + filename)
                             each_split_channel_map = output_map[pix_index][ch_index][
                                 split
                             ]
