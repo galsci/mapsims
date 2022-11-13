@@ -165,9 +165,10 @@ def command_line_script(args=None):
         if getattr(res, key) is not None
     }
 
-    logging.basicConfig()
+    logging.basicConfig(format= "%(asctime)s:%(levelname)s:%(name)s:%(message)s" )
     if res.verbose:
-        log.setLevel(logging.INFO)
+        for each in [log, logging.getLogger("pysm3")]:
+            each.setLevel(logging.INFO)
 
     log.info("Parsing configuration from %s", ", ".join(res.config))
     simulator = from_config(res.config, override=override)
