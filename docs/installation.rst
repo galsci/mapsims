@@ -10,8 +10,7 @@ Requirements
 * ``numba``
 * ``h5py`` to read instruments parameters other than SO
 * ``healpy``
-* ``so_pysm_models``
-* ``so_noise_models``
+* ``so_noise_models``, install with ``pip install https://github.com/zonca/so_noise_models/archive/3.1.1.tar.gz``
 * ``toml``
 * ``pytest`` to run unit tests
 * ``nbval`` to run Notebook unit tests
