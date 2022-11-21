@@ -1,5 +1,8 @@
 ## Unreleased
 
+## 2.5.0
+> Released 21 November 2022
+
 * Removed support for inputs in C frame (#85)
 * Removed imports from `so_pysm_models` (#85)
 * Switch packaging from `poetry` to `flit` (#84)
