@@ -1,0 +1,29 @@
+\ Text file in IPAC table format, read with astropy
+\ from astropy.table import QTable
+\ QTable.read('filename.tbl', format='ascii.ipac')
+\ Instrument model exported from `s4sim`, version 9a643f5
+|  band|telescope|center_frequency|  fwhm|detectors_per_tube|      NET|chile_temp_sensitivity_DSR|chile_pol_sensitivity_DSR|chile_temp_sensitivity_PDB|chile_pol_sensitivity_PDB|pole_pol_sensitivity_DSR|pole_pol_sensitivity_PDB|
+|  char|     char|          double|double|              long|   double|                    double|                   double|                    double|                   double|                  double|                  double|
+|      |         |             GHz|arcmin|                  |s(1/2) uK|                 arcmin uK|                arcmin uK|                 arcmin uK|                arcmin uK|               arcmin uK|               arcmin uK|
+|  null|     null|            null|  null|              null|     null|                      null|                     null|                      null|                     null|                    null|                    null|
+ ULFPL1       LAT             20.0   11.4                 54     332.2                        0.0                       0.0                        0.0                       0.0                      8.4                    13.16 
+   LFL1       LAT            25.75    7.4                 96     275.0                       21.8                      30.8                      21.34                     30.23                      5.0                      6.5 
+  LFPL1       LAT            25.75    8.4                 96     278.6                       21.8                      30.8                      21.34                     30.23                      5.0                      6.5 
+   LFL2       LAT            38.75    5.1                 96     215.0                       12.4                      17.6                      11.67                     16.53                      4.5                     4.15 
+  LFPL2       LAT            38.75    5.8                 96     268.6                       12.4                      17.6                      11.67                     16.53                      4.5                     4.15 
+  MFPL1       LAT             91.5    2.5                864     285.2                        2.0                       2.9                       1.89                      2.68                     0.68                     0.63 
+   MFL1       LAT             91.5    2.2                864     251.0                        2.0                       2.9                       1.89                      2.68                     0.68                     0.63 
+   MFL2       LAT            148.5    1.4                864     280.0                        2.0                       2.8                       2.09                      2.96                     0.96                     0.59 
+  MFPL2       LAT            148.5    1.6                864     264.6                        2.0                       2.8                       2.09                      2.96                     0.96                     0.59 
+   HFL1       LAT            227.0    1.0                864     625.0                        6.9                       9.8                        6.9                      9.78                      5.7                     1.83 
+  HFPL1       LAT            227.0    1.1                864     534.9                        6.9                       9.8                        6.9                      9.78                      5.7                     1.83 
+   HFL2       LAT            285.5    0.9                864    1528.0                       16.7                      23.6                      16.88                     23.93                      9.8                     4.34 
+  HFPL2       LAT            285.5    1.0                864    1228.3                       16.7                      23.6                      16.88                     23.93                      9.8                     4.34 
+   LFS1       SAT            25.75   72.8                288     169.2                        0.0                       0.0                        0.0                       0.0                      3.5                     3.74 
+   LFS2       SAT            38.75   72.8                288     204.3                        0.0                       0.0                        0.0                       0.0                      4.5                     4.73 
+  MFLS1       SAT             85.0   25.5               3528     290.0                        0.0                       0.0                        0.0                       0.0                     0.88                     0.93 
+  MFHS1       SAT             95.0   22.7               3528     248.2                        0.0                       0.0                        0.0                       0.0                     0.78                     0.82 
+  MFLS2       SAT            145.0   25.5               3528     280.4                        0.0                       0.0                        0.0                       0.0                      1.2                     1.25 
+  MFHS2       SAT            155.1   22.7               3528     297.4                        0.0                       0.0                        0.0                       0.0                      1.3                     1.34 
+   HFS1       SAT            227.0   13.0               8592     609.1                        0.0                       0.0                        0.0                       0.0                      3.5                     3.48 
+   HFS2       SAT            285.5   13.0               8592    1434.9                        0.0                       0.0                        0.0                       0.0                      6.0                     8.08 

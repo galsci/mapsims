@@ -1,0 +1,13 @@
+channels = "telescope:LAT"
+nside = 4096
+modeling_nside = 4096
+lmax_over_modeling_nside = 2.5
+healpix = true
+car = false
+output_folder = "."
+output_filename_template= "cmbs4_{tag}_uKCMB_{telescope}-{band}_nside{nside}_0000.fits"
+unit = "uK_CMB"
+num = 0
+output_reference_frame = "C"
+mapsims_version = "2.5.0"
+instrument_parameters = "mapsims/tests/data/cmbs4_instrument_model.tbl"
