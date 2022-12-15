@@ -2,6 +2,7 @@ from collections import defaultdict
 import numpy as np
 import healpy as hp
 import logging
+
 log = logging.getLogger("mapsims")
 
 try:  # PySM >= 3.2.1

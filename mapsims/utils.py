@@ -6,11 +6,12 @@
 import os
 from astropy.utils import data
 import logging
+
 log = logging.getLogger("mapsims")
 
 try:
     from collections import Mapping
-except ImportError: # Python 3.10
+except ImportError:  # Python 3.10
     from collections.abc import Mapping
 
 DEFAULT_INSTRUMENT_PARAMETERS = "simonsobs_instrument_parameters_2020.06"
