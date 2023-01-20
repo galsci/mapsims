@@ -82,9 +82,9 @@ class BaseNoiseSimulator:
             Set to True to generate full-sky maps with no hit-count variation, with noise curves
             corresponding to a survey that covers a sky fraction of sky_fraction (defaults to 1).
         no_power_below_ell : int
-            The input spectra have significant power at low :math:`\ell`,
-            we can zero that power specifying an integer :math:`\ell` value here.
-            The power spectra at :math:`\ell < \ell_0` are set to zero.
+            The input spectra have significant power at low :math:`\\ell`,
+            we can zero that power specifying an integer :math:`\\ell` value here.
+            The power spectra at :math:`\\ell < \\ell_0` are set to zero.
         rolloff_ell : int
             Low ell power damping, see the docstring of
             `so_noise_models.so_models_v3.SO_Noise_Calculator_Public_v3_1_1.rolloff`
@@ -315,7 +315,7 @@ class BaseNoiseSimulator:
         Returns
         -------
         ell : np.array
-            Array of :math:`\ell`
+            Array of :math:`\\ell`
         ps_T, ps_P : np.array
             Tube noise spectra for T and P, one row per channel, the 3rd the crosscorrelation
         fsky : np.array
@@ -1013,9 +1013,9 @@ class SONoiseSimulator(BaseNoiseSimulator):
             Set to True to generate full-sky maps with no hit-count variation, with noise curves
             corresponding to a survey that covers a sky fraction of sky_fraction (defaults to 1).
         no_power_below_ell : int
-            The input spectra have significant power at low :math:`\ell`,
-            we can zero that power specifying an integer :math:`\ell` value here.
-            The power spectra at :math:`\ell < \ell_0` are set to zero.
+            The input spectra have significant power at low :math:`\\ell`,
+            we can zero that power specifying an integer :math:`\\ell` value here.
+            The power spectra at :math:`\\ell < \\ell_0` are set to zero.
         rolloff_ell : int
             Low ell power damping, see the docstring of
             `so_noise_models.so_models_v3.SO_Noise_Calculator_Public_v3_1_1.rolloff`
