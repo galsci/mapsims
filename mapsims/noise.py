@@ -437,7 +437,7 @@ class BaseNoiseSimulator:
         # else load
         if self.healpix:
             hitmap = hp.ud_grade(
-                hp.read_map(fname, verbose=False, dtype=np.float64),
+                hp.read_map(fname, dtype=np.float64),
                 nside_out=self.nside,
             )
         else:
@@ -856,7 +856,6 @@ class BaseNoiseSimulator:
                                 nside=self.nside,
                                 pol=False,
                                 new=True,
-                                verbose=False,
                             )
                         )
             else:
