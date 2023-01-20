@@ -393,6 +393,7 @@ class MapSim:
             healpix=self.healpix,
         )
         self.modeling_nside = modeling_nside if modeling_nside is not None else nside
+        assert lmax_over_modeling_nside is not None, "Need to provide lmax_over_modeling_nside"
         self.lmax = int(self.modeling_nside * lmax_over_modeling_nside)
         log.info(
             "Nside: %d, Modeling Nside: %d, Ellmax: %d",
