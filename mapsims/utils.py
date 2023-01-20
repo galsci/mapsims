@@ -10,9 +10,9 @@ import logging
 log = logging.getLogger("mapsims")
 
 try:
-    from collections import Mapping
-except ImportError:  # Python 3.10
     from collections.abc import Mapping
+except ImportError:  # Python 3.10
+    from collections import Mapping
 
 DEFAULT_INSTRUMENT_PARAMETERS = "simonsobs_instrument_parameters_2020.06"
 
