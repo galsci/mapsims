@@ -6,6 +6,7 @@ from astropy.table import Table
 from astropy.utils import data
 import healpy as hp
 import numpy as np
+
 log = logging.getLogger("mapsims")
 
 try:  # PySM >= 3.2.1
@@ -142,7 +143,9 @@ def command_line_script(args=None):
     )
     parser.add_argument("config", type=str, help="Configuration file", nargs="+")
     parser.add_argument("--nside", type=int, required=False, help="NSIDE")
-    parser.add_argument("--verbose", required=False, action="store_true", help="Set logging to INFO")
+    parser.add_argument(
+        "--verbose", required=False, action="store_true", help="Set logging to INFO"
+    )
     parser.add_argument(
         "--num",
         type=int,
@@ -165,7 +168,7 @@ def command_line_script(args=None):
         if getattr(res, key) is not None
     }
 
-    logging.basicConfig(format= "%(asctime)s:%(levelname)s:%(name)s:%(message)s" )
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
     if res.verbose:
         for each in [log, logging.getLogger("pysm3")]:
             each.setLevel(logging.INFO)
@@ -390,9 +393,14 @@ class MapSim:
             healpix=self.healpix,
         )
         self.modeling_nside = modeling_nside if modeling_nside is not None else nside
+        assert lmax_over_modeling_nside is not None, "Need to provide lmax_over_modeling_nside"
         self.lmax = int(self.modeling_nside * lmax_over_modeling_nside)
-        log.info("Nside: %d, Modeling Nside: %d, Ellmax: %d", self.nside, self.modeling_nside, self.lmax)
-
+        log.info(
+            "Nside: %d, Modeling Nside: %d, Ellmax: %d",
+            self.nside,
+            self.modeling_nside,
+            self.lmax,
+        )
 
         self.unit = unit
         self.num = num

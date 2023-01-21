@@ -1,5 +1,9 @@
 ## Unreleased
 
+* Add unit test to check that last CMB-S4 run keeps working (#86)
+* Fixed unit tests that were broken in `main` (#86)
+* Fix `pixell` dependancy to `0.16.0` becase `0.17.0` gives errors (#86)
+
 ## 2.5.0
 > Released 21 November 2022
 

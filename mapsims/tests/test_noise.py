@@ -26,7 +26,6 @@ def test_noise_simulator(tube):
             ),
             (0, 1, 2),
             dtype=np.float64,
-            verbose=False,
         )
         assert_quantity_allclose(output_map[i, 0], expected_map)
 

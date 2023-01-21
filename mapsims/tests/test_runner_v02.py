@@ -54,6 +54,7 @@ def test_from_classes():
         channels="tube:ST0",
         nside=NSIDE,
         unit="uK_CMB",
+        lmax_over_modeling_nside=1.5,
         pysm_components_string="d0",
         pysm_custom_components={"cmb": cmb},
         output_reference_frame="C",
