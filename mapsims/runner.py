@@ -99,7 +99,7 @@ def get_map_shape(ch, nside=None, car_resolution=None, car=False, healpix=True):
         if car_resolution is None:
             car_resolution = get_default_so_resolution(ch, field="CAR_resol")
         car_shape, car_wcs = pixell.enmap.fullsky_geometry(
-            res=car_resolution.to_value(u.radian)
+            res=car_resolution.to_value(u.radian), variant="fejer1"
         )
     else:
         car_shape, car_wcs = None, None
