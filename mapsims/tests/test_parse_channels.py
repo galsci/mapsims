@@ -1,4 +1,12 @@
 from mapsims.channel_utils import parse_channels
+from functools import partial
+
+# Use currying to set the default instrument parameters file for
+# all the following tests
+
+parse_channels = partial(
+    parse_channels, instrument_parameters="simonsobs_instrument_parameters_2020.06"
+)
 
 
 def test_single_ch():
