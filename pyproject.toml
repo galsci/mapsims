@@ -17,7 +17,7 @@ dynamic = ["version"]
 dependencies = [
     "toml",
     "pyyaml",
-    "pixell==0.16.0",
+    "pixell==0.17.3",
     "healpy",
     "numpy",
     "astropy",
