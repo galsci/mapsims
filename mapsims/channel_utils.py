@@ -16,7 +16,7 @@ class Channel:
         beam: u.arcmin,
         center_frequency: u.GHz,
         nside=None,
-        car_resol: u.arcmin=None,
+        car_resol: u.arcmin = None,
         bandpass=None,
         **kwargs,
     ):
@@ -86,6 +86,11 @@ def parse_channels(filter="all", instrument_parameters=None):
         each element is the tuple of the Channel objects in a tube. This is useful
         to simulate correlated noise.
     """
+
+    assert (
+        instrument_parameters is not None
+    ), "Need to specify an instrument parameters file"
+
     if not isinstance(
         instrument_parameters, Path
     ) and not instrument_parameters.endswith("tbl"):
@@ -125,12 +130,10 @@ def parse_channels(filter="all", instrument_parameters=None):
                 tube = telescope
 
             try:
-                bandpass_filename = (
-                    instrument_parameters.parent / row["bandpass_file"]
-                )
+                bandpass_filename = instrument_parameters.parent / row["bandpass_file"]
                 bandpass = QTable.read(bandpass_filename, format="ascii.ipac")
                 bandpass["bandpass_weight"] /= bandpass["bandpass_weight"].max()
-                bandpass = bandpass[bandpass["bandpass_weight"]>1e-3]
+                bandpass = bandpass[bandpass["bandpass_weight"] > 1e-3]
             except KeyError:
                 bandpass = {
                     "bandpass_frequency": row["center_frequency"],
