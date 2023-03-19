@@ -13,10 +13,11 @@ res = np.deg2rad(30 / 60.0)
 
 @pytest.mark.parametrize("tube", ["ST0", "ST3"])
 def test_noise_simulator(tube):
-
     seed = 1234
 
-    simulator = mapsims.SONoiseSimulator(nside=nside)
+    simulator = mapsims.SONoiseSimulator(
+        nside=nside, instrument_parameters="simonsobs_instrument_parameters_2020.06"
+    )
     output_map = simulator.simulate(tube, seed=seed)
 
     for i, ch in enumerate(simulator.tubes[tube]):
@@ -33,12 +34,15 @@ def test_noise_simulator(tube):
 @pytest.mark.skip(reason="gives nan with recent versions of pixell")
 @pytest.mark.parametrize("tube", ["LT0", "ST3"])
 def test_noise_simulator_car(tube):
-
     from pixell import enmap
 
     seed = 1234
     shape, wcs = enmap.fullsky_geometry(res=res)
-    simulator = mapsims.SONoiseSimulator(shape=shape, wcs=wcs)
+    simulator = mapsims.SONoiseSimulator(
+        shape=shape,
+        wcs=wcs,
+        instrument_parameters="simonsobs_instrument_parameters_2020.06",
+    )
 
     output_map = simulator.simulate(tube, seed=seed)
     expected_map = enmap.read_map(
@@ -50,16 +54,23 @@ def test_noise_simulator_car(tube):
 
 
 def test_homogeneous_noise():
-
     seed = 1234
     tube = "ST3"
 
-    simulator = mapsims.SONoiseSimulator(nside=nside, homogeneous=False)
+    simulator = mapsims.SONoiseSimulator(
+        nside=nside,
+        homogeneous=False,
+        instrument_parameters="simonsobs_instrument_parameters_2020.06",
+    )
     output_map = simulator.simulate(tube, seed=seed)
 
     assert hp.mask_bad(output_map).sum() > 100
 
-    simulator = mapsims.SONoiseSimulator(nside=nside, homogeneous=True)
+    simulator = mapsims.SONoiseSimulator(
+        nside=nside,
+        homogeneous=True,
+        instrument_parameters="simonsobs_instrument_parameters_2020.06",
+    )
     output_map = simulator.simulate(tube, seed=seed)
 
     assert hp.mask_bad(output_map).sum() == 0
@@ -73,7 +84,10 @@ def test_no_atmosphere():
     tube = "ST3"
 
     simulator = mapsims.SONoiseSimulator(
-        nside=nside, homogeneous=True, rolloff_ell=None
+        nside=nside,
+        homogeneous=True,
+        rolloff_ell=None,
+        instrument_parameters="simonsobs_instrument_parameters_2020.06",
     )
     output_map = simulator.simulate(tube, seed=seed, atmosphere=True)
 
