@@ -21,7 +21,7 @@ except:
     pixell = None
 
 from .channel_utils import parse_channels
-from .utils import DEFAULT_INSTRUMENT_PARAMETERS, RemoteData
+from .utils import RemoteData
 
 sensitivity_modes = {"baseline": 1, "goal": 2}
 one_over_f_modes = {"pessimistic": 0, "optimistic": 1}
@@ -48,7 +48,7 @@ class BaseNoiseSimulator:
         cache_hitmaps=True,
         boolean_sky_fraction=False,
         channels_list=None,
-        instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS,
+        instrument_parameters=None,
     ):
         """An abstract base class for simulating noise maps
 
@@ -974,7 +974,7 @@ class SONoiseSimulator(BaseNoiseSimulator):
         sky_fraction=None,
         cache_hitmaps=True,
         boolean_sky_fraction=False,
-        instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS,
+        instrument_parameters=None,
     ):
         """Simulate noise maps for Simons Observatory
 

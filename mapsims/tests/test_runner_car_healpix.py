@@ -18,7 +18,7 @@ def test_from_classes_car_healpix(tmp_path):
     simulator = mapsims.MapSim(
         channels=ch,
         nside=NSIDE,
-        lmax_over_modeling_nside=1.5,
+        lmax_over_nside=1.5,
         unit="uK_CMB",
         pysm_components_string="d1",
         output_reference_frame="G",

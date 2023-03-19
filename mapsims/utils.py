@@ -14,8 +14,6 @@ try:
 except ImportError:  # Python 3.10
     from collections import Mapping
 
-DEFAULT_INSTRUMENT_PARAMETERS = "simonsobs_instrument_parameters_2020.06"
-
 
 def _DATAURL(healpix, version):
     if healpix:

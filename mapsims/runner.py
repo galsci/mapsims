@@ -25,7 +25,7 @@ try:
 except:
     pixell = None
 
-from .utils import DEFAULT_INSTRUMENT_PARAMETERS, merge_dict
+from .utils import merge_dict
 
 import socket
 
@@ -65,10 +65,10 @@ def get_default_so_resolution(ch, field="NSIDE"):
 
 
 def get_map_shape(ch, nside=None, car_resolution=None, car=False, healpix=True):
-    """Get map shape (and WCS for CAR) for Simons Observatory channels
+    """Get map shape (and WCS for CAR)
 
     If N_side or car_resolution is None, get the default value
-    from: `mapsims/data/default_resolution.csv`
+    from the instrument model file
 
     Parameters
     ----------
@@ -97,7 +97,7 @@ def get_map_shape(ch, nside=None, car_resolution=None, car=False, healpix=True):
     """
     if car:
         if car_resolution is None:
-            car_resolution = get_default_so_resolution(ch, field="CAR_resol")
+            car_resolution = ch.car_resol
         car_shape, car_wcs = pixell.enmap.fullsky_geometry(
             res=car_resolution.to_value(u.radian), variant="fejer1"
         )
@@ -105,11 +105,11 @@ def get_map_shape(ch, nside=None, car_resolution=None, car=False, healpix=True):
         car_shape, car_wcs = None, None
     if healpix:
         if nside is None:
-            nside = get_default_so_resolution(channels[0])
+            nside = ch.nside
         healpix_shape = (hp.nside2npix(nside),)
     else:
         healpix_shape = None
-    return nside, healpix_shape, car_shape, car_wcs
+    return nside, car_resolution, healpix_shape, car_shape, car_wcs
 
 
 def function_accepts_argument(func, arg):
@@ -198,15 +198,15 @@ def from_config(config_file, override=None):
     output_reference_frame = None
 
     nside = config.get("nside", None)
-    modeling_nside = config.get("modeling_nside", nside)
-    lmax_over_modeling_nside = config.get("lmax_over_modeling_nside", None)
+    modeling_nside = config.get("modeling_nside", None)
+    lmax_over_nside = config.get("lmax_over_nside", None)
     car = config.get("car", False)
     healpix = config.get("healpix", True)
     channels = parse_channels(config["channels"], config["instrument_parameters"])
     car_resolution = config.get("car_resolution_arcmin", None)
     if car_resolution is not None:
         car_resolution = car_resolution * u.arcmin
-    nside, healpix_shape, car_shape, car_wcs = get_map_shape(
+    nside, car_resolution, healpix_shape, car_shape, car_wcs = get_map_shape(
         ch=channels[0],
         nside=nside,
         car_resolution=car_resolution,
@@ -251,7 +251,7 @@ def from_config(config_file, override=None):
         channels=config["channels"],
         nside=nside,
         modeling_nside=modeling_nside,
-        lmax_over_modeling_nside=lmax_over_modeling_nside,
+        lmax_over_nside=lmax_over_nside,
         car=car,
         car_resolution=car_resolution,
         num=config["num"],
@@ -277,7 +277,7 @@ class MapSim:
         channels,
         nside=None,
         modeling_nside=None,
-        lmax_over_modeling_nside=None,
+        lmax_over_nside=None,
         car=False,
         healpix=True,
         car_resolution=None,
@@ -291,7 +291,7 @@ class MapSim:
         output_reference_frame=None,
         pysm_custom_components=None,
         other_components=None,
-        instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS,
+        instrument_parameters=None,
     ):
         """Run map based simulations
 
@@ -323,7 +323,7 @@ class MapSim:
             output HEALPix Nside, if None, automatically pick the default resolution of the
             first channel,
             see https://github.com/simonsobs/mapsims/tree/master/mapsims/data/so_default_resolution.csv
-        lmax_over_modeling_nside : float
+        lmax_over_nside : float
             used to compute Ell_max used in the smoothing process
         car : bool
             True for CAR output
@@ -358,7 +358,7 @@ class MapSim:
             A string specifies an instrument parameters file
             included in the package `data/` folder
             A path or a string containing a path to an externally provided IPAC table file with
-            the expected format. By default the latest Simons Observatory parameters
+            the expected format.
             Instrument parameters in IPAC ascii format, one channel per row, with columns (with units):
                 tag, band, center_frequency, fwhm
             It also assumes that in the same folder there are IPAC table files named bandpass_{tag}.tbl
@@ -382,6 +382,7 @@ class MapSim:
         self.shape = {}
         (
             self.nside,
+            self.car_resolution,
             self.shape["healpix"],
             self.shape["car"],
             self.car_wcs,
@@ -392,9 +393,9 @@ class MapSim:
             car=self.car,
             healpix=self.healpix,
         )
-        self.modeling_nside = modeling_nside if modeling_nside is not None else nside
-        assert lmax_over_modeling_nside is not None, "Need to provide lmax_over_modeling_nside"
-        self.lmax = int(self.modeling_nside * lmax_over_modeling_nside)
+        self.modeling_nside = modeling_nside if modeling_nside is not None else min(8192, max(2048, 2*nside))
+        assert lmax_over_nside is not None, "Need to provide lmax_over_nside"
+        self.lmax = int(self.nside * lmax_over_nside)
         log.info(
             "Nside: %d, Modeling Nside: %d, Ellmax: %d",
             self.nside,

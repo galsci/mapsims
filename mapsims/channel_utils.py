@@ -3,7 +3,6 @@ from astropy.table import QTable
 import numpy as np
 import astropy.units as u
 from pathlib import Path
-from .utils import DEFAULT_INSTRUMENT_PARAMETERS
 
 
 class Channel:
@@ -16,6 +15,8 @@ class Channel:
         tube,
         beam: u.arcmin,
         center_frequency: u.GHz,
+        nside=None,
+        car_resol: u.arcmin=None,
         bandpass=None,
         **kwargs,
     ):
@@ -38,6 +39,10 @@ class Channel:
         center_frequency : u.GHz
             center frequency of the channel, it is also necessary when a bandpass
             is provided
+        nside : int
+            Native HEALPix resolution parameter $N_{side}$
+        car_resol: u.arcmin
+            Native CAR pixelization resolution parameter in arcmin
         bandpass : (np.array, np.array)
             dimensionless frequency response of the channel, the weighting will
             be performed in power units, MJ/sr
@@ -50,6 +55,8 @@ class Channel:
         self.beam = beam
         self.tube = tube
         self.center_frequency = center_frequency
+        self.nside = nside
+        self.car_resol = car_resol
         self.bandpass = bandpass
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -58,7 +65,7 @@ class Channel:
         return "Channel " + self.tag
 
 
-def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAMETERS):
+def parse_channels(filter="all", instrument_parameters=None):
     """Create a list of Channel objects from a HDF5 and an optional filter
 
     Reads a HDF5 file which contains the instruments parameters and
@@ -96,7 +103,7 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
         filter_values = filter_values.split(",")
 
     channel_objects_list = []
-    table = QTable.read(instrument_parameters, format="ascii.ipac")
+    table = QTable.read(str(instrument_parameters), format="ascii.ipac")
 
     for row in table:
         try:
@@ -127,11 +134,14 @@ def parse_channels(filter="all", instrument_parameters=DEFAULT_INSTRUMENT_PARAME
                     "bandpass_frequency": row["center_frequency"],
                     "bandpass_weight": np.ones(1),
                 }
+            # this loops through all column names so should pickup also
+            # nside and car_resol
             other_metadata = {
                 name: row[name]
                 for name in row.colnames
                 if name not in ["band", "tag", "fwhm", "telescope", "tube"]
             }
+
             channel_objects_list.append(
                 Channel(
                     tag=tag,
