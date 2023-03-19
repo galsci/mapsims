@@ -1,5 +1,4 @@
 from mapsims.channel_utils import parse_channels
-from mapsims.utils import DEFAULT_INSTRUMENT_PARAMETERS
 
 
 def test_single_ch():
