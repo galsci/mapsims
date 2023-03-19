@@ -19,8 +19,10 @@ def create_test_instrument_parameters(tmp_path):
         ch["fwhm"] = 12 * u.arcmin
         ch["center_frequency"] = 70 * u.GHz
         ch["telescope"] = "telescope_" + tag[-1]
+        bandpass_filename = f"bandpass_{tag}.tbl"
+        ch["bandpass_file"] = bandpass_filename
         instrument_model.append(ch)
-        QTable(bandpass).write(tmp_path / f"bandpass_{tag}.tbl", format="ascii.ipac")
+        QTable(bandpass).write(tmp_path / bandpass_filename, format="ascii.ipac")
     QTable(instrument_model).write(tmp_filename, format="ascii.ipac")
 
     return tmp_filename
