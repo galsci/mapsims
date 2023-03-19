@@ -26,6 +26,7 @@ def test_from_classes_car_healpix(tmp_path):
         car_resolution=1 * u.deg,
         healpix=True,
         output_folder=output_folder,
+        instrument_parameters="simonsobs_instrument_parameters_2020.06"
     )
 
     first_ch = simulator.channels[0][0].tag
