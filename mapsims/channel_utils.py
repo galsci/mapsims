@@ -124,12 +124,14 @@ def parse_channels(filter="all", instrument_parameters=None):
             except KeyError:
                 tube = telescope
 
-            bandpass_filename = (
-                instrument_parameters.parent / f"bandpass_{row['band']}.tbl"
-            )
-            if bandpass_filename.is_file():
+            try:
+                bandpass_filename = (
+                    instrument_parameters.parent / row["bandpass_file"]
+                )
                 bandpass = QTable.read(bandpass_filename, format="ascii.ipac")
-            else:
+                bandpass["bandpass_weight"] /= bandpass["bandpass_weight"].max()
+                bandpass = bandpass[bandpass["bandpass_weight"]>1e-3]
+            except KeyError:
                 bandpass = {
                     "bandpass_frequency": row["center_frequency"],
                     "bandpass_weight": np.ones(1),
