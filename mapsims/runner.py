@@ -393,9 +393,13 @@ class MapSim:
             car=self.car,
             healpix=self.healpix,
         )
-        self.modeling_nside = modeling_nside if modeling_nside is not None else min(8192, max(2048, 2*nside))
+        self.modeling_nside = (
+            modeling_nside
+            if modeling_nside is not None
+            else min(8192, max(2048, 2 * nside))
+        )
         assert lmax_over_nside is not None, "Need to provide lmax_over_nside"
-        self.lmax = int(self.nside * lmax_over_nside)
+        self.lmax = int(min(8192 * 2, self.nside * lmax_over_nside))
         log.info(
             "Nside: %d, Modeling Nside: %d, Ellmax: %d",
             self.nside,
