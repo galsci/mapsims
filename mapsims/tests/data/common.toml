@@ -1,7 +1,7 @@
 channels = "telescope:LAT"
 nside = 4096
 modeling_nside = 4096
-lmax_over_nside = 2.5
+lmax_over_nside = 80 # to reproduce previous test result
 healpix = true
 car = false
 output_folder = "."
