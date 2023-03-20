@@ -1,6 +1,6 @@
 channels = "telescope:LAT"
-nside = 16
-modeling_nside = 16
+nside = 4096
+modeling_nside = 4096
 lmax_over_nside = 2.5
 healpix = true
 car = false
