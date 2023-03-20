@@ -15,7 +15,7 @@ res = np.deg2rad(30 / 60.0)
 # Use currying to set the default instrument parameters file for
 # all the following tests
 
-mapsims.SONoiseSimulator = partial(
+SONoiseSimulator = partial(
     mapsims.SONoiseSimulator,
     instrument_parameters="simonsobs_instrument_parameters_2020.06",
 )
@@ -25,7 +25,7 @@ mapsims.SONoiseSimulator = partial(
 def test_noise_simulator(tube):
     seed = 1234
 
-    simulator = mapsims.SONoiseSimulator(
+    simulator = SONoiseSimulator(
         nside=nside,
     )
     output_map = simulator.simulate(tube, seed=seed)
@@ -48,7 +48,7 @@ def test_noise_simulator_car(tube):
 
     seed = 1234
     shape, wcs = enmap.fullsky_geometry(res=res)
-    simulator = mapsims.SONoiseSimulator(
+    simulator = SONoiseSimulator(
         shape=shape,
         wcs=wcs,
     )
@@ -66,7 +66,7 @@ def test_homogeneous_noise():
     seed = 1234
     tube = "ST3"
 
-    simulator = mapsims.SONoiseSimulator(
+    simulator = SONoiseSimulator(
         nside=nside,
         homogeneous=False,
     )
@@ -74,7 +74,7 @@ def test_homogeneous_noise():
 
     assert hp.mask_bad(output_map).sum() > 100
 
-    simulator = mapsims.SONoiseSimulator(
+    simulator = SONoiseSimulator(
         nside=nside,
         homogeneous=True,
     )
@@ -90,7 +90,7 @@ def test_no_atmosphere():
     seed = 1234
     tube = "ST3"
 
-    simulator = mapsims.SONoiseSimulator(
+    simulator = SONoiseSimulator(
         nside=nside,
         homogeneous=True,
         rolloff_ell=None,
