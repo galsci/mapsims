@@ -135,7 +135,6 @@ def function_accepts_argument(func, arg):
 
 
 def command_line_script(args=None):
-
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -202,7 +201,10 @@ def from_config(config_file, override=None):
     lmax_over_nside = config.get("lmax_over_nside", None)
     car = config.get("car", False)
     healpix = config.get("healpix", True)
-    channels = parse_channels(config["channels"], config["instrument_parameters"])
+    # parse_channels will throw error if instrument_parameters is missing or None
+    channels = parse_channels(
+        config["channels"], config.get("instrument_parameters", None)
+    )
     car_resolution = config.get("car_resolution_arcmin", None)
     if car_resolution is not None:
         car_resolution = car_resolution * u.arcmin
@@ -230,6 +232,13 @@ def from_config(config_file, override=None):
                 comp_config = component_type_config[comp_name]
                 comp_class = import_class_from_string(comp_config.pop("class"))
                 log.info("Creating component %s", comp_class)
+                if (
+                    function_accepts_argument(comp_class, "instrument_parameters")
+                    and "instrument_parameters" not in comp_config
+                ):
+                    comp_config["instrument_parameters"] = config[
+                        "instrument_parameters"
+                    ]
                 if (
                     function_accepts_argument(comp_class, "num")
                     and "num" in config
