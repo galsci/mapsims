@@ -53,6 +53,7 @@ def test_from_classes():
     simulator = mapsims.MapSim(
         channels="tube:ST0",
         nside=NSIDE,
+        modeling_nside=NSIDE,
         unit="uK_CMB",
         lmax_over_nside=1.5,
         pysm_components_string="d0",
