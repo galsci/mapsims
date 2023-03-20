@@ -253,7 +253,7 @@ def from_config(config_file, override=None):
                     comp_config["shape"] = car_shape
                     comp_config["wcs"] = car_wcs
                 components[component_type][comp_name] = comp_class(
-                    nside=nside, **comp_config
+                    nside=modeling_nside, **comp_config
                 )
 
     map_sim = MapSim(
