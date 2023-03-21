@@ -132,8 +132,6 @@ def parse_channels(filter="all", instrument_parameters=None):
             try:
                 bandpass_filename = instrument_parameters.parent / row["bandpass_file"]
                 bandpass = QTable.read(bandpass_filename, format="ascii.ipac")
-                bandpass["bandpass_weight"] /= bandpass["bandpass_weight"].max()
-                bandpass = bandpass[bandpass["bandpass_weight"] > 1e-3]
             except KeyError:
                 bandpass = {
                     "bandpass_frequency": row["center_frequency"],
