@@ -408,7 +408,7 @@ class MapSim:
             else min(8192, max(2048, 2 * nside))
         )
         assert lmax_over_nside is not None, "Need to provide lmax_over_nside"
-        self.lmax = int(min(8192 * 2, self.nside * lmax_over_nside))
+        self.lmax = int(min(8192 * 2, min(self.modeling_nside, self.nside) * lmax_over_nside))
         log.info(
             "Nside: %d, Modeling Nside: %d, Ellmax: %d",
             self.nside,
