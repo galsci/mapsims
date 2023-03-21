@@ -586,18 +586,22 @@ class MapSim:
                             )
                             if p == "car":
                                 extra_metadata["units"] = self.unit
+                                log.info("Writing output map")
                                 pixell.enmap.write_map(
                                     os.path.join(self.output_folder, filename),
                                     each_split_channel_map,
                                     extra=extra_metadata,
                                 )
                             elif p == "healpix":
+                                log.info("Replace NaN with UNSEEN")
                                 each_split_channel_map[
                                     np.isnan(each_split_channel_map)
                                 ] = hp.UNSEEN
+                                log.info("Reorder ring to nest")
                                 each_split_channel_map = hp.reorder(
                                     each_split_channel_map, r2n=True
                                 )
+                                log.info("Writing output map")
                                 hp.write_map(
                                     os.path.join(self.output_folder, filename),
                                     each_split_channel_map,
