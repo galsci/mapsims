@@ -22,4 +22,4 @@ if sys.version_info < tuple(
         "mapsims does not support Python < {}".format(__minimum_python_version__)
     )
 
-__version__ = "2.5.0"
+__version__ = "2.6.0"
