@@ -8,4 +8,13 @@ maintained by the Map-Based Simulation Pipeline Working Group (MBS)
 
 * For documentation, see <https://mapsims.readthedocs.io/>
 * For simulation results see <https://github.com/simonsobs/map_based_simulations>
-* [Wiki page, restricted access](http://simonsobservatory.wikidot.com/pwg:mbs)
+
+## Release package
+
+```
+# modify `mapsims/__init__.py`
+git clean -dfx
+# remove direct dependencies from pyproject.toml
+flit publish
+# revert
+```
