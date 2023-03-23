@@ -18,7 +18,7 @@ def test_from_classes_car_healpix(tmp_path):
     simulator = mapsims.MapSim(
         channels=ch,
         nside=NSIDE,
-        lmax_over_modeling_nside=1.5,
+        lmax_over_nside=1.5,
         unit="uK_CMB",
         pysm_components_string="d1",
         output_reference_frame="G",
@@ -26,6 +26,7 @@ def test_from_classes_car_healpix(tmp_path):
         car_resolution=1 * u.deg,
         healpix=True,
         output_folder=output_folder,
+        instrument_parameters="simonsobs_instrument_parameters_2020.06"
     )
 
     first_ch = simulator.channels[0][0].tag

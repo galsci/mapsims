@@ -26,7 +26,6 @@ def test_from_config_v02():
 
 
 def test_from_classes():
-
     noise = mapsims.SONoiseSimulator(
         nside=NSIDE,
         return_uK_CMB=True,
@@ -34,6 +33,7 @@ def test_from_classes():
         apply_beam_correction=False,
         apply_kludge_correction=True,
         SA_one_over_f_mode="pessimistic",
+        instrument_parameters="simonsobs_instrument_parameters_2020.06",
     )
 
     # Test CMB alms from Planck generated with
@@ -53,11 +53,13 @@ def test_from_classes():
     simulator = mapsims.MapSim(
         channels="tube:ST0",
         nside=NSIDE,
+        modeling_nside=NSIDE,
         unit="uK_CMB",
-        lmax_over_modeling_nside=1.5,
+        lmax_over_nside=1.5,
         pysm_components_string="d0",
         pysm_custom_components={"cmb": cmb},
         output_reference_frame="C",
+        instrument_parameters="simonsobs_instrument_parameters_2020.06",
         other_components={"noise": noise},
     )
 
