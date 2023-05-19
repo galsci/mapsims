@@ -583,6 +583,8 @@ class MapSim:
                                 ell_max=self.lmax,
                                 nsplits=self.nsplits,
                                 split=split + 1,
+                                pysmvers=pysm.__version__,
+                                mapsimsv=mapsims.__version__,
                             )
                             if p == "car":
                                 extra_metadata["units"] = self.unit
