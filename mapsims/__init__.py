@@ -4,6 +4,7 @@ from .noise import SONoiseSimulator
 from .alms import PrecomputedAlms
 from .cmb import PrecomputedCMB, StandalonePrecomputedCMB
 from .runner import MapSim, from_config, get_default_so_resolution
+from .version import __version__
 
 # Enforce Python version check during package import.
 import sys
@@ -21,5 +22,3 @@ if sys.version_info < tuple(
     raise UnsupportedPythonError(
         "mapsims does not support Python < {}".format(__minimum_python_version__)
     )
-
-__version__ = "2.6.0"

@@ -16,6 +16,7 @@ except ImportError:
     import pysm.units as u
     import pysm
 import toml
+from .version import __version__
 
 # pixell is optional and needed when CAR simulations are requested
 try:
@@ -584,7 +585,7 @@ class MapSim:
                                 nsplits=self.nsplits,
                                 split=split + 1,
                                 pysmvers=pysm.__version__,
-                                mapsimsv=mapsims.__version__,
+                                mapsimsv=__version__,
                             )
                             if p == "car":
                                 extra_metadata["units"] = self.unit
