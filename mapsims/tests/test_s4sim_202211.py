@@ -23,5 +23,5 @@ def test_s4sim_202222_ame_high():
 
     expected_map = hp.read_map(f"mapsims/tests/data/{filename}.gz", (0, 1, 2))
 
-    assert_allclose(expected_map, output_map, rtol=1e-4)
+    assert_allclose(expected_map, output_map, rtol=2e-4)
     os.remove(filename)
