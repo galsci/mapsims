@@ -170,7 +170,7 @@ class StandalonePrecomputedCMB(PrecomputedAlms):
 
 def _get_default_cmb_directory():
     # FIXME: remove hard-coding to use preferred directory path system
-    return "/global/project/projectdirs/sobs/v4_sims/mbs/cmb"
+    return "/global/cfs/cdirs/sobs/v4_sims/mbs/cmb"
 
 
 def _get_cmb_map_string(cmb_dir, iteration_num, cmb_set, lensed, aberrated):

@@ -10,7 +10,7 @@ Model templates
 
 Model templates or more in general model data are stored on the Simons Observatory project pages at NERSC in the folder::
 
-    /global/project/projectdirs/sobs/www/so_mapsims_data
+    /global/cfs/cdirs/sobs/www/so_mapsims_data
 
 Which is then made publicly available via web at https://portal.nersc.gov/project/sobs/so_mapsims_data
 
@@ -18,7 +18,7 @@ For example all the available hitmaps are available there. In order to copy data
 
 * run `collabsu sobs` (you need permissions by the allocation PI)
 * copy data there
-* run `bash update_html_list.sh` in the `/global/project/projectdirs/sobs/www/so_mapsims_data` folder, this creates the html pages that list the files and also fixes permissions.
+* run `bash update_html_list.sh` in the `/global/cfs/cdirs/sobs/www/so_mapsims_data` folder, this creates the html pages that list the files and also fixes permissions.
 
 Noise power spectra and hitmaps
 ===============================
@@ -55,10 +55,10 @@ Available Cosmic Microwave Background simulations
 
 **Lensed CMB**
 
-Available at NERSC at: ``/global/project/projectdirs/sobs/v4_sims/mbs/cmb``
+Available at NERSC at: ``/global/cfs/cdirs/sobs/v4_sims/mbs/cmb``
 
 * Input theory spectrum and parameters: The input spectra are based on a best-fit Planck cosmology.  The unlensed power spectra are available at https://github.com/ACTCollaboration/actsims/blob/master/data/cosmo2017_10K_acc3_scalCls.dat.  The maps are generated at :math:`\ell_{max}` = 8000 but are saved only at :math:`\ell_{max}` = 5100 (to save disk space).
-* The lensing (i.e. kappa or :math:`\phi`) maps are Gaussian random fields obtained with the same cosmology.   The lensing is done at one-arcminute resolution using the routine ``pixell.lensing.rand_map()``.  We pass separate random seeds to make the CMB and :math:`\phi` maps, meaning that there is no correlation between T and :math:`\phi` (or E and :math:`\phi`) arising from the ISW effect (this might have an impact for people studying primordial non-Gaussianity). The input :math:`\phi` :math:`a_{\ell m}` are available at ``/global/project/projectdirs/sobs/v4_sims/mbs/cmb/input_phi/`` and can be accessed using the :py:meth:`.SOPrecomputedCMB.get_phi_alm` function.
+* The lensing (i.e. kappa or :math:`\phi`) maps are Gaussian random fields obtained with the same cosmology.   The lensing is done at one-arcminute resolution using the routine ``pixell.lensing.rand_map()``.  We pass separate random seeds to make the CMB and :math:`\phi` maps, meaning that there is no correlation between T and :math:`\phi` (or E and :math:`\phi`) arising from the ISW effect (this might have an impact for people studying primordial non-Gaussianity). The input :math:`\phi` :math:`a_{\ell m}` are available at ``/global/cfs/cdirs/sobs/v4_sims/mbs/cmb/input_phi/`` and can be accessed using the :py:meth:`.SOPrecomputedCMB.get_phi_alm` function.
 * The lensed power spectra, which represent the lensed maps to a very good approximation are at https://github.com/ACTCollaboration/actsims/blob/master/data/cosmo2017_10K_acc3_lensedCls.dat
 * There are no primordial B modes (and similarly no contribution from tensors to the T maps).
 * See all the cosmological parameters used in the :doc:`CAMB configuration file <camb>`
