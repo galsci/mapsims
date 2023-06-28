@@ -49,22 +49,6 @@ PYSM_COMPONENTS = {
 default_output_filename_template = "mapsims_{tag}_{telescope}_{band}_nside{nside}_{split}_of_{nsplits}_{pixelization}.fits"
 
 
-def get_default_so_resolution(ch, field="NSIDE"):
-    "Load the default Simons Observatory resolution"
-
-    default_resolution = Table.read(
-        data.get_pkg_data_filename("data/so_default_resolution.csv")
-    )
-    default_resolution.add_index("channel")
-    first_ch = ch if not isinstance(ch, tuple) else ch[0]
-    output = default_resolution.loc[first_ch.telescope + "_" + str(first_ch.band)][
-        field
-    ]
-    if field == "CAR_resol":
-        output *= u.arcmin
-    return output
-
-
 def get_map_shape(ch, nside=None, car_resolution=None, car=False, healpix=True):
     """Get map shape (and WCS for CAR)
 
