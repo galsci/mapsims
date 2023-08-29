@@ -3,6 +3,9 @@ from astropy.table import QTable
 import numpy as np
 import astropy.units as u
 from pathlib import Path
+import logging
+
+log = logging.getLogger("mapsims")
 
 
 class Channel:
@@ -97,6 +100,7 @@ def parse_channels(filter="all", instrument_parameters=None):
         instrument_parameters = data.get_pkg_data_filename(
             "data/{i}/{i}.tbl".format(i=instrument_parameters)
         )
+    log.info("Parsing channels from %s", instrument_parameters)
     instrument_parameters = Path(instrument_parameters)
     # Need a valid filter_key to avoid errors below
     filter_key = "fwhm"
@@ -115,11 +119,13 @@ def parse_channels(filter="all", instrument_parameters=None):
             tag = row["tag"]
         except KeyError:
             tag = row["band"]
+
         if (
             filter == "all"
             or (tag in filter_values)
             or (row[filter_key] in filter_values)
         ):
+            log.info("Channel %s", tag)
             try:
                 telescope = row["telescope"]
             except KeyError:
@@ -132,11 +138,26 @@ def parse_channels(filter="all", instrument_parameters=None):
             try:
                 bandpass_filename = instrument_parameters.parent / row["bandpass_file"]
                 bandpass = QTable.read(bandpass_filename, format="ascii.ipac")
+                log.info("Bandpass from %s", bandpass_filename)
             except KeyError:
-                bandpass = {
-                    "bandpass_frequency": row["center_frequency"],
-                    "bandpass_weight": np.ones(1),
-                }
+                try:
+                    low = row["center_frequency"] - row["bandwidth"] / 2
+                    bandpass = {
+                            "bandpass_frequency": np.linspace(low, low + row["bandwidth"], 10) ,
+                        "bandpass_weight": np.ones(10, dtype=np.float),
+                    }
+                    log.info(
+                        "Top-hat bandpass based on center_frequency and bandwidth [%.2g, %.2g] %s",
+                        low.value,
+                        (low + row["bandwidth"]).value,
+                        low.unit
+                    )
+                except KeyError:
+                    bandpass = {
+                        "bandpass_frequency": row["center_frequency"],
+                        "bandpass_weight": np.ones(1),
+                    }
+                    log.info("Delta-frequency bandpass on center frequency")
             # this loops through all column names so should pickup also
             # nside and car_resol
             other_metadata = {
