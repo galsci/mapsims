@@ -1,5 +1,6 @@
 ## Unreleased
 
+* If bandwidth is defined in instrument model and no bandpass file is provided, do tophat bandpass on 10 points (#90)
 * Add unit test to check that last CMB-S4 run keeps working (#86)
 * Fixed unit tests that were broken in `main` (#86)
 * Fix `pixell` dependancy to `0.16.0` becase `0.17.0` gives errors (#86)
