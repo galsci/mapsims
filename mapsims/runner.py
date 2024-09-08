@@ -478,7 +478,7 @@ class MapSim:
                     log.info("Smoothing and coord-transform for %s", str(each))
                     other_args = {}
                     if each.custom_beam is not None:
-                        other_args["custom_beam"] = each.custom_beam
+                        other_args["beam_window"] = each.custom_beam
                     else:
                         other_args["fwhm"] = beam_width_arcmin
                     smoothed_maps = pysm.apply_smoothing_and_coord_transform(
