@@ -18,6 +18,7 @@ class Channel:
         tube,
         beam: u.arcmin,
         center_frequency: u.GHz,
+        custom_beam=None,
         nside=None,
         car_resol: u.arcmin = None,
         bandpass=None,
@@ -39,6 +40,8 @@ class Channel:
             with different beams but same frequency response
         beam : u.arcmin
             full-width-half-max of the beam, assumed gaussian
+        custom_beam : np.array
+            custom beam response, B_ell
         center_frequency : u.GHz
             center frequency of the channel, it is also necessary when a bandpass
             is provided
@@ -56,6 +59,7 @@ class Channel:
         self.telescope = telescope
         self.band = band
         self.beam = beam
+        self.custom_beam = custom_beam
         self.tube = tube
         self.center_frequency = center_frequency
         self.nside = nside
@@ -136,21 +140,32 @@ def parse_channels(filter="all", instrument_parameters=None):
                 tube = telescope
 
             try:
+                beam_filename = instrument_parameters.parent / row["beam_file"]
+                beam = QTable.read(beam_filename, format="ascii.ipac")
+                log.info("Beam from %s", beam_filename)
+                assert np.array_equal(beam["ell"], np.arange(len(beam)))
+            except KeyError:
+                log.info("No custom beam specified")
+
+            try:
                 bandpass_filename = instrument_parameters.parent / row["bandpass_file"]
                 bandpass = QTable.read(bandpass_filename, format="ascii.ipac")
+
                 log.info("Bandpass from %s", bandpass_filename)
             except KeyError:
                 try:
                     low = row["center_frequency"] - row["bandwidth"] / 2
                     bandpass = {
-                            "bandpass_frequency": np.linspace(low, low + row["bandwidth"], 10) ,
+                        "bandpass_frequency": np.linspace(
+                            low, low + row["bandwidth"], 10
+                        ),
                         "bandpass_weight": np.ones(10, dtype=np.float),
                     }
                     log.info(
                         "Top-hat bandpass based on center_frequency and bandwidth [%.2g, %.2g] %s",
                         low.value,
                         (low + row["bandwidth"]).value,
-                        low.unit
+                        low.unit,
                     )
                 except KeyError:
                     bandpass = {
@@ -175,6 +190,7 @@ def parse_channels(filter="all", instrument_parameters=None):
                         bandpass["bandpass_weight"],
                     ),
                     beam=row["fwhm"],
+                    custom_beam=beam["B"],
                     telescope=telescope,
                     tube=tube,
                     **other_metadata,
