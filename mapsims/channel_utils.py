@@ -181,6 +181,11 @@ def parse_channels(filter="all", instrument_parameters=None):
                 if name not in ["band", "tag", "fwhm", "telescope", "tube"]
             }
 
+            try:
+                other_metadata["custom_beam"] = beam["B"]
+            except UnboundLocalError:
+                pass
+
             channel_objects_list.append(
                 Channel(
                     tag=tag,
@@ -190,7 +195,6 @@ def parse_channels(filter="all", instrument_parameters=None):
                         bandpass["bandpass_weight"],
                     ),
                     beam=row["fwhm"],
-                    custom_beam=beam["B"],
                     telescope=telescope,
                     tube=tube,
                     **other_metadata,
