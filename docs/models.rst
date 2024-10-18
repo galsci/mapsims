@@ -23,8 +23,6 @@ For example all the available hitmaps are available there. In order to copy data
 Noise power spectra and hitmaps
 ===============================
 
-**REMOVED** removed from `mapsims`, the last version to support noise simulations is `2.6.1`.
-
 The :py:class:`.SONoiseSimulator` class provides a wrapper to call `so_noise_models`
 to simulate power spectra of the noise taking into account the expected performance of the whole experiment.
 The noise simulator accepts a number of parameters to configure the simulation, see the documentation
