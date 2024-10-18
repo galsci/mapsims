@@ -17,12 +17,12 @@ dynamic = ["version"]
 dependencies = [
     "toml",
     "pyyaml",
-    "pixell==0.17.3",
     "healpy",
     "numpy",
     "astropy",
+    "pixell==0.26.0",
     "so_noise_models @ https://github.com/zonca/so_noise_models/archive/3.1.1.tar.gz",
-    "pysm3 @ git+https://github.com/galsci/pysm.git#egg=pysm",
+    "pysm3 @ git+https://github.com/zonca/pysm.git@debug_catalog#egg=pysm",
 ]
 
 [project.scripts]

@@ -15,17 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Install Conda environment with Micromamba
-      uses: mamba-org/provision-with-micromamba@main
+      uses: mamba-org/setup-micromamba@v1
       with:
+        init-shell: >-
+          bash
+          powershell
         environment-file: ci/github-actions-environment.yml
-        cache-env: true
-        extra-specs: |
+        cache-environment: true
+        create-args: >-
           python=${{ matrix.python-version }}
     - name: Install dependencies
       shell: bash -l {0} # needed by conda
