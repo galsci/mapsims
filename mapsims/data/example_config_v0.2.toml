@@ -29,3 +29,21 @@ output_reference_frame = "C"
     # At NERSC use:
     # cmb_dir = "/global/cfs/cdirs/sobs/v4_sims/mbs/cmb"
     input_units = "uK_CMB"
+
+[ other_components ]
+
+    [ other_components.noise ]
+
+    class = "mapsims.SONoiseSimulator"
+    return_uK_CMB = true
+    sensitivity_mode = "baseline"
+    apply_beam_correction = false
+    apply_kludge_correction = true
+    rolloff_ell = 50
+    survey_efficiency = 0.2
+    full_covariance = true
+    LA_years = 5
+    LA_noise_model = "SOLatV3point1"
+    elevation = 50
+    SA_years = 5
+    SA_one_over_f_mode = "pessimistic"

@@ -1,3 +1,4 @@
+from astropy.tests.helper import assert_quantity_allclose
 import numpy as np
 import healpy as hp
 
@@ -25,6 +26,15 @@ def test_from_config_v02():
 
 
 def test_from_classes():
+    noise = mapsims.SONoiseSimulator(
+        nside=NSIDE,
+        return_uK_CMB=True,
+        sensitivity_mode="baseline",
+        apply_beam_correction=False,
+        apply_kludge_correction=True,
+        SA_one_over_f_mode="pessimistic",
+        instrument_parameters="simonsobs_instrument_parameters_2020.06",
+    )
 
     # Test CMB alms from Planck generated with
     # https://zonca.dev/2020/09/planck-spectra-healpy.html
@@ -50,6 +60,7 @@ def test_from_classes():
         pysm_custom_components={"cmb": cmb},
         output_reference_frame="C",
         instrument_parameters="simonsobs_instrument_parameters_2020.06",
+        other_components={"noise": noise},
     )
 
     output_map = simulator.execute(write_outputs=False)[simulator.channels[0][0].tag]
