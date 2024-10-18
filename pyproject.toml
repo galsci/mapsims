@@ -20,7 +20,7 @@ dependencies = [
     "healpy",
     "numpy",
     "astropy",
-    "pixell=0.26.0",
+    "pixell==0.26.0",
     "pysm3 @ git+https://github.com/zonca/pysm.git@debug_catalog#egg=pysm",
 ]
 
