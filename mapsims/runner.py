@@ -470,47 +470,71 @@ class MapSim:
             if self.run_pysm:
                 for ch_index, each in enumerate(ch):
                     log.info("Bandpass integration for %s", str(each))
-                    bandpass_integrated_map = self.pysm_sky.get_emission(
-                        *each.bandpass
-                    ).value
-                    beam_width_arcmin = each.beam
-                    # smoothing and coordinate rotation with 1 spherical harmonics transform
-                    log.info("Smoothing and coord-transform for %s", str(each))
-                    other_args = {}
-                    if each.custom_beam is not None:
-                        other_args["beam_window"] = each.custom_beam
-                    else:
-                        other_args["fwhm"] = beam_width_arcmin
-                    smoothed_maps = pysm.apply_smoothing_and_coord_transform(
-                        bandpass_integrated_map,
-                        lmax=self.lmax,
+                    # if get_emission of pysm sky supports fwhm I pass fwhm and return smoothed alm
+                    # so I can do coord rotation
+                    # for catalog this means creating already smoothed car maps and turn them into alm
+                    # for presmoothed interp means interpolate, apply the differential beam and return the alm
+                    # actually better if I directly return the smoothed and coord-rotated map
+                    common_kwargs = dict(
                         return_healpix=self.healpix,
                         return_car=self.car,
+                        lmax=self.lmax,
                         output_nside=self.nside,
                         output_car_resol=self.car_resolution,
-                        rot=(
-                            None
-                            if input_reference_frame == self.output_reference_frame
-                            else hp.Rotator(
-                                coord=(
+                    )
+                    if self.pysm_sky.includes_smoothing:
+                        smoothed_maps = self.pysm_sky.get_emission(
+                            *each.bandpass,
+                            fwhm=each.beam,
+                            coord=(
+                                None
+                                if input_reference_frame == self.output_reference_frame
+                                else (
                                     input_reference_frame,
                                     self.output_reference_frame,
                                 )
-                            )
-                        ),
-                        map_dist=(
-                            None
-                            if COMM_WORLD is None
-                            else pysm.MapDistribution(
-                                nside=self.nside,
-                                smoothing_lmax=self.lmax,
-                                mpi_comm=COMM_WORLD,
-                            )
-                        ),
-                        **other_args,
-                    )
+                            ),
+                            **common_kwargs,
+                        )
+                    else:
+                        bandpass_integrated_map = self.pysm_sky.get_emission(
+                            *each.bandpass
+                        ).value
+                        beam_width_arcmin = each.beam
+                        # smoothing and coordinate rotation with 1 spherical harmonics transform
+                        log.info("Smoothing and coord-transform for %s", str(each))
+                        other_args = {}
+                        if each.custom_beam is not None:
+                            other_args["beam_window"] = each.custom_beam
+                        else:
+                            other_args["fwhm"] = beam_width_arcmin
+                        smoothed_maps = pysm.apply_smoothing_and_coord_transform(
+                            bandpass_integrated_map,
+                            rot=(
+                                None
+                                if input_reference_frame == self.output_reference_frame
+                                else hp.Rotator(
+                                    coord=(
+                                        input_reference_frame,
+                                        self.output_reference_frame,
+                                    )
+                                )
+                            ),
+                            map_dist=(
+                                None
+                                if COMM_WORLD is None
+                                else pysm.MapDistribution(
+                                    nside=self.nside,
+                                    smoothing_lmax=self.lmax,
+                                    mpi_comm=COMM_WORLD,
+                                )
+                            ),
+                            **common_kwargs,
+                            **other_args,
+                        )
                     if len(self.pixelizations) == 1:
                         smoothed_maps = [smoothed_maps]
+                    smoothed_maps = [getattr(m, "value", m) for m in smoothed_maps]
 
                     # turn UNSEEN into NaN
                     if self.healpix:
