@@ -2,6 +2,7 @@ from astropy.utils import data
 from astropy.table import QTable
 import numpy as np
 import astropy.units as u
+import healpy as hp
 from pathlib import Path
 import logging
 
@@ -141,9 +142,11 @@ def parse_channels(filter="all", instrument_parameters=None):
 
             try:
                 beam_filename = instrument_parameters.parent / row["beam_file"]
-                beam = QTable.read(beam_filename, format="ascii.ipac")
+                if beam_filename.suffix == ".fits":
+                    beam = hp.read_cl(beam_filename)
+                else:
+                    beam = QTable.read(beam_filename, format="ascii.ipac")["B"]
                 log.info("Beam from %s", beam_filename)
-                assert np.array_equal(beam["ell"], np.arange(len(beam)))
             except KeyError:
                 log.info("No custom beam specified")
 
@@ -182,7 +185,7 @@ def parse_channels(filter="all", instrument_parameters=None):
             }
 
             try:
-                other_metadata["custom_beam"] = beam["B"]
+                other_metadata["custom_beam"] = beam
             except UnboundLocalError:
                 pass
 
