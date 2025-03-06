@@ -5,6 +5,7 @@ import astropy.units as u
 import healpy as hp
 from pathlib import Path
 import logging
+from typing import Optional
 
 log = logging.getLogger("mapsims")
 
@@ -17,8 +18,8 @@ class Channel:
         telescope,
         band,
         tube,
-        beam: u.arcmin,
-        center_frequency: u.GHz,
+        beam= None,
+        center_frequency=None,
         custom_beam=None,
         nside=None,
         car_resol: u.arcmin = None,
@@ -108,7 +109,7 @@ def parse_channels(filter="all", instrument_parameters=None):
     log.info("Parsing channels from %s", instrument_parameters)
     instrument_parameters = Path(instrument_parameters)
     # Need a valid filter_key to avoid errors below
-    filter_key = "fwhm"
+    filter_key = "telescope"
     if filter != "all":
         if ":" not in filter:
             filter_values = filter
@@ -197,7 +198,7 @@ def parse_channels(filter="all", instrument_parameters=None):
                         bandpass["bandpass_frequency"],
                         bandpass["bandpass_weight"],
                     ),
-                    beam=row["fwhm"],
+                    beam=row.get("fwhm", None),
                     telescope=telescope,
                     tube=tube,
                     **other_metadata,
