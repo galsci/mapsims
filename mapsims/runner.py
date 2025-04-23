@@ -332,7 +332,7 @@ class MapSim:
         num : int
             Realization number, generally used as seed, default is 0, automatically padded to 4 digits
         nsplits : int
-            Number of noise splits, see the documentation of :py:class:`SONoiseSimulator`
+            Number of noise splits
         tag : str
             String to describe the current simulation, for example its content, which is used into
             string interpolation for `output_folder` and `output_filename_template`

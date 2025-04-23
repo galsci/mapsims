@@ -22,7 +22,6 @@ dependencies = [
     "astropy",
     "scipy < 1.15",
     "pixell==0.26.0",
-    "so_noise_models @ https://github.com/zonca/so_noise_models/archive/3.1.1.tar.gz",
     "pysm3 @ git+https://github.com/galsci/pysm.git@main#egg=pysm",
 ]
 
